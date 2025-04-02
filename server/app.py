@@ -14,8 +14,8 @@ CORS(app, supports_credentials=True)
 
 # To this (allow Render domains)
 CORS(app, supports_credentials=True, origins=[
-    "http://localhost:8080",
-    "https://cxraide.onrender.com"
+    "http://localhost:8080",          # Keep for local development
+    "https://cxraide.onrender.com"  # Your production frontend
 ])
 
 # MongoDB Configuration

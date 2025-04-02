@@ -15,7 +15,7 @@ router.beforeEach(async (to, from, next) => {
     const token = localStorage.getItem("authToken");
     if (token) {
       try {
-        await axios.get("http://localhost:5000/check-session", {
+        await axios.get("https://cxraide-backend.onrender.com/check-session", {
           headers: { Authorization: token },
         });
         next();
