@@ -5,9 +5,20 @@ import axios from "axios";
 
 const app = createApp(App);
 
-app.config.errorHandler = (err) => {
+// Configure axios globally
+app.config.globalProperties.$axios = axios;
+
+// Error handling
+app.config.errorHandler = (err, vm, info) => {
   console.error("Vue error:", err);
+  console.error("Component:", vm);
+  console.error("Info:", info);
 };
 
-app.use(router);
-app.mount("#app");
+// Mount with error boundary
+app.use(router).mount("#app");
+
+// Global error catcher
+window.onerror = function (message, source, lineno, colno, error) {
+  console.error("Global error:", { message, source, lineno, colno, error });
+};

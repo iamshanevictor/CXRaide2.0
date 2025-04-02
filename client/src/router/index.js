@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
-import axios from "axios"; // Add missing import
+import axios from "axios";
 
 const routes = [
   {
     path: "/",
-    redirect: "/home", // Add explicit redirect
+    redirect: "/home",
   },
   {
     path: "/home",
@@ -22,23 +22,22 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL), // Add base URL
+  history: createWebHistory(
+    process.env.NODE_ENV === "production" ? "/" : import.meta.env.BASE_URL
+  ),
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
-  // Add route validation
-  if (!to.matched.length) {
-    next("/login");
-    return;
-  }
+router.beforeEach(async (to) => {
+  console.log(`[Router] Navigating to: ${to.path}`);
 
   if (to.meta.requiresAuth) {
     const token = localStorage.getItem("authToken");
+    console.log(`[Auth] Token exists: ${!!token}`);
 
     if (!token) {
-      next({ name: "login" }); // Use named route
-      return;
+      console.log("[Auth] No token - redirecting to login");
+      return "/login";
     }
 
     try {
@@ -46,19 +45,13 @@ router.beforeEach(async (to, from, next) => {
         `${import.meta.env.VITE_API_URL}/check-session`,
         { headers: { Authorization: token } }
       );
-
-      if (response.status === 200) {
-        next();
-      } else {
-        throw new Error("Invalid session");
-      }
+      console.log("[Auth] Session valid:", response.data.valid);
+      return true;
     } catch (error) {
-      console.error("Session check failed:", error);
+      console.error("[Auth] Session check failed:", error);
       localStorage.removeItem("authToken");
-      next({ name: "login" });
+      return "/login";
     }
-  } else {
-    next();
   }
 });
 
