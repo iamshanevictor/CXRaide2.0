@@ -21,13 +21,10 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        const response = await axios.post(
-          "https://cxraide-backend.onrender.com/login",
-          {
-            username: this.username,
-            password: this.password,
-          }
-        );
+        axios.post(import.meta.env.VITE_API_URL + "/login", {
+          username: this.username,
+          password: this.password,
+        });
 
         localStorage.setItem("authToken", response.data.token);
         this.$router.push("/");
