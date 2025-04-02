@@ -1,5 +1,6 @@
 <template>
   <div class="login">
+    <h1>CXRaide Login</h1>
     <form @submit.prevent="handleLogin">
       <input v-model="username" placeholder="Username" />
       <input v-model="password" type="password" placeholder="Password" />
@@ -21,15 +22,18 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        axios.post(import.meta.env.VITE_API_URL + "/login", {
-          username: this.username,
-          password: this.password,
-        });
+        const response = await axios.post(
+          import.meta.env.VITE_API_URL + "/login",
+          {
+            username: this.username,
+            password: this.password,
+          }
+        );
 
         localStorage.setItem("authToken", response.data.token);
         this.$router.push("/");
       } catch (error) {
-        alert("Login failed");
+        alert("Login failed: " + error.response?.data?.message);
       }
     },
   },
