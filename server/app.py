@@ -12,6 +12,12 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
+# To this (allow Render domains)
+CORS(app, supports_credentials=True, origins=[
+    "http://localhost:8080",
+    "https://cxraide.onrender.com"
+])
+
 # MongoDB Configuration
 client = MongoClient(os.getenv("MONGO_URI"))
 db = client[os.getenv("DB_NAME")]

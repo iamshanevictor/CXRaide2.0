@@ -21,10 +21,13 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        const response = await axios.post("http://localhost:5000/login", {
-          username: this.username,
-          password: this.password,
-        });
+        const response = await axios.post(
+          "https://cxraide-backend.onrender.com/login",
+          {
+            username: this.username,
+            password: this.password,
+          }
+        );
 
         localStorage.setItem("authToken", response.data.token);
         this.$router.push("/");
