@@ -31,9 +31,11 @@ export default {
         );
 
         localStorage.setItem("authToken", response.data.token);
-        this.$router.push("/");
+        this.$router.push("/home");
       } catch (error) {
-        alert("Login failed: " + error.response?.data?.message);
+        alert(
+          "Login failed: " + (error.response?.data?.message || error.message)
+        );
       }
     },
   },
