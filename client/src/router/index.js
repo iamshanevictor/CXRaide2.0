@@ -1,57 +1,56 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
-import LoginView from "../views/LoginView.vue";
 import axios from "axios";
 
 const routes = [
   {
     path: "/",
-    redirect: "/home",
+    redirect: "/login", // Direct initial redirect to login
   },
   {
     path: "/home",
     name: "home",
-    component: HomeView,
+    component: () => import("../views/HomeView.vue"), // Dynamic import
     meta: { requiresAuth: true },
   },
   {
     path: "/login",
     name: "login",
-    component: LoginView,
+    component: () => import("../views/LoginView.vue"), // Dynamic import
   },
 ];
 
+// Get the base URL from environment variables or use a default value
+const baseUrl = import.meta.env?.VITE_BASE_URL || "/";
+
 const router = createRouter({
-  history: createWebHistory(
-    process.env.NODE_ENV === "production" ? "/" : import.meta.env.BASE_URL
-  ),
+  history: createWebHistory(baseUrl),
   routes,
 });
 
 router.beforeEach(async (to) => {
-  console.log(`[Router] Navigating to: ${to.path}`);
+  console.log("[Router] Navigation started to:", to.path);
 
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem("authToken");
-    console.log(`[Auth] Token exists: ${!!token}`);
+  // Bypass auth check for login page
+  if (to.name === "login") return true;
 
-    if (!token) {
-      console.log("[Auth] No token - redirecting to login");
-      return "/login";
-    }
+  const token = localStorage.getItem("authToken");
 
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/check-session`,
-        { headers: { Authorization: token } }
-      );
-      console.log("[Auth] Session valid:", response.data.valid);
-      return true;
-    } catch (error) {
-      console.error("[Auth] Session check failed:", error);
-      localStorage.removeItem("authToken");
-      return "/login";
-    }
+  // No token - redirect to login
+  if (!token) {
+    console.log("[Auth] No token found");
+    return "/login";
+  }
+
+  try {
+    const apiUrl = import.meta.env?.VITE_API_URL || "http://localhost:5000";
+    const response = await axios.get(`${apiUrl}/check-session`, {
+      headers: { Authorization: token },
+    });
+    return response.data.valid ? true : "/login";
+  } catch (error) {
+    console.error("[Auth] Session check failed:", error);
+    localStorage.removeItem("authToken");
+    return "/login";
   }
 });
 
