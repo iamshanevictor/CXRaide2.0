@@ -12,6 +12,7 @@
     <div v-if="debugInfo" class="debug-info">
       <p>API URL: {{ apiUrl }}</p>
       <p>Connection Status: {{ connectionStatus }}</p>
+      <p>Protocol: {{ protocol }}</p>
     </div>
   </div>
 </template>
@@ -29,6 +30,7 @@ export default {
       apiUrl: import.meta.env?.VITE_API_URL || "http://localhost:5000",
       connectionStatus: "Checking...",
       debugInfo: false,
+      protocol: window.location.protocol,
     };
   },
   async created() {
@@ -40,6 +42,11 @@ export default {
       try {
         const response = await axios.get(`${this.apiUrl}/health`, {
           timeout: 5000,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
         });
         this.connectionStatus =
           response.data.status === "healthy" ? "Connected" : "Server Error";
@@ -47,6 +54,13 @@ export default {
       } catch (error) {
         this.connectionStatus = "Connection Failed";
         console.error("Health check failed:", error);
+        // Log detailed error information
+        console.error("Error details:", {
+          message: error.message,
+          code: error.code,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
       }
     },
     async handleLogin() {
@@ -59,8 +73,10 @@ export default {
         const config = {
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
           timeout: 10000, // 10 second timeout
+          withCredentials: true,
         };
 
         console.log("Attempting login to:", `${this.apiUrl}/login`);
@@ -95,6 +111,8 @@ export default {
           this.error = "Network error. Please check your internet connection.";
         } else if (error.response.status === 500) {
           this.error = "Server error. Please try again later.";
+        } else if (error.response.status === 401) {
+          this.error = "Invalid credentials. Please try again.";
         } else {
           this.error =
             error.response?.data?.message || error.message || "Login failed";

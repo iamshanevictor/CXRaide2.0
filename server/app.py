@@ -16,16 +16,47 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Updated CORS configuration
-CORS(app, supports_credentials=True, origins=[
+# Store allowed origins in app config
+app.config['CORS_ORIGINS'] = [
     "http://localhost:8080",          # Local development
+    "http://localhost:5000",          # Local API
+    "http://192.168.68.103:8080",    # Local IP for mobile access
+    "http://192.168.68.103:5000",    # Local IP API for mobile access
     "https://cxraide.onrender.com",   # Production frontend
     "http://cxraide.onrender.com",    # HTTP version
     "https://www.cxraide.onrender.com", # www version
     "http://www.cxraide.onrender.com"  # www HTTP version
-], methods=["GET", "POST", "OPTIONS"], 
-    allow_headers=["Content-Type", "Authorization"],
-    expose_headers=["Content-Type", "Authorization"])
+]
+
+# Updated CORS configuration with proper headers
+CORS(app, 
+     resources={
+         r"/*": {
+             "origins": app.config['CORS_ORIGINS'],
+             "methods": ["GET", "POST", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }
+     })
+
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    logger.info(f"Received request from origin: {origin}")
+    
+    # Allow the specific origin if it matches our allowed origins
+    if origin in app.config['CORS_ORIGINS']:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+    else:
+        logger.warning(f"Origin not allowed: {origin}")
+    return response
 
 # MongoDB Configuration
 try:
@@ -86,8 +117,11 @@ def check_session():
     except:
         return jsonify({"valid": False}), 401
 
-@app.route('/health', methods=['GET'])
+@app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     try:
         # Test MongoDB connection
         client.server_info()
@@ -97,4 +131,5 @@ def health_check():
         return jsonify({"status": "unhealthy", "database": "disconnected"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Run the app on all network interfaces
+    app.run(host='0.0.0.0', port=5000, debug=True)
