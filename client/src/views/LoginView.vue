@@ -9,6 +9,10 @@
       </button>
     </form>
     <div v-if="error" class="error-message">{{ error }}</div>
+    <div v-if="debugInfo" class="debug-info">
+      <p>API URL: {{ apiUrl }}</p>
+      <p>Connection Status: {{ connectionStatus }}</p>
+    </div>
   </div>
 </template>
 
@@ -22,17 +26,35 @@ export default {
       password: "",
       error: null,
       isLoading: false,
+      apiUrl: import.meta.env?.VITE_API_URL || "http://localhost:5000",
+      connectionStatus: "Checking...",
+      debugInfo: false,
     };
   },
+  async created() {
+    // Check server health on component creation
+    await this.checkServerHealth();
+  },
   methods: {
+    async checkServerHealth() {
+      try {
+        const response = await axios.get(`${this.apiUrl}/health`, {
+          timeout: 5000,
+        });
+        this.connectionStatus =
+          response.data.status === "healthy" ? "Connected" : "Server Error";
+        console.log("Server health check:", response.data);
+      } catch (error) {
+        this.connectionStatus = "Connection Failed";
+        console.error("Health check failed:", error);
+      }
+    },
     async handleLogin() {
       this.error = null;
       this.isLoading = true;
+      this.debugInfo = true;
 
       try {
-        // Get API URL from environment variables with fallback
-        const apiUrl = import.meta.env?.VITE_API_URL || "http://localhost:5000";
-
         // Configure axios for the request
         const config = {
           headers: {
@@ -41,8 +63,9 @@ export default {
           timeout: 10000, // 10 second timeout
         };
 
+        console.log("Attempting login to:", `${this.apiUrl}/login`);
         const response = await axios.post(
-          `${apiUrl}/login`,
+          `${this.apiUrl}/login`,
           {
             username: this.username,
             password: this.password,
@@ -50,6 +73,7 @@ export default {
           config
         );
 
+        console.log("Login response:", response.data);
         if (response.data.token) {
           localStorage.setItem("authToken", response.data.token);
           this.$router.push("/home");
@@ -57,16 +81,24 @@ export default {
           throw new Error("No token received from server");
         }
       } catch (error) {
+        console.error("Detailed login error:", {
+          message: error.message,
+          code: error.code,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+
         if (error.code === "ECONNABORTED") {
           this.error =
             "Connection timed out. Please check your internet connection.";
         } else if (!error.response) {
           this.error = "Network error. Please check your internet connection.";
+        } else if (error.response.status === 500) {
+          this.error = "Server error. Please try again later.";
         } else {
           this.error =
             error.response?.data?.message || error.message || "Login failed";
         }
-        console.error("Login error:", error);
       } finally {
         this.isLoading = false;
       }
@@ -119,5 +151,14 @@ button:hover:not(:disabled) {
   margin-top: 10px;
   text-align: center;
   font-size: 14px;
+}
+
+.debug-info {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
 }
 </style>
