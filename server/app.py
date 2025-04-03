@@ -9,13 +9,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app) 
 
-# To this (allow Render domains)
+# Updated CORS configuration
 CORS(app, supports_credentials=True, origins=[
-    "http://localhost:8080",          # Keep for local development
-    "https://cxraide.onrender.com"  # Your production frontend
-])
+    "http://localhost:8080",          # Local development
+    "https://cxraide.onrender.com",   # Production frontend
+    "http://cxraide.onrender.com",    # HTTP version
+    "https://www.cxraide.onrender.com", # www version
+    "http://www.cxraide.onrender.com"  # www HTTP version
+], methods=["GET", "POST", "OPTIONS"], 
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["Content-Type", "Authorization"])
 
 # MongoDB Configuration
 client = MongoClient(os.getenv("MONGO_URI"))
@@ -26,8 +30,11 @@ users_collection = db.users
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 JWT_EXPIRATION = timedelta(hours=1)
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     data = request.get_json()
     user = users_collection.find_one({"username": data['username']})
     
@@ -44,8 +51,11 @@ def login():
     
     return jsonify({"message": "Invalid credentials"}), 401
 
-@app.route('/check-session', methods=['GET'])
+@app.route('/check-session', methods=['GET', 'OPTIONS'])
 def check_session():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     token = request.headers.get('Authorization')
     try:
         payload = jwt.decode(token, app.config['SECRET_KEY'])

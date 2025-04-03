@@ -4,7 +4,9 @@
     <form @submit.prevent="handleLogin">
       <input v-model="username" placeholder="Username" />
       <input v-model="password" type="password" placeholder="Password" />
-      <button type="submit">Login</button>
+      <button type="submit" :disabled="isLoading">
+        {{ isLoading ? "Logging in..." : "Login" }}
+      </button>
     </form>
     <div v-if="error" class="error-message">{{ error }}</div>
   </div>
@@ -19,19 +21,34 @@ export default {
       username: "",
       password: "",
       error: null,
+      isLoading: false,
     };
   },
   methods: {
     async handleLogin() {
       this.error = null;
+      this.isLoading = true;
+
       try {
         // Get API URL from environment variables with fallback
         const apiUrl = import.meta.env?.VITE_API_URL || "http://localhost:5000";
 
-        const response = await axios.post(`${apiUrl}/login`, {
-          username: this.username,
-          password: this.password,
-        });
+        // Configure axios for the request
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000, // 10 second timeout
+        };
+
+        const response = await axios.post(
+          `${apiUrl}/login`,
+          {
+            username: this.username,
+            password: this.password,
+          },
+          config
+        );
 
         if (response.data.token) {
           localStorage.setItem("authToken", response.data.token);
@@ -40,9 +57,18 @@ export default {
           throw new Error("No token received from server");
         }
       } catch (error) {
-        this.error =
-          error.response?.data?.message || error.message || "Login failed";
+        if (error.code === "ECONNABORTED") {
+          this.error =
+            "Connection timed out. Please check your internet connection.";
+        } else if (!error.response) {
+          this.error = "Network error. Please check your internet connection.";
+        } else {
+          this.error =
+            error.response?.data?.message || error.message || "Login failed";
+        }
         console.error("Login error:", error);
+      } finally {
+        this.isLoading = false;
       }
     },
   },
@@ -66,18 +92,25 @@ input {
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 16px; /* Better for mobile */
 }
 
 button {
-  padding: 10px;
+  padding: 12px;
   background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
 }
 
-button:hover {
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
   background-color: #45a049;
 }
 
@@ -85,5 +118,6 @@ button:hover {
   color: red;
   margin-top: 10px;
   text-align: center;
+  font-size: 14px;
 }
 </style>
