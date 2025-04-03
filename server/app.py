@@ -31,7 +31,8 @@ if ENVIRONMENT == 'production':
         "https://www.cxraide.onrender.com",  # www version
         "http://www.cxraide.onrender.com",   # www HTTP version
         "https://cxraide-backend.onrender.com",  # Backend URL
-        "http://cxraide-backend.onrender.com"    # Backend HTTP URL
+        "http://cxraide-backend.onrender.com",   # Backend HTTP URL
+        "*"  # Allow all origins temporarily for debugging
     ]
 else:
     # Development environment - include local addresses
@@ -63,20 +64,27 @@ CORS(app,
 
 @app.route('/')
 def home():
-    return jsonify({"message": "CXRaide API is running"}), 200
+    return jsonify({
+        "message": "CXRaide API is running",
+        "environment": ENVIRONMENT,
+        "cors_origins": app.config['CORS_ORIGINS']
+    }), 200
 
 # Add CORS headers to all responses
 @app.after_request
 def after_request(response):
-    origin = request.headers.get('Origin')
+    origin = request.headers.get('Origin', '')
     logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
     logger.info(f"Request headers: {dict(request.headers)}")
     
-    # Handle requests with no origin (like health checks)
-    if origin is None:
-        if request.path in ['/', '/health']:
-            return response
-    # Handle CORS for actual origins
+    # Allow all origins temporarily for debugging
+    if ENVIRONMENT == 'production':
+        response.headers.add('Access-Control-Allow-Origin', origin or '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+    # Development environment - strict CORS
     elif origin in app.config['CORS_ORIGINS']:
         response.headers.add('Access-Control-Allow-Origin', origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
@@ -162,17 +170,20 @@ def health_check():
         return jsonify({
             "status": "healthy",
             "database": "connected",
-            "environment": ENVIRONMENT
+            "environment": ENVIRONMENT,
+            "cors_origins": app.config['CORS_ORIGINS']
         }), 200
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return jsonify({
             "status": "unhealthy",
             "database": "disconnected",
-            "environment": ENVIRONMENT
+            "environment": ENVIRONMENT,
+            "error": str(e)
         }), 500
 
 if __name__ == '__main__':
-    # Run the app on all network interfaces
-    port = int(os.getenv('PORT', 5000))
+    # Get port from environment variable or use default
+    port = int(os.getenv('PORT', 10000))
+    logger.info(f"Starting server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
