@@ -16,17 +16,32 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Store allowed origins in app config
-app.config['CORS_ORIGINS'] = [
-    "http://localhost:8080",          # Local development
-    "http://localhost:5000",          # Local API
-    "http://192.168.68.103:8080",    # Local IP for mobile access
-    "http://192.168.68.103:5000",    # Local IP API for mobile access
-    "https://cxraide.onrender.com",   # Production frontend
-    "http://cxraide.onrender.com",    # HTTP version
-    "https://www.cxraide.onrender.com", # www version
-    "http://www.cxraide.onrender.com"  # www HTTP version
-]
+# Get environment
+ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
+logger.info(f"Running in {ENVIRONMENT} environment")
+
+# Store allowed origins in app config based on environment
+if ENVIRONMENT == 'production':
+    app.config['CORS_ORIGINS'] = [
+        "https://cxraide.onrender.com",     # Production frontend
+        "http://cxraide.onrender.com",      # HTTP version
+        "https://www.cxraide.onrender.com",  # www version
+        "http://www.cxraide.onrender.com"   # www HTTP version
+    ]
+else:
+    # Development environment - include local addresses
+    app.config['CORS_ORIGINS'] = [
+        "http://localhost:8080",           # Local development
+        "http://localhost:5000",           # Local API
+        "http://127.0.0.1:8080",          # Alternative local
+        "http://127.0.0.1:5000",          # Alternative local API
+        "http://192.168.68.103:8080",     # Local network
+        "http://192.168.68.103:5000",     # Local network API
+        "https://cxraide.onrender.com",    # Also allow production URLs in development
+        "http://cxraide.onrender.com"
+    ]
+
+logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 
 # Updated CORS configuration with proper headers
 CORS(app, 
