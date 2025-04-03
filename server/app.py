@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -26,7 +29,9 @@ if ENVIRONMENT == 'production':
         "https://cxraide.onrender.com",     # Production frontend
         "http://cxraide.onrender.com",      # HTTP version
         "https://www.cxraide.onrender.com",  # www version
-        "http://www.cxraide.onrender.com"   # www HTTP version
+        "http://www.cxraide.onrender.com",   # www HTTP version
+        "https://cxraide-backend.onrender.com",  # Backend URL
+        "http://cxraide-backend.onrender.com"    # Backend HTTP URL
     ]
 else:
     # Development environment - include local addresses
@@ -47,7 +52,7 @@ logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 CORS(app, 
      resources={
          r"/*": {
-             "origins": app.config['CORS_ORIGINS'],
+             "origins": "*",  # Allow all origins, we'll filter in after_request
              "methods": ["GET", "POST", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Accept"],
              "expose_headers": ["Content-Type", "Authorization"],
@@ -56,14 +61,23 @@ CORS(app,
          }
      })
 
+@app.route('/')
+def home():
+    return jsonify({"message": "CXRaide API is running"}), 200
+
 # Add CORS headers to all responses
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    logger.info(f"Received request from origin: {origin}")
+    logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
+    logger.info(f"Request headers: {dict(request.headers)}")
     
-    # Allow the specific origin if it matches our allowed origins
-    if origin in app.config['CORS_ORIGINS']:
+    # Handle requests with no origin (like health checks)
+    if origin is None:
+        if request.path in ['/', '/health']:
+            return response
+    # Handle CORS for actual origins
+    elif origin in app.config['CORS_ORIGINS']:
         response.headers.add('Access-Control-Allow-Origin', origin)
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
@@ -71,6 +85,8 @@ def after_request(response):
         response.headers.add('Access-Control-Max-Age', '3600')
     else:
         logger.warning(f"Origin not allowed: {origin}")
+        
+    logger.info(f"Response headers: {dict(response.headers)}")
     return response
 
 # MongoDB Configuration
@@ -96,6 +112,8 @@ def login():
         return '', 200
         
     logger.info(f"Login attempt from IP: {request.remote_addr}")
+    logger.info(f"Login request headers: {dict(request.headers)}")
+    
     try:
         data = request.get_json()
         logger.info(f"Login attempt for username: {data.get('username')}")
@@ -129,7 +147,8 @@ def check_session():
     try:
         payload = jwt.decode(token, app.config['SECRET_KEY'])
         return jsonify({"valid": True}), 200
-    except:
+    except Exception as e:
+        logger.error(f"Session check error: {str(e)}")
         return jsonify({"valid": False}), 401
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
@@ -140,11 +159,20 @@ def health_check():
     try:
         # Test MongoDB connection
         client.server_info()
-        return jsonify({"status": "healthy", "database": "connected"}), 200
+        return jsonify({
+            "status": "healthy",
+            "database": "connected",
+            "environment": ENVIRONMENT
+        }), 200
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
-        return jsonify({"status": "unhealthy", "database": "disconnected"}), 500
+        return jsonify({
+            "status": "unhealthy",
+            "database": "disconnected",
+            "environment": ENVIRONMENT
+        }), 500
 
 if __name__ == '__main__':
     # Run the app on all network interfaces
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
