@@ -1,0 +1,34 @@
+services:
+  backend:
+    build: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_NAME=${DB_NAME}
+      - FLASK_ENV=${FLASK_ENV}
+      - MONGO_URI=${MONGO_URI}
+      - PORT=5000
+      - PYTHON_VERSION=3.9
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./server:/app
+    networks:
+      - cxraide-network
+
+  frontend:
+    build: ./client
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - cxraide-network
+
+networks:
+  cxraide-network:
+    driver: bridge
