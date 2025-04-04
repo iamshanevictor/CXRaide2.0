@@ -56,7 +56,7 @@ logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 CORS(app, 
      resources={
          r"/*": {
-             "origins": "*",  # Allow all origins, we'll filter in after_request
+             "origins": "*",  # Allow all origins in both production and development
              "methods": ["GET", "POST", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Accept"],
              "expose_headers": ["Content-Type", "Authorization"],
@@ -70,7 +70,7 @@ def home():
     return jsonify({
         "message": "CXRaide API is running",
         "environment": ENVIRONMENT,
-        "cors_origins": app.config['CORS_ORIGINS']
+        "cors_origins": "All origins allowed (*)"
     }), 200
 
 # Add CORS headers to all responses
@@ -78,26 +78,14 @@ def home():
 def after_request(response):
     origin = request.headers.get('Origin', '')
     logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
-    logger.info(f"Request headers: {dict(request.headers)}")
     
-    # Allow all origins temporarily for debugging
-    if ENVIRONMENT == 'production':
-        response.headers.add('Access-Control-Allow-Origin', origin or '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Max-Age', '3600')
-    # Development environment - strict CORS
-    elif origin in app.config['CORS_ORIGINS']:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Max-Age', '3600')
-    else:
-        logger.warning(f"Origin not allowed: {origin}")
-        
-    logger.info(f"Response headers: {dict(response.headers)}")
+    # Allow all origins for all environments
+    response.headers.add('Access-Control-Allow-Origin', origin or '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '3600')
+    
     return response
 
 # MongoDB Configuration
@@ -334,7 +322,7 @@ def health_check():
             "status": "healthy",
             "database": "connected",
             "environment": ENVIRONMENT,
-            "cors_origins": app.config['CORS_ORIGINS']
+            "cors_origins": "All origins allowed (*)"
         }), 200
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")

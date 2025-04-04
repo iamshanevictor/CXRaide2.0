@@ -46,17 +46,27 @@ This guide explains how to deploy the CXRaide application to Render.com.
 
 5. Click "Create Static Site"
 
-## 3. Additional Setup
+## 3. Additional Setup for Cross-Network Access
 
-### Custom Domain (Optional)
+To ensure your application works from any network or device:
 
-1. In your service's settings, go to "Custom Domain"
-2. Follow the instructions to add your domain
+1. **Verify backend CORS settings**:
 
-### Database Monitoring
+   - Make sure your app.py has the updated CORS configuration that allows all origins
+   - Check that `withCredentials: true` is used consistently in frontend API calls
 
-1. Regularly check your MongoDB logs for any issues
-2. Consider setting up monitoring through MongoDB Atlas
+2. **Configure environment variables properly**:
+
+   - Double-check that the backend URL in frontend's `.env.production` is correct
+   - Make sure to use HTTPS URLs for both frontend and backend
+
+3. **Check DNS and firewall settings**:
+
+   - Ensure your domain (if custom) is properly configured
+   - Verify Render.com domains are accessible from your network
+   - Test with mobile data vs. Wi-Fi to isolate network issues
+
+4. **Important**: After deployment, clear browser cache on all devices before testing
 
 ## 4. First-Time Login
 
@@ -80,15 +90,45 @@ For production deployment, you should:
 4. Set FLASK_ENV=production to ensure stricter security checks
 5. Consider enabling HTTPS-only cookies for the JWT tokens
 
-## 6. Troubleshooting
+## 6. Troubleshooting Network Errors
 
-If you encounter issues:
+If you encounter "Connection Failed" or network errors from certain devices:
 
-1. Check the Render.com logs for both services
-2. Verify that your environment variables are set correctly
-3. Ensure your MongoDB connection string is correct and the database is accessible
-4. Test API endpoints using tools like Postman or curl
-5. Check browser console for any CORS errors
+1. **Test backend directly**:
+
+   - Visit `https://cxraide-backend.onrender.com/health` from the problematic device
+   - If this works but the app doesn't, it's likely a CORS or frontend issue
+
+2. **Check browser console for CORS errors**:
+
+   - Look for messages like "Access-Control-Allow-Origin" or "No 'Access-Control-Allow-Origin' header"
+   - Make sure `withCredentials` setting matches your CORS configuration
+
+3. **Network troubleshooting**:
+
+   - On mobile devices, try switching between Wi-Fi and cellular data
+   - Use browser developer tools to verify the exact URL being requested
+
+4. **Common fixes**:
+
+   - Try accessing with HTTPS instead of HTTP
+   - Clear browser cache and cookies
+   - Try different browsers
+   - Ensure Render.com hasn't experienced any outages
+
+5. **If all else fails**:
+   - Deploy a temporary debug version with:
+     ```javascript
+     // Add this to frontend code
+     axios.interceptors.request.use((request) => {
+       console.log("Starting Request", request);
+       return request;
+     });
+     ```
+   - Check Render.com logs with:
+     ```
+     render logs --follow
+     ```
 
 ## 7. Ongoing Maintenance
 
