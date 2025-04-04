@@ -27,7 +27,8 @@ export default {
       password: "",
       error: null,
       isLoading: false,
-      apiUrl: import.meta.env?.VITE_API_URL || "http://localhost:5000",
+      apiUrl:
+        import.meta.env?.VITE_API_URL || "https://cxraide-backend.onrender.com",
       connectionStatus: "Checking...",
       debugInfo: false,
       protocol: window.location.protocol,
