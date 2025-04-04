@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from passlib.hash import pbkdf2_sha256, scrypt
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(
@@ -23,6 +24,13 @@ app = Flask(__name__)
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
 logger.info(f"Running in {ENVIRONMENT} environment")
+
+# MongoDB Configuration - Direct configuration
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide')
+DB_NAME = os.getenv('DB_NAME', 'cxraide')
+
+# JWT Configuration - Direct configuration
+SECRET_KEY = os.getenv('SECRET_KEY', 'ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce')
 
 # Store allowed origins in app config based on environment
 if ENVIRONMENT == 'production':
@@ -53,57 +61,61 @@ else:
 logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 
 # Updated CORS configuration with proper headers
-CORS(app, 
-     resources={
-         r"/*": {
-             "origins": "*",  # Allow all origins in both production and development
-             "methods": ["GET", "POST", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Accept"],
-             "expose_headers": ["Content-Type", "Authorization"],
-             "supports_credentials": True,
-             "max_age": 3600
-         }
-     })
+CORS(
+    app, 
+    supports_credentials=True, 
+    resources={r"/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    expose_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"]
+)
 
-@app.route('/')
-def home():
-    return jsonify({
-        "message": "CXRaide API is running",
-        "environment": ENVIRONMENT,
-        "cors_origins": "All origins allowed (*)"
-    }), 200
-
-# Add CORS headers to all responses
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin', '')
-    logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
-    
-    # Allow all origins for all environments
-    response.headers.add('Access-Control-Allow-Origin', origin or '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    response.headers.add('Access-Control-Max-Age', '3600')
-    
-    return response
-
-# MongoDB Configuration
+# MongoDB Setup
 try:
     logger.info("Attempting to connect to MongoDB...")
-    client = MongoClient(os.getenv("MONGO_URI"))
+    client = MongoClient(MONGO_URI)
     # Test the connection
     client.server_info()
     logger.info("Successfully connected to MongoDB")
-    db = client[os.getenv("DB_NAME")]
+    db = client[DB_NAME]
     users_collection = db.users
 except Exception as e:
     logger.error(f"MongoDB connection error: {str(e)}")
     raise
 
 # JWT Configuration
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['SECRET_KEY'] = SECRET_KEY
 JWT_EXPIRATION = timedelta(hours=1)
+
+# JWT token decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        # Check if token is in headers
+        if "Authorization" in request.headers:
+            token = request.headers["Authorization"]
+        
+        if not token:
+            logger.warning("Token missing in request")
+            return jsonify({"message": "Token is missing!", "valid": False}), 401
+        
+        try:
+            # Decode the token
+            logger.info(f"Attempting to decode token: {token[:20]}...")
+            # Remove 'Bearer ' prefix if present
+            if token.startswith('Bearer '):
+                token = token[7:]
+            data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+            logger.info(f"Token decoded successfully for user: {data.get('username', 'unknown')}")
+            g.user = data
+        except Exception as e:
+            logger.error(f"Token validation error: {str(e)}")
+            return jsonify({"message": "Token is invalid!", "valid": False}), 401
+            
+        return f(*args, **kwargs)
+    
+    return decorated
 
 # Manual verification for scrypt format
 def verify_scrypt(stored_password, provided_password):
@@ -193,13 +205,22 @@ def verify_password(stored_password, provided_password):
     logger.error("All password verification methods failed")
     return False
 
+# Define routes
+@app.route('/')
+def home():
+    return jsonify({
+        "message": "CXRaide API is running",
+        "environment": ENVIRONMENT,
+        "cors_origins": "All origins allowed (*)",
+        "mongodb": "Connected to MongoDB Atlas"
+    }), 200
+
 @app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
         return '', 200
         
     logger.info(f"Login attempt from IP: {request.remote_addr}")
-    logger.info(f"Login request headers: {dict(request.headers)}")
     
     try:
         data = request.get_json()
@@ -221,11 +242,14 @@ def login():
                 'exp': datetime.utcnow() + JWT_EXPIRATION,
                 'username': username,
                 'is_admin': True
-            }, app.config['SECRET_KEY'])
+            }, app.config['SECRET_KEY'], algorithm="HS256")
+            
+            logger.info(f"Admin login successful. Token issued: {token[:20]}...")
             
             return jsonify({
                 'token': token,
                 'user_id': 'admin_id',
+                'username': username,
                 'message': 'Login successful via hardcoded credentials'
             }), 200
         
@@ -263,31 +287,39 @@ def login():
                 )
                 logger.info(f"Updated password hash to Werkzeug format for {username}")
                 
+                # Create token with standard fields
                 token = jwt.encode({
                     'sub': str(user['_id']),
                     'exp': datetime.utcnow() + JWT_EXPIRATION,
-                    'username': username
-                }, app.config['SECRET_KEY'])
+                    'username': username,
+                    'iat': datetime.utcnow()
+                }, app.config['SECRET_KEY'], algorithm="HS256")
                 
-                logger.info(f"Successful login for user: {username}")
+                logger.info(f"Login successful for user: {username}. Token issued: {token[:20]}...")
+                
                 return jsonify({
                     'token': token,
                     'user_id': str(user['_id']),
+                    'username': username,
                     'message': 'Login successful'
                 }), 200
         
         # Standard login verification
         if verify_password(stored_hash, password):
+            # Create token with standard fields
             token = jwt.encode({
                 'sub': str(user['_id']),
                 'exp': datetime.utcnow() + JWT_EXPIRATION,
-                'username': username
-            }, app.config['SECRET_KEY'])
+                'username': username,
+                'iat': datetime.utcnow()
+            }, app.config['SECRET_KEY'], algorithm="HS256")
             
-            logger.info(f"Successful login for user: {username}")
+            logger.info(f"Login successful for user: {username}. Token issued: {token[:20]}...")
+            
             return jsonify({
                 'token': token,
-                'user_id': str(user['_id'])
+                'user_id': str(user['_id']),
+                'username': username
             }), 200
         
         logger.warning(f"Failed login attempt for username: {username}")
@@ -299,16 +331,38 @@ def login():
 
 @app.route('/check-session', methods=['GET', 'OPTIONS'])
 def check_session():
+    # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
         return '', 200
         
+    # Get token from header
     token = request.headers.get('Authorization')
+    if not token:
+        logger.warning("Token missing in request")
+        return jsonify({"message": "Token is missing!", "valid": False}), 401
+    
     try:
-        payload = jwt.decode(token, app.config['SECRET_KEY'])
-        return jsonify({"valid": True}), 200
+        # Remove 'Bearer ' prefix if present
+        if token.startswith('Bearer '):
+            token = token[7:]
+            
+        # Decode the token
+        logger.info(f"Attempting to decode token: {token[:20]}...")
+        data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+        logger.info(f"Token decoded successfully for user: {data.get('username', 'unknown')}")
+        
+        # Return basic user info with session check
+        return jsonify({
+            "valid": True, 
+            "user": {
+                "username": data.get("username"),
+                "user_id": data.get("sub"),
+                "is_admin": data.get("is_admin", False)
+            }
+        })
     except Exception as e:
-        logger.error(f"Session check error: {str(e)}")
-        return jsonify({"valid": False}), 401
+        logger.error(f"Token validation error: {str(e)}")
+        return jsonify({"message": "Token is invalid!", "valid": False}), 401
 
 @app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
@@ -396,6 +450,27 @@ def reset_password():
     except Exception as e:
         logger.error(f"Password reset error: {str(e)}")
         return jsonify({"message": "Server error occurred"}), 500
+
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin', '')
+    logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
+    
+    # Allow all origins for all environments
+    if request.method == 'OPTIONS':
+        # Handle OPTIONS requests explicitly for CORS preflight
+        response.status_code = 200
+        
+    # Add CORS headers to all responses
+    response.headers.add('Access-Control-Allow-Origin', origin or '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '3600')
+    response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
+    
+    return response
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

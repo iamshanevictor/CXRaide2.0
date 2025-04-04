@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import { login, health, apiUrl } from "../utils/api";
 
 export default {
   data() {
@@ -27,8 +27,7 @@ export default {
       password: "",
       error: null,
       isLoading: false,
-      apiUrl:
-        import.meta.env?.VITE_API_URL || "https://cxraide-backend.onrender.com",
+      apiUrl: apiUrl,
       connectionStatus: "Checking...",
       debugInfo: false,
       protocol: window.location.protocol,
@@ -41,14 +40,7 @@ export default {
   methods: {
     async checkServerHealth() {
       try {
-        const response = await axios.get(`${this.apiUrl}/health`, {
-          timeout: 5000,
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        });
+        const response = await health();
         this.connectionStatus =
           response.data.status === "healthy" ? "Connected" : "Server Error";
         console.log("Server health check:", response.data);
@@ -70,31 +62,21 @@ export default {
       this.debugInfo = true;
 
       try {
-        // Configure axios for the request
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          timeout: 10000, // 10 second timeout
-          withCredentials: true,
-        };
-
         console.log("Attempting login to:", `${this.apiUrl}/login`);
-        const response = await axios.post(
-          `${this.apiUrl}/login`,
-          {
-            username: this.username,
-            password: this.password,
-          },
-          config
-        );
+        const response = await login(this.username, this.password);
 
         console.log("Login response:", response.data);
         if (response.data.token) {
+          // Store the token securely in localStorage
           localStorage.setItem("authToken", response.data.token);
-          this.$router.push("/home");
+          console.log("Login successful, redirecting to home page");
+
+          // Force a page reload to clear any stale state
+          setTimeout(() => {
+            this.$router.push("/home");
+          }, 500);
         } else {
+          console.error("No token received in login response");
           throw new Error("No token received from server");
         }
       } catch (error) {

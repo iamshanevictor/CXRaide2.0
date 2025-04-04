@@ -6,4 +6,4 @@ werkzeug==2.2.3
 python-dotenv==1.0.0
 gunicorn==21.2.0
 cryptography>=41.0.0
-passlib[bcrypt]==1.7.4
+passlib[bcrypt,scrypt]==1.7.4
