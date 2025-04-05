@@ -19,6 +19,21 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Track failed requests to prevent redirect loops
+let failedRequests = 0;
+const MAX_FAILED_REQUESTS = 3;
+
+// Setup reset timer and store it to clear on component unmount if needed
+// Using an IIFE to avoid the eslint no-unused-vars error
+(function setupFailedRequestsReset() {
+  setTimeout(() => {
+    if (failedRequests > 0) {
+      console.log("[API] Resetting failed requests counter");
+      failedRequests = 0;
+    }
+  }, 30000); // Reset counter after 30 seconds
+})();
+
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
@@ -43,6 +58,9 @@ api.interceptors.request.use(
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
+    // Reset failed requests counter on successful response
+    failedRequests = 0;
+
     console.log(
       `[API] Response from ${response.config.url}: Status ${response.status}`
     );
@@ -57,15 +75,32 @@ api.interceptors.response.use(
       data: error.response?.data,
     });
 
+    // Track failed requests to prevent redirect loops
+    failedRequests++;
+
+    // Handle network errors without redirecting immediately
+    if (error.code === "ERR_NETWORK") {
+      console.warn("[API] Network error detected");
+      return Promise.reject(error);
+    }
+
     // Handle session expiration (401 errors)
-    if (error.response?.status === 401 && error.config.url !== "/login") {
+    if (
+      error.response?.status === 401 &&
+      error.config.url !== "/login" &&
+      failedRequests < MAX_FAILED_REQUESTS
+    ) {
       console.log(
         "[API] Session expired or unauthorized. Redirecting to login."
       );
       localStorage.removeItem("authToken");
 
       // If not already on login page, redirect
-      if (window.location.pathname !== "/login") {
+      if (
+        window.location.pathname !== "/login" &&
+        !window.location.pathname.includes("login")
+      ) {
+        // Use history API for a smoother experience
         window.location.href = "/login";
       }
     }
@@ -93,6 +128,9 @@ export const health = () => {
 export const logout = () => {
   console.log("[API] Logging out user");
   localStorage.removeItem("authToken");
+  // Reset the failed requests counter on logout
+  failedRequests = 0;
+
   return api.post("/logout").catch((err) => {
     console.log("[API] Logout API error (ignoring):", err.message);
     return Promise.resolve(); // Don't fail on logout errors

@@ -17,6 +17,11 @@ const routes = [
     name: "login",
     component: () => import("../views/LoginView.vue"), // Dynamic import
   },
+  // Add a catch-all 404 route
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/login",
+  },
 ];
 
 // Get the base URL from environment variables or use a default value
@@ -28,11 +33,41 @@ const router = createRouter({
   routes,
 });
 
+// Track navigation attempts to prevent infinite loops
+let navigationAttempts = 0;
+const MAX_NAVIGATION_ATTEMPTS = 5;
+
+// Reset navigation counter after a delay
+setInterval(() => {
+  if (navigationAttempts > 0) {
+    console.log("[Router] Resetting navigation attempts counter");
+    navigationAttempts = 0;
+  }
+}, 10000);
+
 router.beforeEach(async (to, from) => {
   console.log("[Router] Navigation started to:", to.path, "from:", from.path);
 
+  // Increment navigation attempts
+  navigationAttempts++;
+
+  // Prevent potential navigation loops
+  if (navigationAttempts > MAX_NAVIGATION_ATTEMPTS) {
+    console.error(
+      "[Router] Too many navigation attempts detected, possible loop"
+    );
+    navigationAttempts = 0;
+
+    // Force navigation to login and clear any auth state
+    localStorage.removeItem("authToken");
+    if (to.path !== "/login") {
+      return "/login";
+    }
+    return true;
+  }
+
   // Bypass auth check for login page
-  if (to.name === "login") {
+  if (to.path === "/login" || to.name === "login") {
     // If user is already logged in and trying to access login page, redirect to home
     const token = localStorage.getItem("authToken");
     if (token) {
@@ -55,11 +90,13 @@ router.beforeEach(async (to, from) => {
     console.log("[Auth] Checking session validity");
     const response = await checkSession();
 
-    if (response.data.valid) {
+    if (response && response.data && response.data.valid) {
       console.log(
         "[Auth] Session is valid, user:",
         response.data.user?.username
       );
+      // Successful navigation decreases the counter
+      navigationAttempts = Math.max(0, navigationAttempts - 1);
       return true;
     } else {
       console.log("[Auth] Session is invalid");
@@ -81,10 +118,20 @@ router.beforeEach(async (to, from) => {
       console.warn(
         "[Auth] Network error during session check - allowing navigation"
       );
+
+      // For pages that require auth, let the page component handle the error display
+      // This prevents a redirect loop when the API is unreachable
+      if (to.meta.requiresAuth) {
+        console.log(
+          "[Auth] Page requires auth but API is unreachable - proceeding with caution"
+        );
+      }
+
       // Allow navigation to proceed despite network error
       return true;
     }
 
+    // For other errors, clear token and redirect to login
     localStorage.removeItem("authToken");
     return "/login";
   }
