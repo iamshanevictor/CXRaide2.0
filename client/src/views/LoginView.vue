@@ -27,46 +27,67 @@
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
             <label for="username">Username</label>
-            <div class="input-icon">
-              <span class="icon">👤</span>
+            <div class="input-group">
+              <span class="input-icon">
+                <i class="bi bi-person"></i>
+              </span>
               <input
                 type="text"
                 id="username"
                 v-model="username"
                 placeholder="Enter your username"
+                class="input-field"
+                :disabled="isLoading"
                 required
-                autofocus
               />
             </div>
           </div>
 
           <div class="form-group">
             <label for="password">Password</label>
-            <div class="input-icon">
-              <span class="icon">🔒</span>
+            <div class="input-group">
+              <span class="input-icon">
+                <i class="bi bi-lock"></i>
+              </span>
               <input
                 type="password"
                 id="password"
                 v-model="password"
                 placeholder="Enter your password"
+                class="input-field"
+                :disabled="isLoading"
                 required
               />
             </div>
           </div>
 
-          <div v-if="error" class="error-message">
-            {{ error }}
+          <div class="form-actions">
+            <div class="remember-me">
+              <input type="checkbox" id="remember" v-model="rememberMe" />
+              <label for="remember">Remember me</label>
+            </div>
+            <a href="#" class="forgot-password">Forgot password?</a>
           </div>
 
-          <button type="submit" class="login-button" :disabled="isLoading">
-            <span v-if="isLoading">Logging in...</span>
-            <span v-else>Login</span>
+          <div v-if="error" class="error-message">
+            <span class="error-icon"
+              ><i class="bi bi-exclamation-circle"></i
+            ></span>
+            <span>{{ error }}</span>
+          </div>
+
+          <button type="submit" class="auth-button" :disabled="isLoading">
+            <span v-if="isLoading" class="loading-spinner">
+              <i class="bi bi-arrow-repeat spin"></i>
+            </span>
+            <span v-else>
+              <span class="button-icon"
+                ><i class="bi bi-box-arrow-in-right"></i
+              ></span>
+              <span>Login</span>
+            </span>
           </button>
         </form>
-
-        <div class="additional-links">
-          <a href="#" class="forgot-password">Forgot Password</a>
-        </div>
 
         <div class="connection-info" v-if="debugInfo">
           <p>API URL: {{ apiUrl }}</p>
@@ -79,12 +100,14 @@
 
 <script>
 import { login, health, apiUrl } from "../utils/api";
+import { version } from "../../package.json";
 
 export default {
   data() {
     return {
       username: "",
       password: "",
+      rememberMe: false,
       error: null,
       isLoading: false,
       apiUrl: apiUrl,
@@ -95,6 +118,7 @@ export default {
         typeof window !== "undefined" && window.location
           ? window.location.protocol
           : "http:",
+      appVersion: version,
     };
   },
   async created() {
@@ -174,6 +198,7 @@ export default {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css");
 
 .login-container {
   display: flex;
@@ -347,116 +372,97 @@ label {
   font-weight: 500;
 }
 
-.input-icon {
+.input-group {
   position: relative;
-  width: 100%;
+  margin-bottom: 1.5rem;
 }
 
-.icon {
+.input-icon {
   position: absolute;
-  left: 15px;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 16px;
-  color: #4b5563;
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-input {
+.input-field {
   width: 100%;
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(93, 175, 255, 0.2);
-  border-radius: 8px;
-  padding: 14px 16px 14px 45px;
-  color: #ffffff;
-  font-family: "Montserrat", sans-serif;
-  font-size: 16px;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.input-field:focus {
   outline: none;
-  transition: all 0.3s ease;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
-input:focus {
-  border-color: rgba(93, 175, 255, 0.6);
-  box-shadow: 0 0 5px rgba(93, 175, 255, 0.2);
+.input-field::placeholder {
+  color: #6b7280;
 }
 
-input::placeholder {
-  color: #4b5563;
-}
-
-.error-message {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.login-button {
-  width: 100%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 14px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.login-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transition: all 0.5s ease;
-}
-
-.login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-}
-
-.login-button:hover::before {
-  left: 100%;
-}
-
-.login-button:disabled {
-  background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+.input-field:disabled {
+  background: rgba(15, 23, 42, 0.3);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-.additional-links {
-  margin-top: 20px;
-  text-align: center;
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.85rem;
 }
 
 .forgot-password {
-  color: #64a5ff;
-  font-size: 14px;
+  color: #60a5fa;
+  font-size: 0.85rem;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .forgot-password:hover {
   color: #3b82f6;
-  text-shadow: none;
+  text-decoration: underline;
+}
+
+.auth-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  background: linear-gradient(to right, #3b82f6, #60a5fa);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .connection-info {
@@ -488,5 +494,53 @@ input::placeholder {
   .login-card {
     padding: 30px 20px;
   }
+}
+
+.auth-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.auth-button:disabled {
+  background: linear-gradient(to right, #64748b, #94a3b8);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spin {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+}
+
+.error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
