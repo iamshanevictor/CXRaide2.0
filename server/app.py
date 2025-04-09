@@ -1,12 +1,14 @@
+import sys
+import os
+import subprocess
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
 from datetime import datetime, timedelta
-import os
-from dotenv import load_dotenv
 import logging
+from dotenv import load_dotenv
 from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
 import threading
@@ -19,29 +21,59 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# Check for model files and download them if they don't exist
+def ensure_models_exist():
+    it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
+    it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
+    
+    if not os.path.exists(it2_path) or not os.path.exists(it3_path):
+        logger.info("Model files not found. Attempting to download...")
+        try:
+            download_script = os.path.join(os.path.dirname(__file__), 'download_models.py')
+            if not os.path.exists(download_script):
+                logger.error(f"Download script not found at {download_script}")
+                return
+            
+            result = subprocess.run(
+                [sys.executable, download_script],
+                cwd=os.path.dirname(__file__),
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"Model download failed: {result.stderr}")
+            else:
+                logger.info("Model download completed successfully")
+        except Exception as e:
+            logger.error(f"Error downloading models: {str(e)}")
 
-# Import the model blueprint first - define variables at module level
+# Attempt to download models before trying imports
+ensure_models_exist()
+
+# Import the model blueprint - properly handle different import paths
 model_bp = None
-get_models = None
+get_model = None
 
 try:
-    # Try direct import first
-    from model_service import model_bp, get_models
-    logger.info("Successfully imported model_service")
+    # Try direct import first (Docker container)
+    from model_service import model_bp, get_model
+    logger.info("Successfully imported model_service directly (Docker mode)")
 except ImportError:
-    # If that fails, try with server prefix
     try:
-        from server.model_service import model_bp, get_models
-        logger.info("Successfully imported model_service with server prefix")
+        # Then try with server prefix (local development)
+        from server.model_service import model_bp, get_model
+        logger.info("Successfully imported model_service with server prefix (local mode)")
     except ImportError:
         logger.error("Could not import model_service. Check file paths and dependencies.")
         # Create dummy blueprint to avoid errors
         from flask import Blueprint
         model_bp = Blueprint('model', __name__)
-        def get_models():
+        def get_model():
             logger.error("Model loading function not available")
             return None, None
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -49,6 +81,8 @@ app = Flask(__name__)
 if model_bp:
     app.register_blueprint(model_bp, url_prefix='/api')
     logger.info("Registered model_bp blueprint with prefix /api")
+else:
+    logger.error("model_bp is not available, cannot register blueprint")
 
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')

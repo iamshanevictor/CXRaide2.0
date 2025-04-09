@@ -836,6 +836,16 @@ export default {
         const result = await ModelService.predict(imageFile);
         console.log("Received prediction result:", result);
 
+        // Debug the image format
+        if (result.annotatedImage) {
+          console.log(
+            "Annotated image format:",
+            result.annotatedImage.substring(0, 100) + "..."
+          );
+        } else {
+          console.warn("No annotated image received!");
+        }
+
         // Store the predictions response for debugging
         this.lastApiResponse = {
           modelStatus,
@@ -846,6 +856,12 @@ export default {
         // Update the display images from the server
         this.cleanImage = result.cleanImage;
         this.annotatedImage = result.annotatedImage;
+
+        // Make sure the annotated image is formatted as a data URL if not already
+        if (this.annotatedImage && !this.annotatedImage.startsWith("data:")) {
+          console.log("Converting annotated image to data URL format");
+          this.annotatedImage = `data:image/png;base64,${this.annotatedImage}`;
+        }
 
         if (!result.predictions || result.predictions.length === 0) {
           // Don't show an error message for empty predictions

@@ -264,12 +264,6 @@ class ModelService {
       const data = await response.json();
       console.log("Received response from server:", data);
 
-      // The server now sends:
-      // 1. The predictions (data.predictions)
-      // 2. The clean image (data.clean_image) - without annotations
-      // 3. The annotated image (data.annotated_image) - with pre-rendered boxes
-      // 4. The image size (data.image_size) - always 512x512
-
       // Process the results to match our component's expected format
       const processedPredictions = data.predictions.map((pred) => ({
         box: pred.boxes, // Use the raw boxes (already in 512x512 coordinates)
@@ -277,6 +271,8 @@ class ModelService {
         score: pred.score,
       }));
 
+      // The server is already sending properly formatted data URLs with base64 encoding
+      // We just need to pass them through directly
       return {
         predictions: processedPredictions,
         cleanImage: data.clean_image,

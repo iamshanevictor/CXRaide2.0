@@ -29,8 +29,47 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY . .
 
-# Log the mode we're running in
-RUN echo "Using lightweight model implementation - no model download required"
+# -------------------------------------------
+# MODEL DOWNLOAD SECTION
+# -------------------------------------------
+# Try downloading both models using the new combined script
+RUN echo "Attempting to download models using download_models.py..." && \
+    python download_models.py || echo "Combined download script failed, trying alternatives..."
+
+# If download failed, try direct download for IT2 model
+RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
+    echo "Download script failed for IT2 model, trying backup method..." && \
+    python download_from_drive.py || echo "Simplified download failed too"; \
+    fi
+
+# Try direct download for IT3 model
+RUN if [ ! -f IT3_model_epoch_260.pth ]; then \
+    echo "Download script failed for IT3 model, trying direct download..." && \
+    (curl -L "https://drive.google.com/uc?export=download&id=1rd0j7hmw19H02z4vDfWw3Il-s4Xx-zTz" -o IT3_model_epoch_260.pth || \
+     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1rd0j7hmw19H02z4vDfWw3Il-s4Xx-zTz" -O IT3_model_epoch_260.pth); \
+    fi
+
+# Fall back to direct curl/wget for IT2 if needed
+RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
+    echo "All IT2 model download methods failed, trying curl/wget..." && \
+    (curl -L "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -o IT2_model_epoch_300.pth || \
+     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -O IT2_model_epoch_300.pth); \
+    fi
+
+# Verify model files exist and log their sizes
+RUN if [ -f IT2_model_epoch_300.pth ]; then \
+    echo "IT2 model file successfully included in build" && \
+    stat --format="%s bytes" IT2_model_epoch_300.pth; \
+    else \
+    echo "WARNING: Failed to obtain IT2 model file. Some features may not work."; \
+    fi
+
+RUN if [ -f IT3_model_epoch_260.pth ]; then \
+    echo "IT3 model file successfully included in build" && \
+    stat --format="%s bytes" IT3_model_epoch_260.pth; \
+    else \
+    echo "WARNING: Failed to obtain IT3 model file. Some features may not work."; \
+    fi
 
 # Expose the port the app runs on
 EXPOSE 5000
