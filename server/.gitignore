@@ -3,3 +3,7 @@ __pycache__/\
 .pyc
 .env
 node_modules/g
+IT2_model_epoch_300.pth
+IT3_model_epoch_260.pth
+# Ignore all PyTorch model files
+*.pth
