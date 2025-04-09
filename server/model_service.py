@@ -6,6 +6,8 @@ import logging
 import base64
 import io
 from PIL import Image, ImageDraw, ImageFont
+import gc
+import sys
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -99,7 +101,19 @@ def load_model_in_background():
         logger.info("Starting background model loading...")
         start_time = time.time()
         
+        # Force garbage collection before loading model
+        gc.collect()
+        
+        # Log memory usage (if psutil is available)
+        try:
+            import psutil
+            process = psutil.Process(os.getpid())
+            logger.info(f"Memory usage before model loading: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+        except ImportError:
+            logger.info("psutil not available for memory monitoring")
+        
         # Create model
+        logger.info("Creating model architecture (empty weights)...")
         temp_model = models.detection.ssd300_vgg16(weights=None)
         
         # Check multiple possible locations for the model file, with most likely first
@@ -134,13 +148,37 @@ def load_model_in_background():
         file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
         logger.info(f"Loading model weights from {model_path} (Size: {file_size_mb:.2f} MB)...")
         
-        # Load the model with device mapping
-        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        # Use CPU explicitly and optimize memory usage
+        device = torch.device('cpu')
+        torch.set_num_threads(2)  # Limit CPU threads
+        
+        # Load the model with optimized settings
+        logger.info("Loading state dictionary with map_location='cpu'...")
+        state_dict = torch.load(model_path, map_location=device)
+        
+        # Clear CUDA memory if available
+        if hasattr(torch, 'cuda') and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        logger.info("Applying state dictionary to model...")
         temp_model.load_state_dict(state_dict)
+        
+        # Free up memory after loading
+        del state_dict
+        gc.collect()
+        
+        logger.info("Setting model to evaluation mode...")
         temp_model.eval()
         
         # Update the global model variable
         model = temp_model
+        
+        # Get memory usage after loading
+        try:
+            if 'psutil' in sys.modules:
+                logger.info(f"Memory usage after model loading: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+        except Exception as e:
+            logger.warning(f"Error getting memory info: {str(e)}")
         
         elapsed = time.time() - start_time
         logger.info(f"Model loaded successfully in {elapsed:.2f} seconds")
@@ -605,6 +643,70 @@ def model_status():
                     os.getcwd()
                 ]
             }), 404
+
+@model_bp.route('/loading-status', methods=['GET'])
+def loading_status():
+    """Get detailed information about the server status, including memory usage"""
+    response = {
+        "status": "ok",
+        "server_time": time.ctime(),
+        "uptime": time.time() - server_start_time,
+        "model_status": "not_loaded"
+    }
+    
+    # Add model information
+    if model is not None:
+        response["model_status"] = "loaded"
+        response["model_type"] = "mock" if hasattr(model, 'mock_type') else "real"
+    elif model_loading:
+        response["model_status"] = "loading"
+    
+    # Check torch status
+    response["torch_available"] = torch_available
+    if torch_available:
+        response["torch_version"] = torch.__version__
+        response["torchvision_version"] = torchvision.__version__
+        response["cuda_available"] = torch.cuda.is_available() if hasattr(torch, 'cuda') else False
+        
+    # Get environment info
+    response["environment"] = os.environ.get("FLASK_ENV", "unknown")
+    response["platform"] = sys.platform
+    response["python_version"] = sys.version
+    
+    # Get memory usage if psutil is available
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        response["memory"] = {
+            "rss_mb": memory_info.rss / 1024 / 1024,
+            "vms_mb": memory_info.vms / 1024 / 1024,
+            "percent": process.memory_percent(),
+            "total_system_mb": psutil.virtual_memory().total / 1024 / 1024,
+            "available_system_mb": psutil.virtual_memory().available / 1024 / 1024,
+        }
+    except ImportError:
+        response["memory"] = "psutil not installed"
+    except Exception as e:
+        response["memory_error"] = str(e)
+        
+    # Check model file
+    model_files = []
+    for path in [os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'), 'IT2_model_epoch_300.pth']:
+        if os.path.exists(path):
+            model_files.append({
+                "path": path,
+                "size_mb": os.path.getsize(path) / (1024 * 1024),
+                "last_modified": time.ctime(os.path.getmtime(path))
+            })
+    
+    response["model_files"] = model_files
+    response["working_directory"] = os.getcwd()
+        
+    return jsonify(response)
+
+# Track server start time
+server_start_time = time.time()
 
 # Start loading the model in the background on module import
 get_model() 
