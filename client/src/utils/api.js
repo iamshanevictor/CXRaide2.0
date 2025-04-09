@@ -4,7 +4,7 @@ import axios from "axios";
 export const apiUrl =
   window.__ENV__?.VITE_API_URL ||
   import.meta.env?.VITE_API_URL ||
-  "https://cxraide-backend.onrender.com";
+  "http://localhost:5000";
 
 console.log("[API] Using API URL:", apiUrl);
 

@@ -13,6 +13,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/annotate",
+    name: "annotate",
+    component: () => import("../views/AnnotateView.vue"), // Dynamic import
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/login",
     name: "login",
     component: () => import("../views/LoginView.vue"), // Dynamic import
