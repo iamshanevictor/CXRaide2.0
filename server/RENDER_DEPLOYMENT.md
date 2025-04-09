@@ -1,50 +1,26 @@
 # Render.com Deployment Instructions for CXRaide Backend
 
-This guide provides instructions for deploying the CXRaide backend on Render.com with proper configuration to handle the large PyTorch model file.
+This guide provides instructions for deploying the CXRaide backend on Render.com with a simplified approach that doesn't require the large PyTorch model file.
 
 ## Prerequisites
 
 - A Render.com account
 - Access to the CXRaide repository
-- Google Drive link to the model file (already configured)
 
-## Model File Considerations
+## Lightweight Model Implementation
 
-The CXRaide backend uses a large PyTorch model file (`IT2_model_epoch_300.pth`, ~136MB). This file is downloaded during the build process from Google Drive with the ID `1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr`.
+The CXRaide backend now uses a lightweight implementation that provides demo predictions without requiring the large PyTorch model file. This approach has several advantages:
 
-### Important Notes About Google Drive Model Download
+1. **Easier Deployment**: No need to download and store a large model file
+2. **Lower Resource Requirements**: Can run on smaller instances with less memory
+3. **Faster Startup**: Application initializes quickly without loading a large model
+4. **Reliable Operation**: Works even when PyTorch isn't installed
 
-1. **File Access**: Ensure the Google Drive file is accessible with the shared link:
-
-   - The file should be publicly accessible (or at least have "Anyone with the link can view" permissions)
-   - If the file access permissions change, the build will fail
-
-2. **Download Methods**: We've implemented several fallback methods to handle Google Drive's limitations:
-
-   - Primary method: `download_model.py` script with Google Drive API handling
-   - Backup method: `download_from_drive.py` with simpler approach
-   - Last resort: Direct wget/curl commands in the Dockerfile
-
-3. **Large File Limitations**: Google Drive imposes restrictions on large file downloads:
-   - For files > 100MB, Google Drive might prompt a virus scan warning
-   - Our scripts handle this with cookie handling for confirmation tokens
-   - In some cases, very large files might require manual download and inclusion in the repo
+Note that predictions are demonstrations only and not based on real model inference.
 
 ## Deployment Steps
 
-### 1. Verify Google Drive File Access
-
-Before deploying, verify that the model file is accessible:
-
-```bash
-# Test locally first
-cd server
-python download_from_drive.py
-```
-
-If successful, you'll see the model downloaded to your local machine.
-
-### 2. Configure Render Web Service
+### 1. Configure Render Web Service
 
 1. Navigate to your Render.com dashboard
 2. Click "New" > "Web Service"
@@ -55,81 +31,50 @@ If successful, you'll see the model downloaded to your local machine.
    - **Environment**: Python
    - **Region**: Choose the region closest to your users
    - **Branch**: main (or whichever branch you're deploying from)
-   - **Build Command**: `pip install -r requirements.txt && cd server && python download_model.py`
+   - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn server.app:app --config server/gunicorn.conf.py`
-   - **Plan**: Standard (at minimum)
+   - **Plan**: Free (or Standard for better performance)
 
-### 3. Add Environment Variables
+### 2. Add Environment Variables
 
 Add these environment variables in the Render dashboard:
 
 ```
 FLASK_ENV=production
-WORKER_TIMEOUT=600
+WORKER_TIMEOUT=300
 GUNICORN_WORKERS=1
 GUNICORN_THREADS=2
 PYTHON_VERSION=3.9.0
-MODEL_GOOGLE_DRIVE_ID=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr
+USE_LIGHTWEIGHT_MODEL=true
 ```
 
-### 4. Set Resource Allocation
+### 3. Set Resource Allocation
 
-Increase the resources allocated to the service:
+Since we're using a lightweight implementation, resource requirements are minimal:
 
-- **Memory**: 4GB minimum
-- **CPU**: 1 CPU minimum
+- **Memory**: 1GB is sufficient
+- **CPU**: 0.5 CPU is adequate
 
-### 5. Deploy
+### 4. Deploy
 
 Click "Create Web Service" and wait for the deployment to complete.
 
-### 6. Monitor Build Logs
+## Switching to Real Model (Optional)
 
-Watch the build logs carefully to ensure the model downloads successfully. If the download fails, you might need to:
+If you want to use the real PyTorch model in the future:
 
-1. Check Google Drive file permissions
-2. Try an alternative hosting method
-3. Contact Render support if timeouts occur during the build
-
-## Troubleshooting
-
-### Google Drive Download Issues
-
-If the model fails to download during build:
-
-1. **Check Google Drive Permissions**:
-
-   - Ensure the file has "Anyone with the link can view" permissions
-   - Try accessing the file directly from an incognito browser window
-
-2. **Alternative Hosting**:
-
-   - Consider uploading the model to AWS S3, Google Cloud Storage, or another provider
-   - Update the `download_model.py` script with the new URL
-
-3. **Manual Upload**:
-   - As a last resort, you can manually upload the model when creating a new deployment
-   - Use Render's disk mounting options to persist the file
-
-### Memory and Resource Issues
-
-If the server crashes after deployment:
-
-1. **Check Memory Usage**:
-
-   - Visit `/loading-status` to see current memory usage
-   - Increase memory allocation if needed
-
-2. **Reduce Worker Count**:
-   - Keep worker count at 1 for large models
-   - Use threads instead of multiple workers
+1. Uncomment the PyTorch dependencies in `requirements.txt`
+2. Upload the model file to a reliable location
+3. Update the model loading code in `model_service.py` to load the real model
+4. Set `USE_LIGHTWEIGHT_MODEL=false` in your environment variables
+5. Increase the memory allocation to at least 4GB
 
 ## Testing the Deployment
 
 After deploying, test the following endpoints:
 
 1. `GET /health` - Should return a 200 response with "healthy" status
-2. `GET /loading-status` - Should show details about the server and model status, including whether the model file was found
-3. `GET /model-status` - Should show the model loading status
+2. `GET /loading-status` - Should show details about the server and model status
+3. `GET /model-status` - Should indicate that the lightweight model is being used
 
-Only attempt to use the `/predict` endpoint after confirming the model is loaded.
+The `/predict` endpoint will work, but will return demo predictions with a message indicating they are not based on a real model.

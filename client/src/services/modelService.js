@@ -16,7 +16,7 @@ class ModelService {
 
       this.isCheckingStatus = true;
 
-      const response = await fetch(`${apiUrl}/model-status`, {
+      const response = await fetch(`${apiUrl}/api/model-status`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -165,7 +165,7 @@ class ModelService {
         })`
       );
 
-      const response = await fetch(`${apiUrl}/predict`, {
+      const response = await fetch(`${apiUrl}/api/predict`, {
         method: "POST",
         body: formData,
         credentials: "include",

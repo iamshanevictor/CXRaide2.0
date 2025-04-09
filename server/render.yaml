@@ -2,11 +2,8 @@ services:
   - type: web
     name: cxraide-backend
     env: python
-    plan: standard # Use standard plan for more resources
-    buildCommand: |
-      pip install -r requirements.txt
-      cd server
-      python download_model.py || python download_from_drive.py || echo "Will try Docker build method instead"
+    plan: standard # Use standard plan but can use lower resources now
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server.app:app --config server/gunicorn.conf.py
     repo: https://github.com/yourusername/CXRaide2.0.git # Update with your actual repo
     branch: main
@@ -24,12 +21,12 @@ services:
         value: 2
       - key: MAX_UPLOAD_SIZE
         value: 20971520 # 20MB for image uploads
-      - key: MODEL_GOOGLE_DRIVE_ID
-        value: 1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr
+      - key: USE_LIGHTWEIGHT_MODEL
+        value: true
     healthCheckPath: /health
-    # Increase resources for model loading
+    # Lower resource requirements since we're not loading a large model
     numInstances:
       min: 1
-      max: 1 # Keep this at 1 since we're loading a large model
-    cpu: 1
-    memory: 4096 # 4GB of RAM
+      max: 1
+    cpu: 0.5
+    memory: 1024 # 1GB of RAM is sufficient

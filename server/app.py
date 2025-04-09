@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import logging
 from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
-from server.model_service import model_bp  # Fixed import path
+import threading
 
 # Configure logging
 logging.basicConfig(
@@ -20,8 +20,27 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Import the model blueprint first
+try:
+    # Try direct import first
+    from model_service import model_bp, get_model
+    logger.info("Successfully imported model_service")
+except ImportError:
+    # If that fails, try with server prefix
+    try:
+        from server.model_service import model_bp, get_model
+        logger.info("Successfully imported model_service with server prefix")
+    except ImportError:
+        logger.error("Could not import model_service. Check file paths and dependencies.")
+        # Create dummy blueprint to avoid errors
+        from flask import Blueprint
+        model_bp = Blueprint('model', __name__)
+        def get_model():
+            logger.error("Model loading function not available")
+            return None
+
 app = Flask(__name__)
-app.register_blueprint(model_bp)  # Register the model blueprint
+app.register_blueprint(model_bp, url_prefix='/api')
 
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
