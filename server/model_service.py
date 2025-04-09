@@ -1,20 +1,37 @@
-import torch
-import torchvision.models as models
-from torchvision import transforms
-from torchvision.ops import nms
-from PIL import Image, ImageDraw, ImageFont
-import io
 import os
 import time
 import threading
 from flask import Blueprint, request, jsonify
 import logging
 import base64
+import io
+from PIL import Image, ImageDraw, ImageFont
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 model_bp = Blueprint('model', __name__)
+
+# Try importing torch, but provide fallbacks if it fails
+torch_available = False
+try:
+    import torch
+    import torchvision.models as models
+    from torchvision import transforms
+    from torchvision.ops import nms
+    torch_available = True
+    logger.info("PyTorch successfully imported")
+except ImportError:
+    logger.warning("PyTorch import failed - this is critical for model functionality!")
+    logger.warning("Please install PyTorch by uncommenting it in requirements.txt and running 'pip install -r requirements.txt'")
+    # Define minimal tensor class for mock implementation - ONLY used in emergency fallback
+    class MockTensor:
+        def __init__(self, data):
+            self.data = data
+        def tolist(self):
+            return self.data
+        def item(self):
+            return self.data[0] if isinstance(self.data, list) else self.data
 
 # Class dictionary
 classes = {
@@ -47,11 +64,21 @@ class_colors = {
 classes_reverse = {v: k for k, v in classes.items()}
 
 # Transform pipeline - original code used 512x512
-transform = transforms.Compose([
-    transforms.Resize((512, 512)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
+if torch_available:
+    transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+else:
+    # Fallback transform function that doesn't require torchvision
+    # This should never be used in production!
+    def transform(image):
+        """Simple transform function that resizes the image"""
+        logger.critical("Using fallback transform function - THIS WILL NOT WORK PROPERLY!")
+        # Resize image to 512x512
+        resized_image = image.resize((512, 512))
+        return resized_image
 
 # Load model
 model = None
@@ -63,29 +90,26 @@ def load_model_in_background():
     global model, model_loading
     
     try:
+        # If PyTorch is not available, log critical error
+        if not torch_available:
+            logger.critical("PyTorch not available. Model cannot be loaded! Install torch and torchvision!")
+            logger.critical("Edit requirements.txt to uncomment torch and torchvision, then run 'pip install -r requirements.txt'")
+            return
+        
         logger.info("Starting background model loading...")
         start_time = time.time()
         
         # Create model
         temp_model = models.detection.ssd300_vgg16(weights=None)
         
-        # Check multiple possible locations for the model file
+        # Check multiple possible locations for the model file, with most likely first
         possible_paths = [
-            'IT2_model_epoch_300.pth',
-            './IT2_model_epoch_300.pth',
-            '../IT2_model_epoch_300.pth',
-            '/app/IT2_model_epoch_300.pth',
-            '/app/server/IT2_model_epoch_300.pth',
-            os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'IT2_model_epoch_300.pth'),
-            # Adding additional paths with model_epoch_300.pth filename
-            'model_epoch_300.pth',
-            './model_epoch_300.pth',
-            '../model_epoch_300.pth',
-            '/app/model_epoch_300.pth',
-            '/app/server/model_epoch_300.pth',
-            os.path.join(os.path.dirname(__file__), 'model_epoch_300.pth'),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'model_epoch_300.pth')
+            os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'),  # Current directory (most likely)
+            'IT2_model_epoch_300.pth',                                           # Relative to working directory
+            '../IT2_model_epoch_300.pth',                                        # Parent directory
+            '/app/IT2_model_epoch_300.pth',                                      # Docker container root
+            '/app/server/IT2_model_epoch_300.pth',                               # Docker container server dir
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'IT2_model_epoch_300.pth'),  # Project root
         ]
         
         model_path = None
@@ -96,12 +120,23 @@ def load_model_in_background():
                 break
         
         if not model_path:
-            logger.error(f"Model file not found. Checked paths: {possible_paths}")
+            logger.critical("Model file not found! Application will not work correctly.")
+            logger.critical(f"Searched paths: {possible_paths}")
+            logger.critical(f"Current working directory: {os.getcwd()}")
+            logger.critical(f"Directory contents: {os.listdir('.')}")
+            if '__file__' in globals():
+                logger.critical(f"Module directory: {os.path.dirname(__file__)}")
+                logger.critical(f"Module directory contents: {os.listdir(os.path.dirname(__file__))}")
+            # Do NOT create a mock model - fail properly
             return
         
         # Load weights
-        logger.info(f"Loading model weights from {model_path}...")
-        temp_model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+        file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
+        logger.info(f"Loading model weights from {model_path} (Size: {file_size_mb:.2f} MB)...")
+        
+        # Load the model with device mapping
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        temp_model.load_state_dict(state_dict)
         temp_model.eval()
         
         # Update the global model variable
@@ -110,9 +145,65 @@ def load_model_in_background():
         elapsed = time.time() - start_time
         logger.info(f"Model loaded successfully in {elapsed:.2f} seconds")
     except Exception as e:
-        logger.error(f"Failed to load model in background: {str(e)}")
+        logger.critical(f"Failed to load model in background: {str(e)}", exc_info=True)
+        logger.critical("Model loading failed - application will not work correctly!")
+        model = None
     finally:
         model_loading = False
+
+class MockModel:
+    """A mock model class that returns fixed predictions - THIS SHOULD NEVER BE USED IN PRODUCTION"""
+    
+    def __init__(self):
+        self.mock_type = "emergency_fallback"
+        logger.critical("EMERGENCY FALLBACK: Using mock model - PREDICTIONS WILL NOT BE REAL!")
+        logger.critical("Install PyTorch and ensure model file exists at the correct location")
+    
+    def __call__(self, input_tensor):
+        """Return mock predictions when the model is called"""
+        logger.critical("WARNING: Using mock predictions instead of real model!")
+        
+        # Create demo predictions with fixed but realistic values
+        if torch_available:
+            # Use real torch tensors if available
+            mock_predictions = [
+                {
+                    'boxes': torch.tensor([
+                        [100.0, 150.0, 300.0, 350.0],  # Nodule
+                        [200.0, 100.0, 450.0, 350.0],  # Cardiomegaly 
+                        [50.0, 300.0, 150.0, 400.0]    # Effusion
+                    ]),
+                    'scores': torch.tensor([0.87, 0.92, 0.78]),
+                    'labels': torch.tensor([5, 1, 4])  # Corresponding to classes
+                }
+            ]
+        else:
+            # Use mock tensor implementation
+            mock_predictions = [
+                {
+                    'boxes': [
+                        MockTensor([100.0, 150.0, 300.0, 350.0]),  # Nodule
+                        MockTensor([200.0, 100.0, 450.0, 350.0]),  # Cardiomegaly 
+                        MockTensor([50.0, 300.0, 150.0, 400.0])    # Effusion
+                    ],
+                    'scores': [
+                        MockTensor(0.87), 
+                        MockTensor(0.92), 
+                        MockTensor(0.78)
+                    ],
+                    'labels': [
+                        MockTensor(5), 
+                        MockTensor(1), 
+                        MockTensor(4)
+                    ]  # Corresponding to classes
+                }
+            ]
+        
+        return mock_predictions
+    
+    def eval(self):
+        """Mock eval method"""
+        return self
 
 def get_model():
     """Get the model, loading it if necessary"""
@@ -165,27 +256,101 @@ def apply_nms(predictions, iou_threshold=0.5):
         'labels': filtered_labels
     }
 
+def predict(input_tensor):
+    """Process model predictions and format the results"""
+    try:
+        get_model()  # Ensure model is loaded
+        
+        if model is None:
+            logger.error("Model not available for prediction")
+            return []
+            
+        # Get raw predictions from model
+        with torch_no_grad():
+            raw_predictions = model(input_tensor)
+            
+        # Apply NMS if using a real torch model
+        if not hasattr(model, 'mock_type'):
+            filtered_predictions = apply_nms(raw_predictions)
+        else:
+            # Skip NMS for mock predictions
+            filtered_predictions = raw_predictions[0]
+        
+        # Extract highest confidence boxes
+        formatted_predictions = extract_highest_confidence_boxes(filtered_predictions)
+        
+        return formatted_predictions
+    except Exception as e:
+        logger.error(f"Error during prediction: {str(e)}")
+        return []
+
+def torch_no_grad():
+    """Context manager to disable gradient calculation - with torch fallback"""
+    if torch_available:
+        return torch.no_grad()
+    else:
+        # Simple context manager that does nothing when torch isn't available
+        class NoOpContextManager:
+            def __enter__(self): 
+                return None
+            def __exit__(self, exc_type, exc_val, exc_tb): 
+                pass
+        return NoOpContextManager()
+
 def extract_highest_confidence_boxes(predictions):
     """
     Extracts and filters the bounding boxes, keeping only the highest confidence box per class.
     """
     class_boxes = {}
 
-    # Group boxes by class
-    for i, box in enumerate(predictions['boxes']):
-        class_id = predictions['labels'][i].item()
-        score = predictions['scores'][i].item()
-
-        # Use a confidence threshold - LOWERED TO ALLOW MORE PREDICTIONS
-        if score < 0.01:
-            continue
-
-        # If the class is not in the dictionary or the current score is higher than the existing one, update
-        if class_id not in class_boxes or class_boxes[class_id]['score'] < score:
-            class_boxes[class_id] = {
-                'box': box.tolist(),
-                'score': score
-            }
+    # Handle both torch tensor and mock implementation
+    try:
+        # Group boxes by class
+        if torch_available and not hasattr(predictions['boxes'], '__iter__'):
+            # Handle torch tensor case
+            boxes = predictions['boxes']
+            scores = predictions['scores'] 
+            labels = predictions['labels']
+            
+            for i in range(len(boxes)):
+                box = boxes[i]
+                class_id = labels[i].item() if hasattr(labels[i], 'item') else labels[i]
+                score = scores[i].item() if hasattr(scores[i], 'item') else scores[i]
+                
+                # Use a confidence threshold
+                if score < 0.01:
+                    continue
+                    
+                # If the class is not in the dictionary or the current score is higher than the existing one, update
+                if class_id not in class_boxes or class_boxes[class_id]['score'] < score:
+                    class_boxes[class_id] = {
+                        'box': box.tolist() if hasattr(box, 'tolist') else box,
+                        'score': score
+                    }
+        else:
+            # Handle list case (for mock implementation)
+            boxes = predictions['boxes']
+            scores = predictions['scores']
+            labels = predictions['labels']
+            
+            for i in range(len(boxes)):
+                box = boxes[i]
+                class_id = labels[i].item() if hasattr(labels[i], 'item') else labels[i]
+                score = scores[i].item() if hasattr(scores[i], 'item') else scores[i]
+                
+                # Use a confidence threshold
+                if score < 0.01:
+                    continue
+                    
+                # If the class is not in the dictionary or the current score is higher than the existing one, update
+                if class_id not in class_boxes or class_boxes[class_id]['score'] < score:
+                    class_boxes[class_id] = {
+                        'box': box.tolist() if hasattr(box, 'tolist') else box,
+                        'score': score
+                    }
+    except Exception as e:
+        logger.error(f"Error extracting predictions: {str(e)}")
+        return []
 
     # Convert class_boxes to a list for returning
     filtered_boxes = []
@@ -198,31 +363,8 @@ def extract_highest_confidence_boxes(predictions):
             'score': data['score']
         })
         logger.info(f"Class: {class_name}, Confidence: {data['score']:.4f}, Bounding Box: ({x1:.2f}, {y1:.2f}, {x2:.2f}, {y2:.2f})")
-
+    
     return filtered_boxes
-
-def predict(image_tensor):
-    """Make a prediction using the model"""
-    global model
-    
-    if model is None:
-        raise RuntimeError("Model is not loaded yet. Please try again later.")
-    
-    with torch.no_grad():
-        start_time = time.time()
-        raw_predictions = model(image_tensor)
-        elapsed = time.time() - start_time
-        logger.info(f"Raw prediction completed in {elapsed:.2f} seconds")
-        
-        # Apply Non-Maximum Suppression
-        filtered_predictions = apply_nms(raw_predictions, iou_threshold=0.5)
-        logger.info(f"NMS applied with iou_threshold=0.5")
-        
-        # Extract highest confidence box per class
-        final_predictions = extract_highest_confidence_boxes(filtered_predictions)
-        logger.info(f"Extracted {len(final_predictions)} highest confidence boxes")
-        
-        return final_predictions
 
 def draw_predictions_on_image(image, predictions):
     """Draw bounding boxes and labels directly on the image"""
@@ -278,6 +420,14 @@ def predict_image():
             logger.info("Handling OPTIONS request for /predict")
             return jsonify({"message": "CORS preflight handled"}), 200
             
+        # Check if PyTorch is available
+        if not torch_available:
+            logger.critical("PyTorch is not available - cannot process predictions!")
+            return jsonify({
+                'error': 'PyTorch is not installed on the server. Please install PyTorch by uncommenting it in requirements.txt.',
+                'fix': 'The server administrator needs to uncomment torch and torchvision in requirements.txt and run pip install -r requirements.txt'
+            }), 500
+            
         # Ensure model is ready or loading
         current_model = get_model()
         if current_model is None and model_loading:
@@ -285,7 +435,10 @@ def predict_image():
             return jsonify({'error': 'Model is still loading. Please try again later.'}), 503
         elif current_model is None:
             logger.error("Failed to load model")
-            return jsonify({'error': 'Failed to load model. Please contact support.'}), 500
+            return jsonify({
+                'error': 'Failed to load model. Check server logs for details.',
+                'details': 'The model file may be missing or corrupted. Ensure IT2_model_epoch_300.pth exists in the server directory.'
+            }), 500
 
         # Log request details
         logger.info(f"Headers: {dict(request.headers)}")
@@ -322,14 +475,7 @@ def predict_image():
             image_tensor = transform(image).unsqueeze(0)
             logger.info(f"Image transformed to tensor with shape: {image_tensor.shape}")
             
-            with torch.no_grad():
-                raw_predictions = model(image_tensor)
-                # Log raw prediction details
-                logger.info(f"Raw model output: {raw_predictions}")
-                logger.info(f"Raw boxes: {raw_predictions[0]['boxes']}")
-                logger.info(f"Raw scores: {raw_predictions[0]['scores']}")
-                logger.info(f"Raw labels: {raw_predictions[0]['labels']}")
-            
+            # Get predictions using the real model
             predictions = predict(image_tensor)
             logger.info(f"Processed predictions: {predictions}")
             
@@ -376,7 +522,7 @@ def predict_image():
         
     except FileNotFoundError as e:
         logger.error(f"Model file not found: {str(e)}")
-        return jsonify({'error': str(e)}), 503  # Service Unavailable
+        return jsonify({'error': str(e), 'fix': 'Ensure the model file IT2_model_epoch_300.pth exists in the server directory'}), 503  # Service Unavailable
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}", exc_info=True)
         return jsonify({'error': f"Failed to process image: {str(e)}"}), 500
@@ -386,21 +532,79 @@ def model_status():
     """Check the status of the model loading"""
     global model, model_loading
     
+    # Check if PyTorch is available
+    if not torch_available:
+        return jsonify({
+            "status": "error",
+            "model_type": "none",
+            "message": "PyTorch not installed. Cannot load or use model.",
+            "error": "PyTorch is not installed. Edit requirements.txt to uncomment torch/torchvision and run pip install."
+        }), 500
+    
     if model is not None:
+        # Check if it's a mock model - which should now only happen in emergency situations
+        if hasattr(model, 'mock_type'):
+            return jsonify({
+                "status": "warning",
+                "model_type": "emergency_fallback",
+                "message": "WARNING: Using emergency fallback mock model - PREDICTIONS ARE NOT REAL",
+                "warning": "This is an EMERGENCY MOCK model. Real model file was not found or failed to load."
+            }), 200
+        
+        # Get model file information if possible
+        model_info = {}
+        for model_path in [
+            os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'),
+            'IT2_model_epoch_300.pth',
+        ]:
+            if os.path.exists(model_path):
+                model_info["file_path"] = model_path
+                model_info["file_size_mb"] = round(os.path.getsize(model_path) / (1024 * 1024), 2)
+                model_info["last_modified"] = time.ctime(os.path.getmtime(model_path))
+                break
+                
+        # Return success with model info
         return jsonify({
             "status": "ready",
-            "message": "Model is loaded and ready for predictions"
-        })
+            "model_type": "real",
+            "message": "Model is loaded and ready for predictions",
+            "model_info": model_info,
+            "support_classes": list(classes.keys())
+        }), 200
     elif model_loading:
         return jsonify({
             "status": "loading",
             "message": "Model is currently loading, please try again later"
-        })
+        }), 200
     else:
-        return jsonify({
-            "status": "not_loaded",
-            "message": "Model has not started loading yet"
-        })
+        # Get model existence info
+        model_file_exists = False
+        model_path = None
+        for path in [
+            os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'),
+            'IT2_model_epoch_300.pth',
+        ]:
+            if os.path.exists(path):
+                model_file_exists = True
+                model_path = path
+                break
+        
+        if model_file_exists:
+            return jsonify({
+                "status": "not_loaded",
+                "message": "Model file exists but has not started loading yet. Try accessing an endpoint that uses the model.",
+                "model_path": model_path
+            }), 200
+        else:
+            return jsonify({
+                "status": "missing",
+                "message": "Model file not found. Please ensure IT2_model_epoch_300.pth is in the correct location.",
+                "searched_paths": [
+                    os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'),
+                    'IT2_model_epoch_300.pth',
+                    os.getcwd()
+                ]
+            }), 404
 
 # Start loading the model in the background on module import
 get_model() 
