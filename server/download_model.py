@@ -20,16 +20,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("model_downloader")
 
-# Define model download URL - replace with your actual URL
-# This should be a public, accessible URL where you've uploaded the model
-MODEL_URL = "https://storage.googleapis.com/example-medical-models/IT2_model_epoch_300.pth"
+# Google Drive file ID extracted from the shared link
+FILE_ID = "1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr"
+
+# Use the direct download URL format for Google Drive
+MODEL_URL = f"https://drive.google.com/uc?export=download&id={FILE_ID}"
 MODEL_FILENAME = "IT2_model_epoch_300.pth"
 
 def download_model(url, target_path):
     """Download a file with progress bar"""
     try:
         start_time = time.time()
-        logger.info(f"Downloading model from {url} to {target_path}")
+        logger.info(f"Downloading model from Google Drive (File ID: {FILE_ID})")
+        logger.info(f"Target path: {target_path}")
         
         # First check if the file already exists
         if os.path.exists(target_path):
@@ -37,30 +40,51 @@ def download_model(url, target_path):
             logger.info(f"Model file already exists: {target_path} ({file_size_mb:.2f} MB)")
             logger.info(f"Skip download - using existing file")
             return True
+        
+        # Google Drive direct download has limitations for large files
+        # For files > 100MB, Google Drive shows a virus scan warning and won't download directly
+        # We'll implement a more robust Google Drive download method
+        
+        def get_confirm_token(response):
+            for key, value in response.cookies.items():
+                if key.startswith('download_warning'):
+                    return value
+            return None
+        
+        def save_response_content(response, destination):
+            CHUNK_SIZE = 32768  # 32 KB chunks
+            total_size = int(response.headers.get('content-length', 0))
+            total_size_mb = total_size / (1024 * 1024)
             
-        # Make a streaming request
-        response = requests.get(url, stream=True, timeout=300)
-        response.raise_for_status()
+            logger.info(f"Starting download: {total_size_mb:.2f} MB")
+            progress_bar = tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading")
+            
+            with open(destination, "wb") as f:
+                for chunk in response.iter_content(CHUNK_SIZE):
+                    if chunk:  # filter out keep-alive new chunks
+                        f.write(chunk)
+                        progress_bar.update(len(chunk))
+            progress_bar.close()
         
-        # Get file size if available
-        total_size = int(response.headers.get('content-length', 0))
-        total_size_mb = total_size / (1024 * 1024)
+        # Create session
+        session = requests.Session()
         
-        # Create progress bar
-        logger.info(f"Starting download: {total_size_mb:.2f} MB")
-        progress_bar = tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading")
+        # Make initial request
+        logger.info("Initiating Google Drive download request...")
+        response = session.get(url, stream=True, timeout=300)
         
-        # Ensure the directory exists
+        # Get confirmation token
+        token = get_confirm_token(response)
+        if token:
+            logger.info(f"Found confirmation token: {token}")
+            params = {'id': FILE_ID, 'confirm': token}
+            response = session.get(url, params=params, stream=True, timeout=300)
+        
+        # Create directory if needed
         os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
         
-        # Download the file in chunks
-        with open(target_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    progress_bar.update(len(chunk))
-        
-        progress_bar.close()
+        # Download file
+        save_response_content(response, target_path)
         
         # Verify file was downloaded
         if os.path.exists(target_path):
@@ -72,7 +96,7 @@ def download_model(url, target_path):
         else:
             logger.error(f"Download completed but file not found at {target_path}")
             return False
-            
+    
     except Exception as e:
         logger.error(f"Error downloading model: {str(e)}")
         return False
