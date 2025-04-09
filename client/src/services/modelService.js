@@ -4,7 +4,7 @@ class ModelService {
   constructor() {
     this.isCheckingStatus = false;
     this.maxRetries = 3;
-    this.modelInputSize = 512; // Updated to match server's resizing (512x512)
+    this.modelInputSize = 512; // Model input size is 512x512
   }
 
   async checkModelStatus() {
@@ -134,102 +134,12 @@ class ModelService {
     });
   }
 
-  // Scale the bounding boxes back to the original image size
-  scaleBoxesToDisplaySize(
-    predictions,
-    originalWidth,
-    originalHeight,
-    displayWidth,
-    displayHeight
-  ) {
-    if (!predictions || !predictions.length) return [];
-
-    console.log("Scaling predictions to display size:");
-    console.log("Original dimensions:", originalWidth, "x", originalHeight);
-    console.log("Display dimensions:", displayWidth, "x", displayHeight);
-    console.log("Model input size:", this.modelInputSize);
-
-    // Calculate the scale factors based on the actual displayed image size
-    // Most importantly, we need to account for the aspect ratio preservation
-    const originalAspectRatio = originalWidth / originalHeight;
-    const displayAspectRatio = displayWidth / displayHeight;
-
-    let scaledWidth,
-      scaledHeight,
-      offsetX = 0,
-      offsetY = 0;
-
-    // Determine how the image is fit within the container
-    if (displayAspectRatio > originalAspectRatio) {
-      // Container is wider than the image's aspect ratio - image is constrained by height
-      scaledHeight = displayHeight;
-      scaledWidth = displayHeight * originalAspectRatio;
-      offsetX = (displayWidth - scaledWidth) / 2; // Center horizontally
-    } else {
-      // Container is taller than the image's aspect ratio - image is constrained by width
-      scaledWidth = displayWidth;
-      scaledHeight = displayWidth / originalAspectRatio;
-      offsetY = (displayHeight - scaledHeight) / 2; // Center vertically
-    }
-
-    // Calculate the actual scale factors for the visible image part
-    const scaleX = scaledWidth / this.modelInputSize;
-    const scaleY = scaledHeight / this.modelInputSize;
-
-    console.log("Calculated scaling factors:", {
-      scaleX,
-      scaleY,
-      offsetX,
-      offsetY,
-      scaledWidth,
-      scaledHeight,
-    });
-
-    return predictions.map((pred) => {
-      // Scale the bounding box coordinates and apply offsets
-      const scaledBox = [
-        pred.box[0] * scaleX + offsetX,
-        pred.box[1] * scaleY + offsetY,
-        pred.box[2] * scaleX + offsetX,
-        pred.box[3] * scaleY + offsetY,
-      ];
-
-      return {
-        ...pred,
-        box: scaledBox,
-        // Store the original image dimensions and scaling factors for reference
-        originalDimensions: {
-          width: originalWidth,
-          height: originalHeight,
-          scaleX,
-          scaleY,
-          offsetX,
-          offsetY,
-        },
-      };
-    });
-  }
-
-  async predict(imageFile, displayWidth, displayHeight, retryCount = 0) {
+  async predict(imageFile, retryCount = 0) {
     try {
-      console.log(
-        `Starting prediction with display dimensions: ${displayWidth}x${displayHeight}`
-      );
+      console.log(`Starting prediction process for image`);
 
-      // Resize the image for the model
-      const {
-        file: resizedFile,
-        originalWidth,
-        originalHeight,
-        targetWidth,
-        targetHeight,
-        offsetX: resizeOffsetX,
-        offsetY: resizeOffsetY,
-      } = await this.resizeImageForModel(imageFile);
-
-      console.log(
-        `Resized image from ${originalWidth}x${originalHeight} to fit within ${this.modelInputSize}x${this.modelInputSize}`
-      );
+      // Resize the image for the model - this is still needed for the request
+      const { file: resizedFile } = await this.resizeImageForModel(imageFile);
 
       const formData = new FormData();
       formData.append("image", resizedFile);
@@ -274,12 +184,7 @@ class ModelService {
             `Retrying in 2 seconds... (${retryCount + 1}/${this.maxRetries})`
           );
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          return this.predict(
-            imageFile,
-            displayWidth,
-            displayHeight,
-            retryCount + 1
-          );
+          return this.predict(imageFile, retryCount + 1);
         }
       }
 
@@ -298,98 +203,27 @@ class ModelService {
       }
 
       const data = await response.json();
+      console.log("Received response from server:", data);
 
-      // If no display dimensions provided, return raw predictions
-      if (!displayWidth || !displayHeight) {
-        return data.predictions.map((pred) => ({
-          box: pred.boxes,
-          class: pred.label,
-          score: pred.score,
-        }));
-      }
+      // The server now sends:
+      // 1. The predictions (data.predictions)
+      // 2. The clean image (data.clean_image) - without annotations
+      // 3. The annotated image (data.annotated_image) - with pre-rendered boxes
+      // 4. The image size (data.image_size) - always 512x512
 
-      // Process the predictions to account for aspect ratio preservation and scaling
-      const processedPredictions = data.predictions.map((pred) => {
-        // First, adjust for the offset within the model's input square (due to aspect ratio preservation)
-        const [x1, y1, x2, y2] = pred.boxes;
+      // Process the results to match our component's expected format
+      const processedPredictions = data.predictions.map((pred) => ({
+        box: pred.boxes, // Use the raw boxes (already in 512x512 coordinates)
+        class: pred.label,
+        score: pred.score,
+      }));
 
-        // Adjust box coordinates to account for the centering offsets in the input image
-        const adjustedBox = [
-          x1 - resizeOffsetX,
-          y1 - resizeOffsetY,
-          x2 - resizeOffsetX,
-          y2 - resizeOffsetY,
-        ];
-
-        // Now scale based on the display size while maintaining the same aspect ratio
-        const imageAspectRatio = originalWidth / originalHeight;
-        const containerAspectRatio = displayWidth / displayHeight;
-
-        let scaledImageWidth,
-          scaledImageHeight,
-          displayOffsetX = 0,
-          displayOffsetY = 0;
-
-        if (containerAspectRatio > imageAspectRatio) {
-          // Container is wider than image
-          scaledImageHeight = displayHeight;
-          scaledImageWidth = displayHeight * imageAspectRatio;
-          displayOffsetX = (displayWidth - scaledImageWidth) / 2;
-        } else {
-          // Container is taller than image
-          scaledImageWidth = displayWidth;
-          scaledImageHeight = displayWidth / imageAspectRatio;
-          displayOffsetY = (displayHeight - scaledImageHeight) / 2;
-        }
-
-        // Calculate scale factors based on the actual image size within target dimensions
-        const scaleX = scaledImageWidth / targetWidth;
-        const scaleY = scaledImageHeight / targetHeight;
-
-        // Scale the box to the displayed dimensions
-        const displayBox = [
-          adjustedBox[0] * scaleX + displayOffsetX,
-          adjustedBox[1] * scaleY + displayOffsetY,
-          adjustedBox[2] * scaleX + displayOffsetX,
-          adjustedBox[3] * scaleY + displayOffsetY,
-        ];
-
-        console.log(`Prediction ${pred.label}:`, {
-          serverBox: pred.boxes,
-          adjustedBox,
-          displayBox,
-          offsets: {
-            resizeOffsetX,
-            resizeOffsetY,
-            displayOffsetX,
-            displayOffsetY,
-          },
-          scales: { scaleX, scaleY },
-          dimensions: { scaledImageWidth, scaledImageHeight },
-        });
-
-        return {
-          box: displayBox,
-          class: pred.label,
-          score: pred.score,
-          // Store details for debugging
-          debug: {
-            originalBox: pred.boxes,
-            adjustedBox,
-            resizeOffsets: { x: resizeOffsetX, y: resizeOffsetY },
-            displayOffsets: { x: displayOffsetX, y: displayOffsetY },
-            scales: { x: scaleX, y: scaleY },
-            dimensions: { width: scaledImageWidth, height: scaledImageHeight },
-            aspectRatios: {
-              image: imageAspectRatio,
-              container: containerAspectRatio,
-            },
-          },
-        };
-      });
-
-      console.log("Processed predictions:", processedPredictions);
-      return processedPredictions;
+      return {
+        predictions: processedPredictions,
+        cleanImage: data.clean_image,
+        annotatedImage: data.annotated_image,
+        imageSize: data.image_size || { width: 512, height: 512 },
+      };
     } catch (error) {
       console.error("Error making prediction:", error);
       throw error;
