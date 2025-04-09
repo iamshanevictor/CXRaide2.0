@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import logging
 from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
-from model_service import model_bp  # Import the model blueprint
+from server.model_service import model_bp  # Fixed import path
 
 # Configure logging
 logging.basicConfig(
@@ -532,4 +532,4 @@ if __name__ == '__main__':
         timeout = int(os.getenv('WORKER_TIMEOUT', 300))  # 5 minutes default
         logger.info(f"Running under Gunicorn with timeout: {timeout}s")
     
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=ENVIRONMENT == 'development')
