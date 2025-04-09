@@ -358,55 +358,48 @@
           <div class="ai-annotations">
             <div class="image-title">Chest X-ray Image (AI Annotated)</div>
             <div class="xray-image ai-image">
+              <!-- Use the pre-rendered annotated image with bounding boxes -->
               <img
-                v-if="currentImage"
-                :src="currentImage"
+                v-if="annotatedImage"
+                :src="annotatedImage"
                 alt="AI annotated X-ray"
+                ref="aiXrayImage"
+                class="standardized-image"
+              />
+              <!-- Use the clean image without annotations -->
+              <img
+                v-else-if="cleanImage"
+                :src="cleanImage"
+                alt="X-ray without annotations"
+                ref="aiXrayImage"
+                class="standardized-image"
+              />
+              <!-- Fallback to the original image if no images from server yet -->
+              <img
+                v-else-if="currentImage"
+                :src="currentImage"
+                alt="X-ray"
                 ref="aiXrayImage"
               />
 
-              <!-- AI prediction boxes -->
-              <template v-if="aiPredictions.length > 0">
-                <div
-                  v-for="(prediction, index) in aiPredictions"
-                  :key="index"
-                  class="annotation-box ai-prediction-box"
-                  :class="[
-                    prediction.class &&
-                      prediction.class
-                        .toLowerCase()
-                        .replace('/', '-')
-                        .replace(' ', '-') + '-box',
-                  ]"
-                  :style="{
-                    left: `${Math.max(0, prediction.box[0] || 0)}px`,
-                    top: `${Math.max(0, prediction.box[1] || 0)}px`,
-                    width: `${Math.max(
-                      10,
-                      (prediction.box[2] || 0) - (prediction.box[0] || 0)
-                    )}px`,
-                    height: `${Math.max(
-                      10,
-                      (prediction.box[3] || 0) - (prediction.box[1] || 0)
-                    )}px`,
-                    border: `2px solid ${getBoxColor(prediction.class || '')}`,
-                    backgroundColor: `${getBoxColor(
-                      prediction.class || '',
-                      0.2
-                    )}`,
-                  }"
+              <!-- Loading state -->
+              <div v-if="isModelLoading" class="ai-loading">
+                <div class="loader"></div>
+                <p>Processing image with AI model...</p>
+              </div>
+
+              <!-- Error state -->
+              <div v-if="modelError" class="ai-error">
+                <i class="bi bi-exclamation-triangle"></i>
+                <p>{{ modelError }}</p>
+                <button
+                  v-if="modelError && modelError.includes('loading')"
+                  @click="retryModelPrediction"
+                  class="retry-btn"
                 >
-                  <div
-                    class="annotation-label"
-                    :style="{
-                      backgroundColor: getBoxColor(prediction.class || ''),
-                    }"
-                  >
-                    {{ prediction.class || "Unknown" }}:
-                    {{ formatConfidence(prediction.score) }}
-                  </div>
-                </div>
-              </template>
+                  <i class="bi bi-arrow-clockwise"></i> Check Again
+                </button>
+              </div>
 
               <!-- No abnormalities message -->
               <div
@@ -414,7 +407,7 @@
                   !isModelLoading &&
                   !modelError &&
                   aiPredictions.length === 0 &&
-                  currentImage
+                  (cleanImage || currentImage)
                 "
                 class="no-abnormalities"
               >
@@ -436,27 +429,11 @@
                 </div>
               </div>
 
-              <!-- Loading state -->
-              <div v-if="isModelLoading" class="ai-loading">
-                <div class="loader"></div>
-                <p>Processing image with AI model...</p>
-              </div>
-
-              <!-- Error state -->
-              <div v-if="modelError" class="ai-error">
-                <i class="bi bi-exclamation-triangle"></i>
-                <p>{{ modelError }}</p>
-                <button
-                  v-if="modelError && modelError.includes('loading')"
-                  @click="retryModelPrediction"
-                  class="retry-btn"
-                >
-                  <i class="bi bi-arrow-clockwise"></i> Check Again
-                </button>
-              </div>
-
               <!-- Empty state -->
-              <div v-if="!currentImage" class="placeholder-ai-message">
+              <div
+                v-if="!currentImage && !cleanImage && !annotatedImage"
+                class="placeholder-ai-message"
+              >
                 <i class="bi bi-robot"></i>
                 <p>AI annotations will appear here</p>
               </div>
@@ -573,6 +550,9 @@ export default {
       isUsingMockModel: false,
       debugMode: false,
       lastApiResponse: null,
+      aiDisplayImage: null,
+      cleanImage: null,
+      annotatedImage: null,
     };
   },
   created() {
@@ -766,89 +746,28 @@ export default {
         // Create a File object from the Blob
         const imageFile = new File([blob], "image.jpg", { type: "image/jpeg" });
 
-        // Get the display dimensions of the image container and the actual image
-        let displayWidth = 0;
-        let displayHeight = 0;
-        let actualImageWidth = 0;
-        let actualImageHeight = 0;
-        let containerWidth = 0;
-        let containerHeight = 0;
-
-        if (this.$refs.aiXrayImage) {
-          const imgElement = this.$refs.aiXrayImage;
-          const container = imgElement.parentElement;
-
-          // Get container dimensions
-          if (container) {
-            containerWidth = container.clientWidth;
-            containerHeight = container.clientHeight;
-          }
-
-          // Wait for the image to be loaded
-          await new Promise((resolve) => {
-            if (imgElement.complete) {
-              resolve();
-            } else {
-              imgElement.onload = () => resolve();
-            }
-          });
-
-          // Get actual displayed image dimensions (not the intrinsic dimensions)
-          actualImageWidth = imgElement.clientWidth;
-          actualImageHeight = imgElement.clientHeight;
-
-          // Get natural image dimensions (intrinsic size)
-          const naturalWidth = imgElement.naturalWidth;
-          const naturalHeight = imgElement.naturalHeight;
-
-          // Calculate the dimensions of the displayed image
-          displayWidth = actualImageWidth;
-          displayHeight = actualImageHeight;
-
-          console.log("Image display details:", {
-            containerWidth,
-            containerHeight,
-            actualImageWidth,
-            actualImageHeight,
-            naturalWidth,
-            naturalHeight,
-          });
-        }
-
         console.log(
           "Getting AI predictions for image:",
           imageFile.name,
-          imageFile.size,
-          "Display dimensions:",
-          displayWidth,
-          "x",
-          displayHeight
+          imageFile.size
         );
 
-        // Get predictions from model service with display dimensions
-        const predictions = await ModelService.predict(
-          imageFile,
-          displayWidth || 512,
-          displayHeight || 512
-        );
-        console.log("Received predictions:", predictions);
+        // Get predictions from model service - includes pre-rendered annotated image
+        const result = await ModelService.predict(imageFile);
+        console.log("Received prediction result:", result);
 
         // Store the predictions response for debugging
         this.lastApiResponse = {
           modelStatus,
-          predictions,
-          displayDimensions: {
-            width: displayWidth,
-            height: displayHeight,
-            containerWidth,
-            containerHeight,
-            actualImageWidth,
-            actualImageHeight,
-          },
+          result,
           timestamp: new Date().toISOString(),
         };
 
-        if (!predictions || predictions.length === 0) {
+        // Update the display images from the server
+        this.cleanImage = result.cleanImage;
+        this.annotatedImage = result.annotatedImage;
+
+        if (!result.predictions || result.predictions.length === 0) {
           // Don't show an error message for empty predictions
           // Just set the aiPredictions array to empty
           this.aiPredictions = [];
@@ -856,8 +775,8 @@ export default {
           return;
         }
 
-        // Update AI predictions
-        this.aiPredictions = predictions.map((pred) => ({
+        // Update AI predictions (still useful for displaying confidence summary)
+        this.aiPredictions = result.predictions.map((pred) => ({
           ...pred,
           id: `ai-${Math.random().toString(36).substr(2, 9)}`,
           isAIPrediction: true,
@@ -2232,6 +2151,21 @@ export default {
 
 .ai-image {
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
+}
+
+/* Style for the image coming from the server (standardized 512x512) */
+.standardized-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .ai-loading {
@@ -2352,8 +2286,10 @@ export default {
 }
 
 .ai-prediction-box {
-  border-width: 3px !important;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 10;
 }
 
 .ai-prediction-box .annotation-label {

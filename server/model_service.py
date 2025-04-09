@@ -2,13 +2,14 @@ import torch
 import torchvision.models as models
 from torchvision import transforms
 from torchvision.ops import nms
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import time
 import threading
 from flask import Blueprint, request, jsonify
 import logging
+import base64
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -26,6 +27,20 @@ classes = {
     'Consolidation': 7,
     'Atelectasis': 8,
     'Pneumothorax': 9
+}
+
+# Colors for different classes (RGB)
+class_colors = {
+    'Cardiomegaly': (255, 100, 100),        # Red
+    'Pleural thickening': (100, 100, 255),  # Blue
+    'Pulmonary fibrosis': (100, 255, 100),  # Green
+    'Pleural effusion': (100, 200, 255),    # Light blue
+    'Nodule/Mass': (255, 200, 100),         # Orange
+    'Infiltration': (255, 100, 255),        # Purple
+    'Consolidation': (200, 200, 100),       # Yellow
+    'Atelectasis': (100, 255, 200),         # Teal
+    'Pneumothorax': (255, 150, 150),        # Pink
+    'default': (255, 255, 255)              # White (fallback)
 }
 
 # Reverse mapping
@@ -209,6 +224,50 @@ def predict(image_tensor):
         
         return final_predictions
 
+def draw_predictions_on_image(image, predictions):
+    """Draw bounding boxes and labels directly on the image"""
+    draw = ImageDraw.Draw(image)
+    
+    # Try to use a nice font, fall back to default if not available
+    try:
+        # For Windows
+        font = ImageFont.truetype("arial.ttf", 16)
+    except IOError:
+        try:
+            # For Linux
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+        except IOError:
+            # Fallback
+            font = ImageFont.load_default()
+    
+    # Draw each prediction box and label
+    for pred in predictions:
+        box = pred['boxes']
+        label = pred['label']
+        score = pred['score']
+        
+        # Get color for this class, or use default
+        color = class_colors.get(label, class_colors['default'])
+        
+        # Convert coordinates to integers
+        x1, y1, x2, y2 = [int(coord) for coord in box]
+        
+        # Draw rectangle with a 3-pixel width
+        for i in range(3):
+            draw.rectangle([x1-i, y1-i, x2+i, y2+i], outline=color)
+        
+        # Create label text with confidence percentage
+        label_text = f"{label}: {int(score * 100)}%"
+        
+        # Draw label background
+        text_w, text_h = draw.textsize(label_text, font=font) if hasattr(draw, 'textsize') else (len(label_text) * 7, 20)  # Estimate size if textsize not available
+        draw.rectangle([x1, y1 - text_h - 4, x1 + text_w + 4, y1], fill=color)
+        
+        # Draw label text in white
+        draw.text((x1 + 2, y1 - text_h - 2), label_text, fill=(255, 255, 255), font=font)
+    
+    return image
+
 @model_bp.route('/predict', methods=['POST'])
 def predict_image():
     try:
@@ -251,11 +310,18 @@ def predict_image():
             original_width, original_height = image.size
             logger.info(f"Image opened successfully, original size: {original_width}x{original_height}")
             
-            # Transform image
+            # Create a standardized version of the image at 512x512 for display
+            # This prevents scaling issues with bounding boxes
+            display_image = image.copy()
+            display_image = display_image.resize((512, 512), Image.LANCZOS)
+            
+            # Save a copy of the clean resized image
+            clean_display_image = display_image.copy()
+            
+            # Transform image for model
             image_tensor = transform(image).unsqueeze(0)
             logger.info(f"Image transformed to tensor with shape: {image_tensor.shape}")
             
-            # Get predictions
             with torch.no_grad():
                 raw_predictions = model(image_tensor)
                 # Log raw prediction details
@@ -267,16 +333,19 @@ def predict_image():
             predictions = predict(image_tensor)
             logger.info(f"Processed predictions: {predictions}")
             
-            # Scale bounding boxes back to the original image size
-            for pred in predictions:
-                x1, y1, x2, y2 = pred['boxes']
-                # Scale from 512x512 back to original dimensions
-                pred['boxes'] = [
-                    x1 * (original_width / 512),
-                    y1 * (original_height / 512),
-                    x2 * (original_width / 512),
-                    y2 * (original_height / 512)
-                ]
+            # Create an annotated image with bounding boxes drawn directly on it
+            annotated_image = draw_predictions_on_image(display_image, predictions)
+            
+            # Convert both images to base64 for sending to client
+            clean_buffered = io.BytesIO()
+            clean_display_image.save(clean_buffered, format="JPEG", quality=90)
+            clean_img_str = base64.b64encode(clean_buffered.getvalue()).decode()
+            clean_display_image_data = f"data:image/jpeg;base64,{clean_img_str}"
+            
+            annotated_buffered = io.BytesIO()
+            annotated_image.save(annotated_buffered, format="JPEG", quality=90)
+            annotated_img_str = base64.b64encode(annotated_buffered.getvalue()).decode()
+            annotated_display_image_data = f"data:image/jpeg;base64,{annotated_img_str}"
             
             elapsed = time.time() - start_time
             logger.info(f"Total processing time: {elapsed:.2f} seconds")
@@ -287,10 +356,18 @@ def predict_image():
                 # Return empty predictions array but with a message in the response
                 return jsonify({
                     "predictions": [],
-                    "message": "No abnormalities detected with confidence above threshold"
+                    "message": "No abnormalities detected with confidence above threshold",
+                    "clean_image": clean_display_image_data,
+                    "annotated_image": clean_display_image_data,  # Use clean image since there are no annotations
+                    "image_size": {"width": 512, "height": 512}
                 })
             
-            response_data = {"predictions": predictions}
+            response_data = {
+                "predictions": predictions,
+                "clean_image": clean_display_image_data,
+                "annotated_image": annotated_display_image_data,
+                "image_size": {"width": 512, "height": 512}
+            }
             return jsonify(response_data)
             
         except Exception as e:
