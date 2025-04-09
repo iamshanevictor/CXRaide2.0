@@ -13,10 +13,12 @@ ENV WORKER_TIMEOUT=600
 ENV GUNICORN_WORKERS=1
 ENV GUNICORN_THREADS=2
 
-# Install system dependencies including ffmpeg for potential image processing
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1-mesa-glx \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
@@ -25,16 +27,31 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the model file separately to optimize layer caching
-# This assumes the model file is present in the build context
-COPY IT2_model_epoch_300.pth .
-RUN ls -la IT2_model_epoch_300.pth || echo "WARNING: Model file not found during build!"
-
 # Copy the application code
 COPY . .
 
-# Verify model file exists
-RUN ls -la *.pth || echo "WARNING: No model files found after copying!"
+# Try loading the model from different sources:
+# 1. First try downloading using our script
+RUN python download_model.py || echo "Download script failed, checking other methods..."
+
+# 2. Check if model exists in build context, if not try downloading directly with wget
+RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
+    echo "Model file not found in build context, attempting direct download..." && \
+    wget -O IT2_model_epoch_300.pth https://storage.googleapis.com/example-medical-models/IT2_model_epoch_300.pth || \
+    echo "Direct download failed"; \
+    fi
+
+# 3. If model still doesn't exist, fail the build
+RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
+    echo "ERROR: Failed to obtain model file through all methods. Build will fail."; \
+    ls -la .; \
+    exit 1; \
+    fi
+
+# Verify model file exists and log its size
+RUN ls -la IT2_model_epoch_300.pth && \
+    echo "Model file successfully included in build at $(pwd)/IT2_model_epoch_300.pth" && \
+    stat --format="%s bytes" IT2_model_epoch_300.pth
 
 # Expose the port the app runs on
 EXPOSE 5000
