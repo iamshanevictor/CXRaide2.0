@@ -21,27 +21,34 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Import the model blueprint first
+# Import the model blueprint first - define variables at module level
+model_bp = None
+get_models = None
+
 try:
     # Try direct import first
-    from model_service import model_bp, get_model
+    from model_service import model_bp, get_models
     logger.info("Successfully imported model_service")
 except ImportError:
     # If that fails, try with server prefix
     try:
-        from server.model_service import model_bp, get_model
+        from server.model_service import model_bp, get_models
         logger.info("Successfully imported model_service with server prefix")
     except ImportError:
         logger.error("Could not import model_service. Check file paths and dependencies.")
         # Create dummy blueprint to avoid errors
         from flask import Blueprint
         model_bp = Blueprint('model', __name__)
-        def get_model():
+        def get_models():
             logger.error("Model loading function not available")
-            return None
+            return None, None
 
 app = Flask(__name__)
-app.register_blueprint(model_bp, url_prefix='/api')
+
+# Register the model blueprint
+if model_bp:
+    app.register_blueprint(model_bp, url_prefix='/api')
+    logger.info("Registered model_bp blueprint with prefix /api")
 
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
@@ -257,20 +264,14 @@ def verify_password(provided_password, stored_password):
 
 # Helper function for CORS preflight responses
 def _build_cors_preflight_response():
-    response = jsonify({})
-    response.status_code = 200
-    
-    # Get the origin from the request
-    origin = request.headers.get('Origin', '*')
-    
-    # Set CORS headers
-    response.headers.add('Access-Control-Allow-Origin', origin)
+    response = jsonify({"message": "CORS preflight handled"})
+    origin = request.headers.get('Origin', '')
+    response.headers.add('Access-Control-Allow-Origin', origin or '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Max-Age', '3600')
-    
-    return response
+    return response, 200
 
 # Token creation helper
 def create_token(user_id, username=None, is_admin=False):
@@ -520,30 +521,31 @@ def predict():
         return _build_cors_preflight_response()
         
     try:
-        # Check if image is in request
-        if 'image' not in request.files:
-            logger.error("No image in request")
-            return jsonify({"error": "No image in request"}), 400
+        # Check if the model blueprint is loaded
+        if not model_bp:
+            logger.error("Model service is not available")
+            return jsonify({"error": "Model service is not available"}), 500
             
-        image_file = request.files['image']
-        
-        # Get the color mapping from the request (for consistent colors between manual and AI annotations)
-        color_mapping = {}
-        if 'color_mapping' in request.form:
-            try:
-                color_mapping = json.loads(request.form['color_mapping'])
-                logger.info(f"Received color mapping: {color_mapping}")
-            except Exception as e:
-                logger.warning(f"Failed to parse color_mapping: {e}")
-        
-        # Process the image and get predictions
-        result = model_service.predict(image_file, color_mapping)
-        
-        # Return the predictions and annotated images
-        return jsonify(result)
+        # Redirect to the model blueprint's predict endpoint
+        # The real implementation is in model_service.py
+        return model_bp.url_map.dispatch_rule('/predict', request)
     except Exception as e:
-        logger.error(f"Error processing prediction: {str(e)}")
+        logger.error(f"Error redirecting to prediction endpoint: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+# Add route to access model-status directly from the root as a convenience
+@app.route('/model-status', methods=['GET', 'OPTIONS'])
+def model_status_redirect():
+    if request.method == "OPTIONS":
+        return _build_cors_preflight_response()
+    
+    try:
+        # Redirect to the model blueprint's model-status endpoint
+        # The real implementation is in model_service.py
+        return model_bp.url_map.dispatch_rule('/model-status', request)
+    except Exception as e:
+        logger.error(f"Error redirecting to model-status endpoint: {str(e)}")
+        return jsonify({"error": str(e), "status": "error"}), 500
 
 # Add CORS headers to all responses
 @app.after_request

@@ -34,8 +34,8 @@ except ImportError:
         def item(self):
             return self.data[0] if isinstance(self.data, list) else self.data
 
-# Class dictionary
-classes = {
+# Class dictionaries for IT2 and IT3 models
+classes_it2 = {
     'Cardiomegaly': 1,
     'Pleural thickening': 2,
     'Pulmonary fibrosis': 3,
@@ -46,6 +46,23 @@ classes = {
     'Atelectasis': 8,
     'Pneumothorax': 9
 }
+
+classes_it3 = {
+    'Cardiomegaly': 1,
+    'Pleural thickening': 2,
+    'Pulmonary fibrosis': 3,
+    'Pleural effusion': 4,
+    'Nodule/Mass': 5,
+    'Infiltration': 6,
+}
+
+# Define sets for easy filtering
+common_classes = set(classes_it3.keys())
+it2_only_classes = set(classes_it2.keys()) - common_classes
+
+# Reverse mapping
+classes_it2_reverse = {v: k for k, v in classes_it2.items()}
+classes_it3_reverse = {v: k for k, v in classes_it3.items()}
 
 # Colors for different classes (hex values - matching the client side)
 class_colors = {
@@ -60,9 +77,6 @@ class_colors = {
     'Pneumothorax': (168, 85, 247),         # Violet #a855f7
     'default': (59, 130, 246)               # Default Blue #3b82f6
 }
-
-# Reverse mapping
-classes_reverse = {v: k for k, v in classes.items()}
 
 # Image transforms for the model
 transform = transforms.Compose([
@@ -84,7 +98,8 @@ def process_image_for_detection(image):
     return image
     
 # Model variables
-model = None
+model_it2 = None
+model_it3 = None
 model_loading = False
 model_load_lock = threading.Lock()
 server_start_time = time.time()
@@ -192,102 +207,91 @@ class LightweightModel:
         """Mock eval method"""
         return self
 
-def get_model():
-    """Get the model, loading it if necessary"""
-    global model, model_loading
+def load_model(model_path, classes_count):
+    """Load a specific model given the path and class count"""
+    logger.info(f"Loading model from {model_path} with {classes_count} classes")
     
-    # Return immediately if model is loaded
-    if model is not None:
-        return model
+    if not os.path.exists(model_path):
+        logger.error(f"Model file not found at {model_path}")
+        return None
     
-    # Try to acquire the lock to load the model
+    try:
+        # Initialize a basic SSD300 model with default parameters
+        model_obj = models.detection.ssd300_vgg16(weights=None)
+        
+        # Load the state dict directly
+        model_obj.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+        
+        # Set the model to evaluation mode
+        model_obj.eval()
+        logger.info(f"Model loaded successfully from {model_path}")
+        
+        # Force garbage collection after loading large model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
+        return model_obj
+    except Exception as e:
+        logger.error(f"Error loading model from {model_path}: {str(e)}")
+        return None
+
+def get_models():
+    """Get both IT2 and IT3 models, loading them if necessary"""
+    global model_it2, model_it3, model_loading
+    
+    # Return immediately if models are already loaded
+    if model_it2 is not None and model_it3 is not None:
+        return model_it2, model_it3
+    
+    # Try to acquire the lock to load the models
     with model_load_lock:
-        # Check again in case another thread loaded the model while we were waiting
-        if model is not None:
-            return model
+        # Check again in case another thread loaded the models while we were waiting
+        if model_it2 is not None and model_it3 is not None:
+            return model_it2, model_it3
         
         # Don't start multiple loading processes
         if model_loading:
-            logger.info("Model is currently loading, waiting...")
-            return None
+            logger.info("Models are currently loading, waiting...")
+            return None, None
         
-        # Start loading the model
+        # Start loading the models
         model_loading = True
         
         try:
-            # Try to load the real PyTorch model if available
+            # Try to load the real PyTorch models if available
             if torch_available:
-                # Import model loading functions here
-                from download_model import MODEL_PATH
+                it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
+                it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
                 
-                logger.info(f"Attempting to load model from {MODEL_PATH}")
                 logger.info(f"Current directory: {os.getcwd()}")
-                logger.info(f"Available model classes: {list(classes.keys())}")
-                logger.info(f"Number of classes (including background): {len(classes) + 1}")
                 
-                # Check if the model file exists directly without calling download_model()
-                if os.path.exists(MODEL_PATH):
-                    model_size_mb = os.path.getsize(MODEL_PATH) / (1024 * 1024)
-                    logger.info(f"Model file found! Size: {model_size_mb:.2f} MB")
-                    model_path = MODEL_PATH
-                else:
-                    logger.warning(f"Model file not found at {MODEL_PATH}, will attempt to download")
-                    from download_model import download_model
-                    model_path = download_model()
+                # Load IT2 model (9 classes)
+                model_it2 = load_model(it2_path, len(classes_it2) + 1)  # +1 for background class
                 
-                if model_path and os.path.exists(model_path):
-                    logger.info(f"Loading PyTorch model from {model_path}")
-                    
-                    # Now try to load the model
-                    try:
-                        # Initialize a basic SSD300 model with default parameters
-                        logger.info("Initializing SSD300 model with default parameters")
-                        model_obj = models.detection.ssd300_vgg16(weights=None)
-                        
-                        # Load the state dict directly
-                        logger.info(f"Loading model weights from {model_path}")
-                        model_obj.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-                        
-                        # Set the model to evaluation mode
-                        model_obj.eval()
-                        logger.info("Model set to evaluation mode")
-                        
-                        # Set global model
-                        model = model_obj
-                        logger.info("PyTorch model loaded successfully")
-                        
-                        # Force garbage collection after loading large model
-                        gc.collect()
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                            
-                        return model
-                    except Exception as load_err:
-                        logger.error(f"Final error during model loading: {str(load_err)}")
-                        logger.error("Will fall back to lightweight model implementation")
-                else:
-                    logger.error(f"Model file not found or download failed")
+                # Load IT3 model (6 classes)
+                model_it3 = load_model(it3_path, len(classes_it3) + 1)  # +1 for background class
+                
+                # Check if any model failed to load
+                if model_it2 is None or model_it3 is None:
+                    logger.warning("One or both models failed to load, falling back to lightweight model")
+                    model_it2 = model_it3 = LightweightModel()
             else:
                 logger.warning("PyTorch not available, falling back to lightweight model")
-            
-            # Fall back to lightweight model if PyTorch or model file is not available
-            logger.info("Loading lightweight model implementation...")
-            model = LightweightModel()
-            logger.info("Lightweight model loaded successfully")
+                model_it2 = model_it3 = LightweightModel()
         except Exception as e:
             logger.error(f"Error in model loading process: {str(e)}")
             # Fall back to lightweight model in case of error
             try:
                 logger.info("Falling back to lightweight model due to error")
-                model = LightweightModel()
-                logger.info("Lightweight model loaded successfully as fallback")
+                model_it2 = model_it3 = LightweightModel()
             except Exception as fallback_err:
                 logger.error(f"Error loading fallback model: {str(fallback_err)}")
-                model = None
+                model_it2 = model_it3 = None
         finally:
             model_loading = False
             
-        return model
+        return model_it2, model_it3
 
 def apply_nms(predictions, iou_threshold=0.5):
     """
@@ -315,28 +319,33 @@ def apply_nms(predictions, iou_threshold=0.5):
 def predict(input_tensor):
     """Process model predictions and format the results to match the original implementation"""
     try:
-        get_model()  # Ensure model is loaded
+        model_it2, model_it3 = get_models()  # Ensure models are loaded
         
-        if model is None:
-            logger.error("Model not available for prediction")
+        if model_it2 is None or model_it3 is None:
+            logger.error("Models not available for prediction")
             return []
         
         # Log whether using lightweight model or real model
-        is_lightweight = hasattr(model, 'model_type') and model.model_type == "lightweight"
+        is_lightweight = (hasattr(model_it2, 'model_type') and model_it2.model_type == "lightweight")
         if is_lightweight:
             logger.warning("Using lightweight model for prediction - results will be mocked")
         else:
-            logger.info("Using real PyTorch model for prediction")
+            logger.info("Using real PyTorch models for prediction")
             
-        # Get raw predictions from model - exactly like the original
+        # Get raw predictions from both models
         with torch_no_grad():
-            raw_predictions = model(input_tensor)
+            # Get IT3 predictions (more accurate for 6 classes)
+            raw_predictions_it3 = model_it3(input_tensor)
             
-        # Apply NMS with iou_threshold=0.5 - exactly like the original
-        filtered_predictions = apply_nms(raw_predictions, iou_threshold=0.5)
+            # Get IT2 predictions (for the 3 additional classes)
+            raw_predictions_it2 = model_it2(input_tensor)
+            
+        # Apply NMS with iou_threshold=0.5
+        filtered_predictions_it3 = apply_nms(raw_predictions_it3, iou_threshold=0.5)
+        filtered_predictions_it2 = apply_nms(raw_predictions_it2, iou_threshold=0.5)
         
-        # Extract highest confidence boxes - following the original pattern
-        formatted_predictions = extract_highest_confidence_boxes(filtered_predictions)
+        # Extract and merge predictions
+        formatted_predictions = merge_model_predictions(filtered_predictions_it2, filtered_predictions_it3)
         
         return formatted_predictions
     except Exception as e:
@@ -356,61 +365,89 @@ def torch_no_grad():
                 pass
         return NoOpContextManager()
 
-def extract_highest_confidence_boxes(predictions):
+def merge_model_predictions(predictions_it2, predictions_it3):
     """
-    Extracts and filters the bounding boxes, keeping only the highest confidence box per class.
-    This exactly matches the original implementation from the user's code.
+    Merge predictions from both models:
+    - Use IT3 predictions for the 6 common classes
+    - Use IT2 predictions for the 3 additional classes
     """
-    class_boxes = {}
-
-    # Group boxes by class
-    for i, box in enumerate(predictions['boxes']):
-        if hasattr(predictions['labels'][i], 'item'):
-            class_id = predictions['labels'][i].item()
-        else:
-            class_id = predictions['labels'][i]
-            
-        if hasattr(predictions['scores'][i], 'item'):    
-            score = predictions['scores'][i].item()
-        else:
-            score = predictions['scores'][i]
-            
-        if hasattr(box, 'tolist'):
-            box_coords = box.tolist()
-        else:
-            box_coords = box
-
-        # If the class is not in the dictionary or the current score is higher than the existing one, update
-        if class_id not in class_boxes or class_boxes[class_id]['score'] < score:
-            class_boxes[class_id] = {
+    combined_results = []
+    
+    # Process IT3 predictions (higher priority for the 6 classes)
+    it3_class_boxes = {}
+    for i, box in enumerate(predictions_it3['boxes']):
+        class_id = predictions_it3['labels'][i].item() if hasattr(predictions_it3['labels'][i], 'item') else predictions_it3['labels'][i]
+        score = predictions_it3['scores'][i].item() if hasattr(predictions_it3['scores'][i], 'item') else predictions_it3['scores'][i]
+        box_coords = box.tolist() if hasattr(box, 'tolist') else box
+        
+        # If the class is not in the dictionary or the current score is higher, update
+        if class_id not in it3_class_boxes or it3_class_boxes[class_id]['score'] < score:
+            it3_class_boxes[class_id] = {
                 'box': box_coords,
                 'score': score
             }
-
-    # Convert class_boxes to a list for returning
-    filtered_boxes = []
-    for class_id, data in class_boxes.items():
-        try:
-            x1, y1, x2, y2 = data['box']
-            class_name = [k for k, v in classes.items() if v == class_id][0]  # Get class name exactly like the original code
-            
-            # Create the dictionary with the same keys as the original code
-            result = {
-                'boxes': [x1, y1, x2, y2],  # Still include this for compatibility with the rest of the server code
-                'label': class_name,         # Still include this for compatibility with the rest of the server code
-                'score': data['score'],      # Still include this for compatibility with the rest of the server code
-                'class_name': class_name,    # Add this to match the original code
-                'confidence': data['score'], # Add this to match the original code
-                'bbox': (x1, y1, x2, y2)     # Add this to match the original code
-            }
-            
-            filtered_boxes.append(result)
-            # Print in the exact same format as the original code
-            logger.info(f"Class: {class_name}, Confidence: {data['score']:.4f}, Bounding Box: ({x1:.2f}, {y1:.2f}, {x2:.2f}, {y2:.2f})")
-        except Exception as box_err:
-            logger.error(f"Error processing box for class {class_id}: {str(box_err)}")
     
-    return filtered_boxes
+    # Process IT2 predictions (only for the 3 additional classes)
+    it2_class_boxes = {}
+    for i, box in enumerate(predictions_it2['boxes']):
+        class_id = predictions_it2['labels'][i].item() if hasattr(predictions_it2['labels'][i], 'item') else predictions_it2['labels'][i]
+        score = predictions_it2['scores'][i].item() if hasattr(predictions_it2['scores'][i], 'item') else predictions_it2['scores'][i]
+        box_coords = box.tolist() if hasattr(box, 'tolist') else box
+        
+        # Only include predictions for classes 7, 8, 9 (the 3 additional classes)
+        if class_id in [7, 8, 9]:
+            # If the class is not in the dictionary or the current score is higher, update
+            if class_id not in it2_class_boxes or it2_class_boxes[class_id]['score'] < score:
+                it2_class_boxes[class_id] = {
+                    'box': box_coords,
+                    'score': score
+                }
+    
+    # First, add the IT3 predictions for the 6 common classes
+    for class_id, data in it3_class_boxes.items():
+        try:
+            if class_id in classes_it3_reverse:  # Only add valid classes from IT3
+                x1, y1, x2, y2 = data['box']
+                class_name = classes_it3_reverse[class_id]
+                
+                result = {
+                    'boxes': [x1, y1, x2, y2],
+                    'label': class_name,
+                    'score': data['score'],
+                    'class_name': class_name,
+                    'confidence': data['score'],
+                    'bbox': (x1, y1, x2, y2),
+                    'source': 'IT3'  # Mark the source model
+                }
+                
+                combined_results.append(result)
+                logger.info(f"IT3 | Class: {class_name}, Confidence: {data['score']:.4f}, Bounding Box: ({x1:.2f}, {y1:.2f}, {x2:.2f}, {y2:.2f})")
+        except Exception as e:
+            logger.error(f"Error processing IT3 box for class {class_id}: {str(e)}")
+    
+    # Then, add the IT2 predictions for the 3 additional classes
+    for class_id, data in it2_class_boxes.items():
+        try:
+            if class_id in classes_it2_reverse:  # Only add valid classes from IT2
+                x1, y1, x2, y2 = data['box']
+                class_name = classes_it2_reverse[class_id]
+                
+                result = {
+                    'boxes': [x1, y1, x2, y2],
+                    'label': class_name,
+                    'score': data['score'],
+                    'class_name': class_name,
+                    'confidence': data['score'],
+                    'bbox': (x1, y1, x2, y2),
+                    'source': 'IT2'  # Mark the source model
+                }
+                
+                combined_results.append(result)
+                logger.info(f"IT2 | Class: {class_name}, Confidence: {data['score']:.4f}, Bounding Box: ({x1:.2f}, {y1:.2f}, {x2:.2f}, {y2:.2f})")
+        except Exception as e:
+            logger.error(f"Error processing IT2 box for class {class_id}: {str(e)}")
+    
+    return combined_results
 
 def draw_predictions_on_image(image, predictions):
     """Draw bounding boxes and labels directly on the image"""
@@ -436,6 +473,7 @@ def draw_predictions_on_image(image, predictions):
             x1, y1, x2, y2 = pred['bbox']
             class_name = pred['class_name']
             confidence = pred['confidence']
+            # We don't need to get source anymore since we won't use it
         elif 'boxes' in pred:  # Fall back to old format if needed
             x1, y1, x2, y2 = pred['boxes']
             class_name = pred.get('label', 'Unknown')
@@ -452,7 +490,7 @@ def draw_predictions_on_image(image, predictions):
         # Draw rectangle
         draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
         
-        # Draw label background
+        # Draw label background - removed source model info
         text = f"{class_name}: {confidence:.2f}"
         
         # Get text dimensions - handle both old and new Pillow API
@@ -484,16 +522,16 @@ def predict_image():
             logger.info("Handling OPTIONS request for /predict")
             return jsonify({"message": "CORS preflight handled"}), 200
             
-        # Ensure model is ready or loading
-        current_model = get_model()
-        if current_model is None and model_loading:
-            logger.warning("Model is still loading, returning 503 Service Unavailable")
-            return jsonify({'error': 'Model is still loading. Please try again later.'}), 503
-        elif current_model is None:
-            logger.error("Failed to load model")
+        # Ensure models are ready or loading
+        model_it2, model_it3 = get_models()
+        if (model_it2 is None or model_it3 is None) and model_loading:
+            logger.warning("Models are still loading, returning 503 Service Unavailable")
+            return jsonify({'error': 'Models are still loading. Please try again later.'}), 503
+        elif model_it2 is None or model_it3 is None:
+            logger.error("Failed to load models")
             return jsonify({
-                'error': 'Failed to load model. Check server logs for details.',
-                'details': 'The model file may be missing or corrupted.'
+                'error': 'Failed to load models. Check server logs for details.',
+                'details': 'The model files may be missing or corrupted.'
             }), 500
 
         # Log request details
@@ -537,7 +575,7 @@ def predict_image():
                 image_tensor = image.resize((512, 512))
                 logger.info("Image resized to 512x512 (no tensor conversion)")
             
-            # Get predictions using the model
+            # Get predictions using the models
             predictions = predict(image_tensor)
             logger.info(f"Generated predictions: {predictions}")
             
@@ -590,25 +628,27 @@ def predict_image():
 @model_bp.route('/model-status', methods=['GET'])
 def model_status():
     """Check the status of the model loading"""
-    global model, model_loading
+    global model_it2, model_it3, model_loading
     
-    if model is not None:
-        model_type = "lightweight_demo" if hasattr(model, 'model_type') else "pytorch"
+    if model_it2 is not None and model_it3 is not None:
+        model_type = "lightweight_demo" if hasattr(model_it2, 'model_type') else "hybrid_pytorch"
         return jsonify({
             "status": "ready",
             "model_type": model_type,
-            "message": f"{model_type.capitalize()} model is loaded and ready for predictions",
-            "support_classes": list(classes.keys())
+            "message": f"{model_type.capitalize()} models are loaded and ready for predictions",
+            "support_classes": list(set(classes_it2.keys())),  # All supported classes
+            "it3_classes": list(classes_it3.keys()),  # IT3 classes (6)
+            "it2_only_classes": list(it2_only_classes)  # IT2 unique classes (3)
         }), 200
     elif model_loading:
         return jsonify({
             "status": "loading",
-            "message": "Model is currently loading, please try again later"
+            "message": "Models are currently loading, please try again later"
         }), 200
     else:
         return jsonify({
             "status": "not_loaded",
-            "message": "Model has not started loading yet. Try accessing an endpoint that uses the model."
+            "message": "Models have not started loading yet. Try accessing an endpoint that uses the models."
         }), 200
 
 @model_bp.route('/loading-status', methods=['GET'])
@@ -622,9 +662,11 @@ def loading_status():
     }
     
     # Add model information
-    if model is not None:
+    if model_it2 is not None and model_it3 is not None:
         response["model_status"] = "loaded"
-        response["model_type"] = "lightweight" if hasattr(model, 'model_type') else "pytorch"
+        response["model_type"] = "hybrid" if not hasattr(model_it2, 'model_type') else "lightweight"
+        response["it3_classes"] = len(classes_it3)
+        response["it2_classes"] = len(classes_it2)
     elif model_loading:
         response["model_status"] = "loading"
     
@@ -657,9 +699,10 @@ def loading_status():
     except Exception as e:
         response["memory_error"] = str(e)
         
-    # Check model file
+    # Check model files
     model_files = []
-    for path in [os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'), 'IT2_model_epoch_300.pth']:
+    for filename in ['IT2_model_epoch_300.pth', 'IT3_model_epoch_260.pth']:
+        path = os.path.join(os.path.dirname(__file__), filename)
         if os.path.exists(path):
             model_files.append({
                 "path": path,
@@ -675,5 +718,5 @@ def loading_status():
 # Track server start time
 server_start_time = time.time()
 
-# Start loading the model in the background on module import
-get_model() 
+# Start loading the models in the background on module import
+get_models() 

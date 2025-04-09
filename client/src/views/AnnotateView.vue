@@ -1360,7 +1360,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 40px;
+  margin-bottom: 10px;
   padding: 25px 0;
 }
 
