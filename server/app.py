@@ -10,6 +10,7 @@ import logging
 from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
 import threading
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -511,6 +512,38 @@ def reset_password():
     except Exception as e:
         logger.error(f"Password reset error: {str(e)}")
         return jsonify({"message": "Server error occurred"}), 500
+
+@app.route('/predict', methods=['POST', 'OPTIONS'])
+def predict():
+    """Endpoint to get predictions from the model and return annotated images"""
+    if request.method == "OPTIONS":
+        return _build_cors_preflight_response()
+        
+    try:
+        # Check if image is in request
+        if 'image' not in request.files:
+            logger.error("No image in request")
+            return jsonify({"error": "No image in request"}), 400
+            
+        image_file = request.files['image']
+        
+        # Get the color mapping from the request (for consistent colors between manual and AI annotations)
+        color_mapping = {}
+        if 'color_mapping' in request.form:
+            try:
+                color_mapping = json.loads(request.form['color_mapping'])
+                logger.info(f"Received color mapping: {color_mapping}")
+            except Exception as e:
+                logger.warning(f"Failed to parse color_mapping: {e}")
+        
+        # Process the image and get predictions
+        result = model_service.predict(image_file, color_mapping)
+        
+        # Return the predictions and annotated images
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error processing prediction: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # Add CORS headers to all responses
 @app.after_request

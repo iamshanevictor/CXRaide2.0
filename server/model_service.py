@@ -47,18 +47,18 @@ classes = {
     'Pneumothorax': 9
 }
 
-# Colors for different classes (RGB)
+# Colors for different classes (hex values - matching the client side)
 class_colors = {
-    'Cardiomegaly': (255, 100, 100),        # Red
-    'Pleural thickening': (100, 100, 255),  # Blue
-    'Pulmonary fibrosis': (100, 255, 100),  # Green
-    'Pleural effusion': (100, 200, 255),    # Light blue
-    'Nodule/Mass': (255, 200, 100),         # Orange
-    'Infiltration': (255, 100, 255),        # Purple
-    'Consolidation': (200, 200, 100),       # Yellow
-    'Atelectasis': (100, 255, 200),         # Teal
-    'Pneumothorax': (255, 150, 150),        # Pink
-    'default': (255, 255, 255)              # White (fallback)
+    'Cardiomegaly': (239, 68, 68),          # Red #ef4444
+    'Pleural thickening': (139, 92, 246),   # Purple #8b5cf6
+    'Pulmonary fibrosis': (236, 72, 153),   # Pink #ec4899
+    'Pleural effusion': (245, 158, 11),     # Orange/Amber #f59e0b  
+    'Nodule/Mass': (59, 130, 246),          # Blue #3b82f6
+    'Infiltration': (16, 185, 129),         # Green #10b981
+    'Consolidation': (14, 165, 233),        # Sky Blue #0ea5e9
+    'Atelectasis': (249, 115, 22),          # Orange #f97316
+    'Pneumothorax': (168, 85, 247),         # Violet #a855f7
+    'default': (59, 130, 246)               # Default Blue #3b82f6
 }
 
 # Reverse mapping

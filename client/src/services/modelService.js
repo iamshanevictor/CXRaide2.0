@@ -7,6 +7,41 @@ class ModelService {
     this.modelInputSize = 512; // Model input size is 512x512
   }
 
+  // Get box color based on abnormality type
+  getBoxColor(type, opacity = null) {
+    // Handle null or undefined values
+    if (!type) {
+      return opacity ? `rgba(59, 130, 246, ${opacity})` : "#3b82f6"; // Default to blue
+    }
+
+    // Normalize the type string for case-insensitive comparison
+    const normalizedType = type.toLowerCase();
+
+    // Return color based on abnormality type
+    switch (normalizedType) {
+      case "cardiomegaly":
+        return opacity ? `rgba(239, 68, 68, ${opacity})` : "#ef4444"; // Red
+      case "pleural thickening":
+        return opacity ? `rgba(139, 92, 246, ${opacity})` : "#8b5cf6"; // Purple
+      case "pulmonary fibrosis":
+        return opacity ? `rgba(236, 72, 153, ${opacity})` : "#ec4899"; // Pink
+      case "pleural effusion":
+        return opacity ? `rgba(34, 197, 94, ${opacity})` : "#22c55e"; // Green
+      case "nodule/mass":
+        return opacity ? `rgba(59, 130, 246, ${opacity})` : "#3b82f6"; // Blue
+      case "infiltration":
+        return opacity ? `rgba(245, 158, 11, ${opacity})` : "#f59e0b"; // Amber
+      case "consolidation":
+        return opacity ? `rgba(14, 165, 233, ${opacity})` : "#0ea5e9"; // Light blue
+      case "atelectasis":
+        return opacity ? `rgba(249, 115, 22, ${opacity})` : "#f97316"; // Orange
+      case "pneumothorax":
+        return opacity ? `rgba(168, 85, 247, ${opacity})` : "#a855f7"; // Violet
+      default:
+        return opacity ? `rgba(59, 130, 246, ${opacity})` : "#3b82f6"; // Default blue
+    }
+  }
+
   async checkModelStatus() {
     try {
       // Prevent multiple simultaneous status checks
@@ -138,11 +173,35 @@ class ModelService {
     try {
       console.log(`Starting prediction process for image`);
 
-      // Resize the image for the model - this is still needed for the request
-      const { file: resizedFile } = await this.resizeImageForModel(imageFile);
+      // First resize the image for the model
+      const resizedImage = await this.resizeImageForModel(imageFile);
 
+      // Create FormData to send the image
       const formData = new FormData();
-      formData.append("image", resizedFile);
+      formData.append("image", resizedImage.file);
+
+      // Get the color mapping from the getBoxColor function
+      const abnormalityTypes = [
+        "Cardiomegaly",
+        "Pleural thickening",
+        "Pulmonary fibrosis",
+        "Pleural effusion",
+        "Nodule/Mass",
+        "Infiltration",
+        "Consolidation",
+        "Atelectasis",
+        "Pneumothorax",
+      ];
+
+      // Create color mapping object
+      const colorMapping = {};
+      abnormalityTypes.forEach((type) => {
+        const color = this.getBoxColor(type);
+        colorMapping[type] = color;
+      });
+
+      // Add color mapping to form data
+      formData.append("color_mapping", JSON.stringify(colorMapping));
 
       // Get auth token from localStorage
       const token = localStorage.getItem("authToken");
