@@ -3,7 +3,10 @@ services:
     name: cxraide-backend
     env: python
     plan: standard # Use standard plan for more resources
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      cd server
+      python download_model.py || python download_from_drive.py || echo "Will try Docker build method instead"
     startCommand: gunicorn server.app:app --config server/gunicorn.conf.py
     repo: https://github.com/yourusername/CXRaide2.0.git # Update with your actual repo
     branch: main
@@ -21,6 +24,8 @@ services:
         value: 2
       - key: MAX_UPLOAD_SIZE
         value: 20971520 # 20MB for image uploads
+      - key: MODEL_GOOGLE_DRIVE_ID
+        value: 1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr
     healthCheckPath: /health
     # Increase resources for model loading
     numInstances:

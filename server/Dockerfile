@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     wget \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
@@ -30,28 +31,38 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY . .
 
-# Try loading the model from different sources:
-# 1. First try downloading using our script
-RUN python download_model.py || echo "Download script failed, checking other methods..."
+# -------------------------------------------
+# MODEL DOWNLOAD SECTION
+# -------------------------------------------
+# Try downloading from Google Drive first
+RUN echo "Attempting to download model from Google Drive..." && \
+    python download_model.py || echo "Google Drive download failed, trying alternatives..."
 
-# 2. Check if model exists in build context, if not try downloading directly with wget
+# If download failed, try direct download from public URL
 RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
-    echo "Model file not found in build context, attempting direct download..." && \
-    wget -O IT2_model_epoch_300.pth https://storage.googleapis.com/example-medical-models/IT2_model_epoch_300.pth || \
-    echo "Direct download failed"; \
+    echo "Google Drive download failed, trying backup method..." && \
+    python download_from_drive.py || echo "Simplified download failed too"; \
     fi
 
-# 3. If model still doesn't exist, fail the build
+# Fall back to direct curl/wget if needed
 RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
-    echo "ERROR: Failed to obtain model file through all methods. Build will fail."; \
-    ls -la .; \
-    exit 1; \
+    echo "All Python download methods failed, trying curl/wget..." && \
+    (curl -L "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -o IT2_model_epoch_300.pth || \
+     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -O IT2_model_epoch_300.pth); \
     fi
+
+# For very large files, Google Drive might require an additional confirmation token
+# We can't easily handle that in a Dockerfile, so we'll need the file to be accessible
+# through one of the above methods
 
 # Verify model file exists and log its size
-RUN ls -la IT2_model_epoch_300.pth && \
+RUN if [ -f IT2_model_epoch_300.pth ]; then \
     echo "Model file successfully included in build at $(pwd)/IT2_model_epoch_300.pth" && \
-    stat --format="%s bytes" IT2_model_epoch_300.pth
+    stat --format="%s bytes" IT2_model_epoch_300.pth; \
+    else \
+    echo "ERROR: Failed to obtain model file through all methods. Build will fail."; \
+    exit 1; \
+    fi
 
 # Expose the port the app runs on
 EXPOSE 5000
