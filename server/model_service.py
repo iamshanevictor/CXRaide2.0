@@ -860,6 +860,10 @@ def predict_image():
         if file.filename == '':
             logger.warning("Empty filename in request")
             return jsonify({'error': 'No selected file'}), 400
+        
+        # Check if specific model type is requested
+        model_type = request.form.get('model_type', 'combined').lower()
+        logger.info(f"Requested model type: {model_type}")
             
         try:
             # Read and process the image
@@ -877,8 +881,43 @@ def predict_image():
             image_tensor = transform(image).unsqueeze(0) if torch_available else transform(image)
             logger.info(f"Image transformed to tensor")
             
-            # Get predictions using the real models
-            predictions = predict(image_tensor)
+            # Get predictions using the specified model(s)
+            if model_type == 'it2':
+                # Use only IT2 model
+                logger.info("Using only IT2 model for prediction as requested")
+                model_it2, _ = get_model()
+                
+                if model_it2 is None:
+                    return jsonify({'error': 'IT2 model is not available'}), 500
+                
+                with torch_no_grad():
+                    raw_predictions = model_it2(image_tensor)
+                
+                filtered_predictions = apply_nms(raw_predictions, iou_threshold=0.5)
+                predictions = []
+                
+                # Format predictions from IT2 model
+                for i in range(len(filtered_predictions['boxes'])):
+                    box = filtered_predictions['boxes'][i].tolist()
+                    score = filtered_predictions['scores'][i].item()
+                    label_idx = filtered_predictions['labels'][i].item()
+                    
+                    # Skip low confidence predictions
+                    if score < 0.3:
+                        continue
+                        
+                    label = classes_it2[label_idx] if label_idx < len(classes_it2) else f"Unknown({label_idx})"
+                    
+                    predictions.append({
+                        'boxes': box,
+                        'score': score,
+                        'label': label
+                    })
+            else:
+                # Use combined IT2+IT3 model (default)
+                logger.info("Using combined IT2+IT3 models for prediction")
+                predictions = predict(image_tensor)
+            
             logger.info(f"Processed predictions: {predictions}")
             
             # Draw predictions on the image
@@ -908,17 +947,19 @@ def predict_image():
                     "message": "No abnormalities detected with confidence above threshold",
                     "clean_image": clean_data_url,
                     "annotated_image": clean_data_url,  # Use clean image since there are no annotations
-                    "image_size": {"width": 512, "height": 512}
+                    "image_size": {"width": 512, "height": 512},
+                    "model_used": model_type
                 })
             
             response_data = {
                 "predictions": predictions,
                 "clean_image": clean_data_url,
                 "annotated_image": annotated_data_url,
-                "image_size": {"width": 512, "height": 512}
+                "image_size": {"width": 512, "height": 512},
+                "model_used": model_type
             }
             return jsonify(response_data)
-            
+        
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}", exc_info=True)
             return jsonify({'error': f"Error processing image: {str(e)}"}), 500

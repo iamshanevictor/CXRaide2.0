@@ -24,6 +24,12 @@ const routes = [
     name: "login",
     component: () => import("../views/LoginView.vue"), // Dynamic import
   },
+  {
+    path: "/upload-cxr",
+    name: "upload-cxr",
+    component: () => import("../views/UploadCXRView.vue"), // Dynamic import
+    meta: { requiresAuth: true },
+  },
   // Add a catch-all 404 route
   {
     path: "/:pathMatch(.*)*",

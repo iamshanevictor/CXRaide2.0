@@ -52,7 +52,7 @@
             <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
-          <div class="nav-item">
+          <div class="nav-item" @click="$router.push('/upload-cxr')">
             <div class="nav-icon"><i class="bi bi-cloud-upload"></i></div>
             <div class="nav-label">Upload CXR</div>
           </div>
@@ -206,149 +206,88 @@
 
           <!-- Main image display area -->
           <div class="image-container">
-            <div class="image-title">
-              Raw CXRay Name: {{ currentImageName || "No file selected" }}
-              <div class="upload-button">
-                <label for="xray-upload" class="file-upload-label">
-                  <i class="bi bi-upload"></i> Upload X-ray
-                </label>
-                <input
-                  id="xray-upload"
-                  type="file"
-                  accept="image/*"
-                  @change="handleFileUpload"
-                  class="hidden-file-input"
-                />
-              </div>
-            </div>
-            <div
-              class="xray-image"
-              @mousedown="handleMouseDown"
-              @mousemove="handleMouseMove"
-              @mouseup="handleMouseUp"
-              @click="handleClick"
-              ref="imageContainer"
-            >
-              <img
-                v-if="currentImage"
-                :src="currentImage"
-                alt="X-ray image"
-                ref="xrayImage"
-              />
-              <div v-else class="placeholder-image">
-                <i class="bi bi-image"></i>
-                <p>Upload an X-ray image to begin annotation</p>
-                <label
-                  for="xray-upload-placeholder"
-                  class="upload-placeholder-button"
-                >
-                  <i class="bi bi-cloud-upload"></i> Select X-ray Image
-                </label>
-                <input
-                  id="xray-upload-placeholder"
-                  type="file"
-                  accept="image/*"
-                  @change="handleFileUpload"
-                  class="hidden-file-input"
-                />
-              </div>
-
-              <!-- User created boxes -->
-              <div
-                v-for="(box, index) in boxes"
-                :key="'box-' + index"
-                :class="[
-                  'annotation-box',
-                  { selected: selectedBoxIndex === index },
-                ]"
-                :style="getBoxStyle(box)"
-                @mousedown.stop="selectBox(index, $event)"
+            <div class="file-info-bar">
+              <span
+                >Raw CXRay Name:
+                {{ currentImageName || "No file selected" }}</span
               >
-                <div
-                  class="annotation-label"
-                  :style="{ backgroundColor: getBoxColor(box.type || '') }"
-                >
-                  {{ box.type || "Unknown" }}
-                  <span v-if="box.score" class="confidence-score">
-                    {{ formatConfidence(box.score) }}
-                  </span>
-                </div>
-                <!-- Delete button - always visible for all boxes, no conditions -->
-                <button
-                  class="delete-box-btn"
-                  @click.stop.prevent="deleteBox(index)"
-                >
-                  <i class="bi bi-trash"></i>
-                </button>
-                <!-- Resize handles when box is selected -->
-                <div
-                  v-if="selectedBoxIndex === index"
-                  class="resize-handle top-left"
-                  data-handle="top-left"
-                  @mousedown.stop="startResize($event, 'top-left')"
-                ></div>
-                <div
-                  v-if="selectedBoxIndex === index"
-                  class="resize-handle top-right"
-                  data-handle="top-right"
-                  @mousedown.stop="startResize($event, 'top-right')"
-                ></div>
-                <div
-                  v-if="selectedBoxIndex === index"
-                  class="resize-handle bottom-left"
-                  data-handle="bottom-left"
-                  @mousedown.stop="startResize($event, 'bottom-left')"
-                ></div>
-                <div
-                  v-if="selectedBoxIndex === index"
-                  class="resize-handle bottom-right"
-                  data-handle="bottom-right"
-                  @mousedown.stop="startResize($event, 'bottom-right')"
-                ></div>
-              </div>
-
-              <!-- Point markers -->
-              <div
-                v-for="(point, index) in points"
-                :key="'point-' + index"
-                class="point-marker"
-                :style="{ left: point.x + 'px', top: point.y + 'px' }"
-              ></div>
+              <button
+                class="upload-btn"
+                @click="triggerFileUpload"
+                :disabled="isModelLoading"
+              >
+                <i class="bi bi-cloud-arrow-up"></i> Upload X-ray
+              </button>
             </div>
 
-            <!-- Adding Abnormality Type dropdown below the X-ray image -->
-            <div class="abnormality-selection-container">
-              <div class="abnormality-selector">
-                <div class="selector-label">Abnormalities:</div>
-                <select v-model="selectedAbnormality" class="select-dropdown">
-                  <option value="Cardiomegaly">Cardiomegaly</option>
-                  <option value="Pleural thickening">Pleural thickening</option>
-                  <option value="Pulmonary fibrosis">Pulmonary fibrosis</option>
-                  <option value="Pleural effusion">Pleural effusion</option>
-                  <option value="Nodule/Mass">Nodule/Mass</option>
-                  <option value="Infiltration">Infiltration</option>
-                  <option value="Consolidation">Consolidation</option>
-                  <option value="Atelectasis">Atelectasis</option>
-                  <option value="Pneumothorax">Pneumothorax</option>
-                </select>
+            <div
+              class="upload-area"
+              :class="{ 'has-image': currentImage }"
+              @click="triggerFileUpload"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+              @drop.prevent="handleFileDrop"
+            >
+              <div
+                v-if="!currentImage"
+                class="upload-placeholder"
+                :class="{ dragging: isDragging }"
+              >
+                <i class="bi bi-cloud-arrow-up"></i>
+                <p>
+                  Click to upload or drag & drop<br />Supported formats: JPEG,
+                  PNG
+                </p>
               </div>
-              <div class="abnormality-selector">
-                <div class="selector-label">Subtype Abnormality</div>
-                <select v-model="selectedSubtype" class="select-dropdown">
-                  <option value="Select Subtype Abnormality">
-                    Select Subtype Abnormality
-                  </option>
-                  <option value="No Subtype-Abnormality">
-                    No Subtype-Abnormality
-                  </option>
-                </select>
+              <div v-else class="xray-image-container">
+                <img :src="currentImage" alt="X-ray image" ref="xrayImage" />
+                <div class="annotation-overlays">
+                  <!-- Box annotations -->
+                  <div
+                    v-for="(box, index) in boxes"
+                    :key="`box-${index}`"
+                    class="annotation-box"
+                    :class="{ selected: selectedBoxIndex === index }"
+                    :style="{
+                      left: `${box.x}px`,
+                      top: `${box.y}px`,
+                      width: `${box.width}px`,
+                      height: `${box.height}px`,
+                      borderColor: box.color,
+                      backgroundColor: `${box.color}33`, // Add transparency
+                    }"
+                    @mousedown.stop="selectBox(index, $event)"
+                  >
+                    <button
+                      v-if="selectedBoxIndex === index"
+                      @click.stop="deleteBox(index)"
+                      class="delete-box-btn"
+                    >
+                      <i class="bi bi-x"></i>
+                    </button>
+                    <div
+                      class="annotation-label"
+                      :style="{ backgroundColor: box.color }"
+                    >
+                      {{ box.label }}
+                    </div>
+                  </div>
+                </div>
               </div>
+              <input
+                type="file"
+                id="xray-upload"
+                ref="fileInput"
+                accept="image/*"
+                @change="handleFileUpload"
+                class="hidden-file-input"
+              />
             </div>
           </div>
 
           <!-- Right sidebar with AI annotations -->
           <div class="ai-annotations">
-            <div class="image-title">Chest X-ray Image (AI Annotated)</div>
+            <!-- Removed the title as requested -->
 
             <!-- Mock model banner -->
             <div
@@ -596,6 +535,7 @@ export default {
 
       // Add modelStatus to store the response from model status check
       modelStatus: null,
+      isDragging: false,
     };
   },
   created() {
@@ -1344,6 +1284,72 @@ export default {
     toggleDetectionResults() {
       this.detectionResultsExpanded = !this.detectionResultsExpanded;
     },
+
+    triggerFileUpload() {
+      if (!this.isModelLoading) {
+        this.$refs.fileInput.click();
+      }
+    },
+
+    handleFileDrop(event) {
+      this.isDragging = false;
+      const file = event.dataTransfer.files[0];
+      if (!file) return;
+
+      // Check if the file is an image
+      if (!file.type.match("image.*")) {
+        alert("Please select an image file");
+        return;
+      }
+
+      this.currentImageName = file.name;
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        // Create an image element to get the natural dimensions
+        const img = new Image();
+        img.onload = async () => {
+          // Store the original image dimensions
+          this.originalImageWidth = img.naturalWidth;
+          this.originalImageHeight = img.naturalHeight;
+
+          // Set the current image
+          this.currentImage = e.target.result;
+
+          // Reset annotation state
+          this.boxes = [];
+          this.points = [];
+          this.selectedBoxIndex = null;
+          this.initialBoxPositions = [];
+          this.zoomLevel = 1;
+
+          // Don't show default box when loading a new image
+          this.showDefaultBox = false;
+
+          // Wait for the DOM to update with the new image
+          await this.$nextTick();
+
+          // Ensure both left and right display images have the same constraints
+          if (this.$refs.xrayImage && this.$refs.aiXrayImage) {
+            const leftImg = this.$refs.xrayImage;
+            const rightImg = this.$refs.aiXrayImage;
+
+            // Use the same styling for both images
+            leftImg.style.maxWidth = "100%";
+            leftImg.style.maxHeight = "100%";
+            rightImg.style.maxWidth = "100%";
+            rightImg.style.maxHeight = "100%";
+          }
+
+          // Get AI predictions
+          await this.getAIPredictions();
+        };
+
+        img.src = e.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    },
   },
   watch: {
     selectedAbnormality(newValue) {
@@ -1484,12 +1490,16 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .annotate-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-bottom: 0;
 }
 
 .highlight {
@@ -2675,5 +2685,125 @@ export default {
 /* Enhance image transitions */
 .standardized-image {
   transition: all 0.3s ease-in-out;
+}
+
+/* Add these new styles */
+.file-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.75rem 1rem;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-area {
+  border: 2px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 0 0 0.5rem 0.5rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(9, 12, 20, 0.3);
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.upload-area:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-area.has-image {
+  border-style: solid;
+  border-color: rgba(59, 130, 246, 0.6);
+  padding: 0;
+  min-height: auto;
+}
+
+.upload-placeholder {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-placeholder.dragging {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.upload-placeholder i {
+  font-size: 3rem;
+  color: #3b82f6;
+  margin-bottom: 1rem;
+}
+
+.upload-placeholder p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.xray-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.xray-image-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.annotation-overlays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 </style>

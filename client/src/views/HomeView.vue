@@ -52,7 +52,7 @@
             <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
-          <div class="nav-item">
+          <div class="nav-item" @click="$router.push('/upload-cxr')">
             <div class="nav-icon"><i class="bi bi-cloud-upload"></i></div>
             <div class="nav-label">Upload CXR</div>
           </div>
