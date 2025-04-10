@@ -84,6 +84,14 @@ if model_bp:
 else:
     logger.error("model_bp is not available, cannot register blueprint")
 
+# Import model proxy blueprint for remote model processing
+try:
+    from model_proxy import model_proxy_bp
+    logger.info("Registering model proxy service")
+    app.register_blueprint(model_proxy_bp)
+except ImportError as e:
+    logger.warning(f"Could not import model_proxy: {str(e)}")
+
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
 logger.info(f"Running in {ENVIRONMENT} environment")
