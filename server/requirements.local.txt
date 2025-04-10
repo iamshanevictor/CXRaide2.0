@@ -1,0 +1,15 @@
+# Local development requirements with PyTorch
+# This file includes all dependencies including PyTorch for local development and Docker
+
+# Include base requirements
+-r requirements.txt
+
+# Add PyTorch for model loading (not included in base requirements.txt)
+torch==2.0.1
+torchvision==0.15.2
+
+# Make sure these are available for Docker
+# These may be commented out in the base requirements.txt
+Pillow==10.2.0
+numpy==1.24.3
+opencv-python==4.8.0.74 

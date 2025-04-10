@@ -1,6 +1,107 @@
 # Render.com Deployment Guide for CXRaide
 
-This guide explains how to deploy the CXRaide application to Render.com.
+This guide explains how to deploy the CXRaide application to Render.com and GitHub while handling large model files.
+
+## Deployment Strategy for Large Model Files
+
+CXRaide uses PyTorch-based deep learning models that are too large to push to GitHub and can cause issues with Render's free tier due to memory constraints. To address this, the application includes a lightweight model fallback system that allows for:
+
+- **Local development**: Uses real models for full accuracy
+- **Render.com deployment**: Uses mock models that simulate real model behavior
+- **GitHub**: Repository can be pushed without large model files
+
+## Setting Up Environment Variables
+
+The application automatically detects its environment and selects the appropriate model approach:
+
+- On Render.com, set the `RENDER=True` environment variable
+- For local testing of the mock model behavior, set `USE_MOCK_MODELS=True`
+- For normal local development with real models, no special configuration is needed
+
+## GitHub Repository Setup
+
+1. Ensure all model files (`.pth`) are in your `.gitignore` file:
+
+```
+# Ignore all PyTorch model files
+*.pth
+```
+
+2. Push your code to GitHub without the model files:
+
+```bash
+git add .
+git commit -m "Deploy with mock model fallback"
+git push
+```
+
+## Render.com Deployment
+
+### Backend Service
+
+1. Connect your GitHub repository
+2. Set up a Web Service with these settings:
+   - **Environment**: Python
+   - **Build Command**: `pip install -r server/requirements.txt`
+   - **Start Command**: `cd server && gunicorn app:app`
+   - **Environment Variables**:
+     - `RENDER=True`
+     - `USE_MOCK_MODELS=True`
+     - Any other environment variables for your DB, etc.
+
+### Frontend Service
+
+1. Connect your GitHub repository
+2. Set up a Static Site or Web Service for the frontend
+3. Configure to point to your backend service
+
+## Local Development
+
+To run locally with real models:
+
+1. Download the model files:
+   - `IT2_model_epoch_300.pth`
+   - `IT3_model_epoch_260.pth`
+2. Place them in the `server` directory
+3. Start the server:
+   ```bash
+   cd server
+   pip install -r requirements.txt
+   python app.py
+   ```
+
+To test locally with mock models:
+
+```bash
+cd server
+USE_MOCK_MODELS=True python app.py
+```
+
+## How Mock Models Work
+
+The mock model system simulates what the real models would predict:
+
+1. It provides realistic bounding boxes for chest X-ray findings
+2. It generates predictions with varying confidence scores
+3. It simulates the correct output format so the application UI works the same way
+
+This approach allows you to:
+
+- Deploy to resource-limited environments
+- Share code on GitHub without large files
+- Test the application flow even without the real models
+
+## Model Status API
+
+You can check which model implementation is being used via the `/api/model-status` endpoint, which returns detailed information about the loaded models.
+
+## Troubleshooting
+
+If you encounter issues on Render.com, check:
+
+1. Memory usage in the Render dashboard
+2. Logs for any PyTorch-related errors
+3. That the `USE_MOCK_MODELS` environment variable is set to `True`
 
 ## 1. Deploy the Backend Service
 

@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: cxraide-backend
+    env: python
+    plan: free # Use free plan since we're using mock models
+    buildCommand: |
+      pip install -r requirements.txt
+      # No need to download models when using mock models
+    startCommand: gunicorn server.app:app --config server/gunicorn.conf.py
+    repo: https://github.com/yourusername/CXRaide2.0.git # Update with your actual repo
+    branch: main
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_ENV
+        value: production
+      - key: WORKER_TIMEOUT
+        value: 600
+      - key: GUNICORN_WORKERS
+        value: 1
+      - key: GUNICORN_THREADS
+        value: 2
+      - key: MAX_UPLOAD_SIZE
+        value: 20971520 # 20MB for image uploads
+      - key: USE_MOCK_MODELS
+        value: true
+      - key: RENDER
+        value: true
+      - key: MONGODB_URI
+        value: ${MONGODB_URI}
+      - key: SECRET_KEY
+        value: ${SECRET_KEY}
+    healthCheckPath: /health
+    # Lower resource requirements since we're using mock models
+    numInstances:
+      min: 1
+      max: 1
+    cpu: 0.25
+    memory: 512 # 512MB of RAM is sufficient with mock models

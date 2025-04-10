@@ -1,18 +1,14 @@
-import sys
-import os
-import subprocess
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
 from datetime import datetime, timedelta
-import logging
+import os
 from dotenv import load_dotenv
+import logging
 from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
-import threading
-import json
 
 # Configure logging
 logging.basicConfig(
@@ -21,126 +17,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Detect environment and set model strategy
-def setup_environment():
-    """Configure environment variables based on deployment context"""
-    # Check if explicit environment variable is set
-    use_mock_models = os.environ.get('USE_MOCK_MODELS', '').lower()
-    
-    # If explicitly set, respect that setting
-    if use_mock_models in ['true', 'false']:
-        os.environ['USE_MOCK_MODELS'] = use_mock_models
-        logger.info(f"Using environment setting for mock models: {use_mock_models}")
-        return
-        
-    # Check if we're running on Render.com
-    is_render = os.environ.get('RENDER', 'False').lower() == 'true'
-    
-    # Auto-detect - check if PyTorch is available first
-    try:
-        import torch
-        pytorch_available = True
-        logger.info("PyTorch is available - can use real models if present")
-    except ImportError:
-        pytorch_available = False
-        logger.warning("PyTorch import failed - will use mock models")
-        os.environ['USE_MOCK_MODELS'] = 'True'
-        return
-    
-    # If PyTorch is available, check for model files
-    if pytorch_available:
-        # When on Render.com, default to mock models due to memory constraints
-        if is_render:
-            os.environ['USE_MOCK_MODELS'] = 'True'
-            logger.info("Running on Render.com - using mock models by default")
-        else:
-            # Check if model files exist
-            it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
-            it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
-            
-            if os.path.exists(it2_path) and os.path.exists(it3_path):
-                os.environ['USE_MOCK_MODELS'] = 'False'
-                logger.info(f"Real model files found - using real models")
-                logger.info(f"IT2 model: {it2_path} ({os.path.getsize(it2_path) / (1024*1024):.1f} MB)")
-                logger.info(f"IT3 model: {it3_path} ({os.path.getsize(it3_path) / (1024*1024):.1f} MB)")
-            else:
-                os.environ['USE_MOCK_MODELS'] = 'True'
-                logger.warning("Model files not found - using mock models")
-                if not os.path.exists(it2_path):
-                    logger.warning(f"Missing IT2 model file: {it2_path}")
-                if not os.path.exists(it3_path):
-                    logger.warning(f"Missing IT3 model file: {it3_path}")
-
-# Set up environment before other operations
-setup_environment()
-
-# Check for model files and download them if they don't exist
-def ensure_models_exist():
-    # Skip download attempt if we're using mock models
-    if os.environ.get('USE_MOCK_MODELS', 'False') == 'True':
-        logger.info("Using mock models - skipping model download")
-        return
-        
-    it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
-    it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
-    
-    if not os.path.exists(it2_path) or not os.path.exists(it3_path):
-        logger.info("Model files not found. Attempting to download...")
-        try:
-            download_script = os.path.join(os.path.dirname(__file__), 'download_models.py')
-            if not os.path.exists(download_script):
-                logger.error(f"Download script not found at {download_script}")
-                return
-            
-            result = subprocess.run(
-                [sys.executable, download_script],
-                cwd=os.path.dirname(__file__),
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode != 0:
-                logger.error(f"Model download failed: {result.stderr}")
-            else:
-                logger.info("Model download completed successfully")
-        except Exception as e:
-            logger.error(f"Error downloading models: {str(e)}")
-
-# Attempt to download models before trying imports
-ensure_models_exist()
-
-# Import the model blueprint - properly handle different import paths
-model_bp = None
-get_model = None
-
-try:
-    # Try direct import first (Docker container)
-    from model_service import model_bp, get_model
-    logger.info("Successfully imported model_service directly (Docker mode)")
-except ImportError:
-    try:
-        # Then try with server prefix (local development)
-        from server.model_service import model_bp, get_model
-        logger.info("Successfully imported model_service with server prefix (local mode)")
-    except ImportError:
-        logger.error("Could not import model_service. Check file paths and dependencies.")
-        # Create dummy blueprint to avoid errors
-        from flask import Blueprint
-        model_bp = Blueprint('model', __name__)
-        def get_model():
-            logger.error("Model loading function not available")
-            return None, None
-
 load_dotenv()
 
 app = Flask(__name__)
-
-# Register the model blueprint
-if model_bp:
-    app.register_blueprint(model_bp, url_prefix='/api')
-    logger.info("Registered model_bp blueprint with prefix /api")
-else:
-    logger.error("model_bp is not available, cannot register blueprint")
 
 # Get environment
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
@@ -184,15 +63,11 @@ logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 # Updated CORS configuration with proper headers
 CORS(
     app, 
-    resources={
-        r"/*": {
-            "origins": app.config['CORS_ORIGINS'],
-            "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-            "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
-            "expose_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }
-    }
+    supports_credentials=True, 
+    resources={r"/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    expose_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"]
 )
 
 # MongoDB Setup
@@ -356,14 +231,13 @@ def verify_password(provided_password, stored_password):
 
 # Helper function for CORS preflight responses
 def _build_cors_preflight_response():
-    response = jsonify({"message": "CORS preflight handled"})
-    origin = request.headers.get('Origin', '')
-    response.headers.add('Access-Control-Allow-Origin', origin or '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response = jsonify({})
+    response.status_code = 200
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     response.headers.add('Access-Control-Max-Age', '3600')
-    return response, 200
+    return response
 
 # Token creation helper
 def create_token(user_id, username=None, is_admin=False):
@@ -484,7 +358,7 @@ def login():
 def check_session():
     # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
-        return _build_cors_preflight_response()
+        return '', 200
         
     # Get token from header
     token = request.headers.get('Authorization')
@@ -518,7 +392,7 @@ def check_session():
 @app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
     if request.method == 'OPTIONS':
-        return _build_cors_preflight_response()
+        return '', 200
         
     try:
         # Test MongoDB connection
@@ -538,12 +412,8 @@ def health_check():
             "error": str(e)
         }), 500
 
-@app.route('/admin/reset-password', methods=['POST', 'OPTIONS'])
+@app.route('/admin/reset-password', methods=['POST'])
 def reset_password():
-    # Handle OPTIONS request
-    if request.method == 'OPTIONS':
-        return _build_cors_preflight_response()
-        
     token = request.headers.get('Authorization')
     
     # Verify authorization token first
@@ -606,76 +476,29 @@ def reset_password():
         logger.error(f"Password reset error: {str(e)}")
         return jsonify({"message": "Server error occurred"}), 500
 
-@app.route('/predict', methods=['POST', 'OPTIONS'])
-def predict():
-    """Endpoint to get predictions from the model and return annotated images"""
-    if request.method == "OPTIONS":
-        return _build_cors_preflight_response()
-        
-    try:
-        # Check if the model blueprint is loaded
-        if not model_bp:
-            logger.error("Model service is not available")
-            return jsonify({"error": "Model service is not available"}), 500
-            
-        # Redirect to the model blueprint's predict endpoint
-        # The real implementation is in model_service.py
-        return model_bp.url_map.dispatch_rule('/predict', request)
-    except Exception as e:
-        logger.error(f"Error redirecting to prediction endpoint: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-# Add route to access model-status directly from the root as a convenience
-@app.route('/model-status', methods=['GET', 'OPTIONS'])
-def model_status_redirect():
-    if request.method == "OPTIONS":
-        return _build_cors_preflight_response()
-    
-    try:
-        # Redirect to the model blueprint's model-status endpoint
-        # The real implementation is in model_service.py
-        return model_bp.url_map.dispatch_rule('/model-status', request)
-    except Exception as e:
-        logger.error(f"Error redirecting to model-status endpoint: {str(e)}")
-        return jsonify({"error": str(e), "status": "error"}), 500
-
 # Add CORS headers to all responses
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin', '')
     logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
     
-    # Allow all origins for all environments - but don't add header if it already exists
-    if 'Access-Control-Allow-Origin' not in response.headers:
-        response.headers.add('Access-Control-Allow-Origin', origin or '*')
-    
-    # Handle OPTIONS requests explicitly for CORS preflight
+    # Allow all origins for all environments
     if request.method == 'OPTIONS':
+        # Handle OPTIONS requests explicitly for CORS preflight
         response.status_code = 200
-    
-    # Only add headers if they don't exist yet
-    if 'Access-Control-Allow-Headers' not in response.headers:
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept')
-    if 'Access-Control-Allow-Methods' not in response.headers:
-        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
-    if 'Access-Control-Allow-Credentials' not in response.headers:
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-    if 'Access-Control-Max-Age' not in response.headers:
-        response.headers.add('Access-Control-Max-Age', '3600')
-    if 'Access-Control-Expose-Headers' not in response.headers:
-        response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
+        
+    # Add CORS headers to all responses
+    response.headers.add('Access-Control-Allow-Origin', origin or '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '3600')
+    response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
     
     return response
 
 if __name__ == '__main__':
     # Get port from environment variable or use default
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 10000))
     logger.info(f"Starting server on port {port}")
-    
-    # Check if running with Gunicorn
-    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
-        # This is picked up by Gunicorn config
-        timeout = int(os.getenv('WORKER_TIMEOUT', 300))  # 5 minutes default
-        logger.info(f"Running under Gunicorn with timeout: {timeout}s")
-    
-    app.run(host='0.0.0.0', port=port, debug=ENVIRONMENT == 'development')
+    app.run(host='0.0.0.0', port=port, debug=True)
