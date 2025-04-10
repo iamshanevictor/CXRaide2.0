@@ -206,7 +206,7 @@ class ModelService {
     });
   }
 
-  async predict(imageFile, retryCount = 0) {
+  async predict(imageFile, options = {}, retryCount = 0) {
     try {
       console.log(`Starting prediction process for image`);
 
@@ -221,8 +221,26 @@ class ModelService {
       const resizedImage = await this.resizeImageForModel(imageFile);
 
       // Create FormData to send the image
-      const formData = new FormData();
-      formData.append("image", resizedImage.file);
+      let formData;
+
+      // If options is already FormData, use it
+      if (options instanceof FormData) {
+        formData = options;
+
+        // Make sure image is added
+        if (!formData.has("image")) {
+          formData.append("image", resizedImage.file);
+        }
+      } else {
+        formData = new FormData();
+        formData.append("image", resizedImage.file);
+
+        // Add model_type if specified
+        if (options.model_type) {
+          formData.append("model_type", options.model_type);
+          console.log(`Using model type: ${options.model_type}`);
+        }
+      }
 
       // Get the color mapping from the getBoxColor function
       const abnormalityTypes = [
@@ -288,7 +306,7 @@ class ModelService {
             `Retrying in 2 seconds... (${retryCount + 1}/${this.maxRetries})`
           );
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          return this.predict(imageFile, retryCount + 1);
+          return this.predict(imageFile, options, retryCount + 1);
         }
       }
 
