@@ -7,7 +7,7 @@
       </div>
       <div class="nav-items">
         <div class="nav-item" @click="$router.push('/home')">
-          <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+          <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
           <div class="nav-label">Dashboard</div>
         </div>
         <div class="nav-item active">
@@ -79,10 +79,6 @@
       <div class="content-area">
         <!-- Upload Panel -->
         <div class="upload-panel">
-          <div class="panel-header">
-            <h2>Upload Chest X-Ray</h2>
-          </div>
-
           <div class="file-info-bar">
             <span
               >Raw CXRay Name:
@@ -143,9 +139,9 @@
                   v-model="selectedModel"
                   :disabled="!currentImage || isAnalyzing"
                 >
-                  <option value="CXR-SSDVG9">CXR-SSDVG9 (IT2 Model)</option>
+                  <option value="CXR-SSDVG9">SSD300_VGG16-CXR9 v2</option>
                   <option value="CXR-SSDVG6plus3">
-                    CXR-SSDVG6plus3 (IT2+IT3 Combined Model)
+                    SSD300_VGG16-CXR6plus3 v1
                   </option>
                 </select>
                 <div class="select-arrow">
@@ -174,12 +170,6 @@
         <div class="results-panel">
           <div class="results-header">
             <h2>AI Results</h2>
-            <button
-              class="collapse-button"
-              @click="isResultsPanelExpanded = !isResultsPanelExpanded"
-            >
-              <i class="bi bi-arrows-angle-expand"></i>
-            </button>
           </div>
 
           <div
@@ -746,12 +736,28 @@ export default {
 
 .upload-panel {
   flex: 0.95;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  padding: 0 0 130px 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  position: relative;
 }
 
 .results-panel {
   flex: 1.05;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
   position: relative;
-  padding-bottom: 1rem;
 }
 
 .upload-panel h2,
@@ -769,12 +775,12 @@ export default {
   justify-content: space-between;
   align-items: center;
   background: #0f172a;
-  border-radius: 0.5rem 0.5rem 0 0;
+  border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   color: #e5e7eb;
   font-size: 0.95rem;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-  margin-bottom: 0;
+  margin-bottom: 3px;
 }
 
 .upload-btn {
@@ -805,7 +811,7 @@ export default {
 
 .upload-area {
   border: 2px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 0.75rem;
+  border-radius: 0 0 0.75rem 0.75rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -816,8 +822,8 @@ export default {
   background: #0f172a;
   position: relative;
   overflow: hidden;
-  height: 370px; /* Increased height to fill more space */
-  margin-bottom: 1.5rem;
+  height: 520px;
+  margin-bottom: auto;
   flex-shrink: 0;
 }
 
@@ -911,11 +917,19 @@ export default {
 }
 
 .model-selection-compact {
-  margin-top: 0;
-  padding: 1.25rem;
+  margin-top: auto;
+  padding: 0.75rem 1rem;
   background: rgba(15, 23, 42, 0.5);
-  border-radius: 0.75rem;
+  border-radius: 0.75rem 0.75rem 0.75rem 0.75rem;
   border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-left: 1rem;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .model-selection-compact.disabled {
@@ -924,17 +938,19 @@ export default {
 }
 
 .model-selection-compact h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: #e5e7eb;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .model-selection-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .model-description {
@@ -942,39 +958,32 @@ export default {
   color: #94a3b8;
   line-height: 1.4;
   margin: 0;
+  padding-left: 0.5rem;
 }
 
 .analyze-button {
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem;
   background: linear-gradient(90deg, #3b82f6, #60a5fa);
   border: none;
   border-radius: 0.5rem;
   color: white;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 .analyze-button:hover:not(:disabled) {
   background: linear-gradient(90deg, #2563eb, #4f94ff);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-.analyze-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.analyze-button i {
-  font-size: 1.1rem;
+  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
 }
 
 .results-placeholder {
@@ -1028,7 +1037,7 @@ export default {
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px; /* Fixed height */
+  height: 500px;
   position: relative;
 }
 
@@ -1232,43 +1241,22 @@ export default {
 
 .upload-panel {
   flex: 0.95;
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.5);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 0 0 130px 0;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: auto;
-  height: calc(100vh - 150px); /* Match results panel height */
-  min-height: 700px;
+  overflow: hidden;
 }
 
-.collapse-button {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 0.5rem;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #e5e7eb;
-  transition: all 0.2s ease;
-}
-
-.collapse-button:hover {
-  background: rgba(59, 130, 246, 0.25);
-}
-
-/* Update styling for more compact and professional upload panel */
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
@@ -1281,7 +1269,7 @@ export default {
 
 .upload-area {
   border: 2px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 0.75rem;
+  border-radius: 0 0 0.75rem 0.75rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -1292,18 +1280,37 @@ export default {
   background: #0f172a;
   position: relative;
   overflow: hidden;
-  height: 370px; /* Increased height to fill more space */
-  margin-bottom: 1.5rem;
+  height: 520px;
+  margin-bottom: auto;
   flex-shrink: 0;
+}
+
+.upload-area:hover {
+  border-color: #3b82f6;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.upload-area.has-image {
+  border-style: solid;
+  border-color: rgba(59, 130, 246, 0.6);
+  padding: 0;
 }
 
 /* More compact model selection area */
 .model-selection-compact {
-  margin-top: 0;
-  padding: 1.25rem;
+  margin-top: auto;
+  padding: 0.75rem 1rem;
   background: rgba(15, 23, 42, 0.5);
-  border-radius: 0.75rem;
+  border-radius: 0.75rem 0.75rem 0.75rem 0.75rem;
   border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-left: 1rem;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .model-selection-compact.disabled {
@@ -1312,17 +1319,19 @@ export default {
 }
 
 .model-selection-compact h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: #e5e7eb;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .model-selection-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .model-description {
@@ -1330,6 +1339,7 @@ export default {
   color: #94a3b8;
   line-height: 1.4;
   margin: 0;
+  padding-left: 0.5rem;
 }
 
 .select-container {
@@ -1347,6 +1357,13 @@ export default {
   font-size: 0.95rem;
   appearance: none;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.select-container select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .select-arrow {
@@ -1375,10 +1392,15 @@ export default {
 }
 
 .ai-annotations {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* Prevent scrollbars */
+  overflow: hidden;
 }
 
 .xray-image {
@@ -1389,7 +1411,7 @@ export default {
   overflow: hidden;
   margin-bottom: 1rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px; /* Default taller height when collapsed */
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1397,12 +1419,19 @@ export default {
 }
 
 .xray-image.collapsed-view {
-  height: 350px; /* Shorter height when detection panel is expanded */
+  height: 350px;
 }
 
 .ai-image {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  background-color: #0f172a;
+  border-radius: 0.75rem;
 }
 
 .standardized-image {
@@ -1413,7 +1442,7 @@ export default {
 }
 
 .ai-confidence-summary {
-  flex: 1; /* Allow the confidence summary to expand to fill space */
+  flex: 1;
   background: rgba(15, 23, 42, 0.8);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -1427,7 +1456,7 @@ export default {
 
 .ai-confidence-summary.collapsed {
   flex: 0;
-  min-height: 60px; /* Keep header visible when collapsed */
+  min-height: 60px;
 }
 
 .ai-confidence-summary.collapsed .confidence-list-wrapper {
@@ -1446,8 +1475,8 @@ export default {
 
 .confidence-list {
   padding: 0.75rem;
-  max-height: unset; /* Remove max height restriction */
-  flex: 1; /* Allow it to expand */
+  max-height: unset;
+  flex: 1;
   transition: all 0.3s ease;
   overflow-y: auto;
   display: flex;
@@ -1459,7 +1488,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.75rem; /* Reduced padding */
+  padding: 0.5rem 0.75rem;
   border-left: 4px solid transparent;
   background: rgba(15, 23, 42, 0.6);
   border-radius: 4px;
@@ -1513,8 +1542,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%; /* Fill entire container */
-  min-height: 400px;
+  height: 100%;
   color: #94a3b8;
   text-align: center;
   padding: 2rem;
@@ -1528,7 +1556,8 @@ export default {
 }
 
 .placeholder-ai-message p {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
   color: #94a3b8;
 }
 
@@ -1592,7 +1621,7 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 300px; /* Ensure it takes at least this much space */
+  min-height: 300px;
   padding: 0.75rem;
   overflow-y: auto;
 }
@@ -1610,7 +1639,7 @@ export default {
   overflow: hidden;
   border: 1px solid rgba(59, 130, 246, 0.2);
   margin-bottom: 1rem;
-  flex: 1; /* Take remaining space but don't overflow */
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -1633,14 +1662,14 @@ export default {
 
 .detection-list {
   padding: 0;
-  overflow-y: auto; /* Allow scrolling for many items */
-  flex: 1; /* Take available space */
+  overflow-y: auto;
+  flex: 1;
 }
 
 .detection-item {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1rem; /* Smaller padding */
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid rgba(30, 41, 59, 0.5);
 }
 
@@ -1677,7 +1706,7 @@ export default {
   overflow: hidden;
   margin-bottom: 1rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px; /* Default taller height when collapsed */
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1685,26 +1714,31 @@ export default {
 }
 
 .xray-image.collapsed-view {
-  height: 350px; /* Shorter height when detection panel is expanded */
+  height: 350px;
 }
 
 .results-panel {
   flex: 1.05;
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.5);
   border-radius: 1rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(59, 130, 246, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden; /* Changed from auto to hidden */
+  overflow: hidden;
   position: relative;
 }
 
 .ai-annotations {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* Prevent scrollbars */
+  overflow: hidden;
 }
 </style>

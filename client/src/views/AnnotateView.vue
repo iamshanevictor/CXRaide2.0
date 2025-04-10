@@ -49,7 +49,7 @@
         </div>
         <div class="nav-items">
           <div class="nav-item" @click="$router.push('/home')">
-            <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
           <div class="nav-item" @click="$router.push('/upload-cxr')">
@@ -287,7 +287,10 @@
 
           <!-- Right sidebar with AI annotations -->
           <div class="ai-annotations">
-            <!-- Removed the title as requested -->
+            <!-- Add AI Results header to match UploadCXRView -->
+            <div class="results-header">
+              <h2>AI Results</h2>
+            </div>
 
             <!-- Mock model banner -->
             <div
@@ -374,17 +377,7 @@
                 <button @click="retryModelPrediction" class="retry-btn">
                   <i class="bi bi-arrow-clockwise"></i> Retry Detection
                 </button>
-                <button @click="debugMode = !debugMode" class="debug-btn">
-                  <i class="bi bi-bug"></i>
-                  {{ debugMode ? "Hide" : "Show" }} Debug Info
-                </button>
-                <div v-if="debugMode" class="debug-info">
-                  <p><strong>Last API Response:</strong></p>
-                  <pre>{{ lastApiResponse }}</pre>
-                  <button @click="reduceConfidenceThreshold" class="debug-btn">
-                    <i class="bi bi-gear"></i> Try Lower Threshold
-                  </button>
-                </div>
+                <!-- Removed the debug button as requested -->
               </div>
 
               <!-- Empty state -->
@@ -2264,7 +2257,8 @@ export default {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #000;
+  background-color: #0f172a;
+  border-radius: 0.75rem;
 }
 
 /* Style for the image coming from the server (standardized 512x512) */
@@ -2734,7 +2728,7 @@ export default {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(9, 12, 20, 0.3);
+  background: #0f172a; /* Updated background to match UploadCXRView */
   flex: 1;
   position: relative;
   overflow: hidden;
@@ -2743,7 +2737,12 @@ export default {
 
 .upload-area:hover {
   border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(
+    15,
+    23,
+    42,
+    0.6
+  ); /* Updated hover background to match UploadCXRView */
 }
 
 .upload-area.has-image {
@@ -2769,15 +2768,16 @@ export default {
 }
 
 .upload-placeholder i {
-  font-size: 3rem;
+  font-size: 4rem; /* Increased size to match UploadCXRView */
   color: #3b82f6;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
+  opacity: 0.9; /* Added opacity to match UploadCXRView */
 }
 
 .upload-placeholder p {
   color: #94a3b8;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
+  line-height: 1.6; /* Updated line height to match UploadCXRView */
 }
 
 .xray-image-container {
@@ -2805,5 +2805,61 @@ export default {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Empty state */
+.placeholder-ai-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #94a3b8; /* Updated color to match UploadCXRView */
+  text-align: center;
+}
+
+.placeholder-ai-message i {
+  font-size: 4rem; /* Increased size to match UploadCXRView style */
+  color: #3b82f6; /* Updated color to match UploadCXRView */
+  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
+  opacity: 0.9; /* Added opacity to match UploadCXRView */
+}
+
+.placeholder-ai-message p {
+  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
+  line-height: 1.6; /* Added line height to match UploadCXRView */
+}
+
+.ai-annotations {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  width: 100%;
+}
+
+.results-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 </style>

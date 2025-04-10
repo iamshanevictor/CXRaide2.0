@@ -49,7 +49,7 @@
         </div>
         <div class="nav-items">
           <div class="nav-item active">
-            <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
           <div class="nav-item" @click="$router.push('/upload-cxr')">
