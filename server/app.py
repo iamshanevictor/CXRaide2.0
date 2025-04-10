@@ -21,8 +21,66 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Detect environment and set model strategy
+def setup_environment():
+    """Configure environment variables based on deployment context"""
+    # Check if explicit environment variable is set
+    use_mock_models = os.environ.get('USE_MOCK_MODELS', '').lower()
+    
+    # If explicitly set, respect that setting
+    if use_mock_models in ['true', 'false']:
+        os.environ['USE_MOCK_MODELS'] = use_mock_models
+        logger.info(f"Using environment setting for mock models: {use_mock_models}")
+        return
+        
+    # Check if we're running on Render.com
+    is_render = os.environ.get('RENDER', 'False').lower() == 'true'
+    
+    # Auto-detect - check if PyTorch is available first
+    try:
+        import torch
+        pytorch_available = True
+        logger.info("PyTorch is available - can use real models if present")
+    except ImportError:
+        pytorch_available = False
+        logger.warning("PyTorch import failed - will use mock models")
+        os.environ['USE_MOCK_MODELS'] = 'True'
+        return
+    
+    # If PyTorch is available, check for model files
+    if pytorch_available:
+        # When on Render.com, default to mock models due to memory constraints
+        if is_render:
+            os.environ['USE_MOCK_MODELS'] = 'True'
+            logger.info("Running on Render.com - using mock models by default")
+        else:
+            # Check if model files exist
+            it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
+            it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
+            
+            if os.path.exists(it2_path) and os.path.exists(it3_path):
+                os.environ['USE_MOCK_MODELS'] = 'False'
+                logger.info(f"Real model files found - using real models")
+                logger.info(f"IT2 model: {it2_path} ({os.path.getsize(it2_path) / (1024*1024):.1f} MB)")
+                logger.info(f"IT3 model: {it3_path} ({os.path.getsize(it3_path) / (1024*1024):.1f} MB)")
+            else:
+                os.environ['USE_MOCK_MODELS'] = 'True'
+                logger.warning("Model files not found - using mock models")
+                if not os.path.exists(it2_path):
+                    logger.warning(f"Missing IT2 model file: {it2_path}")
+                if not os.path.exists(it3_path):
+                    logger.warning(f"Missing IT3 model file: {it3_path}")
+
+# Set up environment before other operations
+setup_environment()
+
 # Check for model files and download them if they don't exist
 def ensure_models_exist():
+    # Skip download attempt if we're using mock models
+    if os.environ.get('USE_MOCK_MODELS', 'False') == 'True':
+        logger.info("Using mock models - skipping model download")
+        return
+        
     it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
     it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
     

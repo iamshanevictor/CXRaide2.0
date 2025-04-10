@@ -123,13 +123,44 @@
           <div class="card primary-card">
             <div class="card-header">
               <h2>Model: SSD300_VGG16</h2>
-              <button class="icon-button">
-                <span class="icon"
-                  ><i class="bi bi-three-dots-vertical"></i
-                ></span>
-              </button>
+              <div class="model-status-wrapper">
+                <div
+                  class="model-status-badge"
+                  :class="{
+                    'mock-model': modelInfo && modelInfo.using_mock_models,
+                    'real-model': !modelInfo || !modelInfo.using_mock_models,
+                  }"
+                  v-if="modelInfo"
+                >
+                  {{
+                    modelInfo.using_mock_models ? "Mock Model" : "Real Model"
+                  }}
+                  <span class="model-status-icon">
+                    <i
+                      :class="
+                        modelInfo.using_mock_models
+                          ? 'bi bi-pc-display'
+                          : 'bi bi-cpu'
+                      "
+                    ></i>
+                  </span>
+                </div>
+                <button class="icon-button">
+                  <span class="icon"
+                    ><i class="bi bi-three-dots-vertical"></i
+                  ></span>
+                </button>
+              </div>
             </div>
             <div class="card-content model-content">
+              <!-- Alert message when mock models are used -->
+              <div
+                class="mock-model-alert"
+                v-if="modelInfo && modelInfo.using_mock_models"
+              >
+                <i class="bi bi-info-circle-fill"></i>
+                <span>{{ modelInfo.explanation }}</span>
+              </div>
               <div class="model-architecture">
                 <div class="architecture-item">
                   <div class="architecture-label">Base:</div>
@@ -344,6 +375,7 @@
 <script>
 import { apiUrl, logout, checkSession, health } from "../utils/api";
 import { runNetworkTest } from "../utils/network-test";
+import ModelService from "@/services/modelService";
 
 export default {
   data() {
@@ -369,6 +401,7 @@ export default {
         typeof window !== "undefined" && window.location
           ? window.location.hostname || "Local"
           : "Local",
+      modelInfo: null,
     };
   },
   created() {
@@ -382,6 +415,34 @@ export default {
 
     // Check server health first
     this.checkServerHealth();
+  },
+  mounted() {
+    // Handle server health check
+    this.checkServerHealth();
+
+    // Load user info
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        this.username = parsedUser.username || "User";
+      } catch (e) {
+        console.error("Error parsing user data:", e);
+      }
+    }
+
+    // Check token
+    this.hasToken = !!localStorage.getItem("authToken");
+
+    // Check model status
+    this.checkModelStatus();
+
+    // Add click event listener to document to close dropdown when clicking outside
+    document.addEventListener("click", this.closeUserMenu);
+  },
+  beforeUnmount() {
+    // Remove event listener when component is destroyed
+    document.removeEventListener("click", this.closeUserMenu);
   },
   methods: {
     async checkServerHealth() {
@@ -522,11 +583,8 @@ export default {
       this.showUserMenu = !this.showUserMenu;
     },
     openUserSettings() {
-      // For future implementation
-      console.log("[Home] User settings clicked (not implemented yet)");
+      console.log("Open user settings");
       this.showUserMenu = false;
-      // Display a notification or message that this feature is coming soon
-      alert("User settings feature coming soon!");
     },
     closeUserMenu(e) {
       // Close the menu when clicking outside
@@ -534,14 +592,15 @@ export default {
         this.showUserMenu = false;
       }
     },
-  },
-  mounted() {
-    // Add click event listener to document to close dropdown when clicking outside
-    document.addEventListener("click", this.closeUserMenu);
-  },
-  beforeUnmount() {
-    // Remove event listener when component is destroyed
-    document.removeEventListener("click", this.closeUserMenu);
+    async checkModelStatus() {
+      try {
+        const modelStatus = await ModelService.checkModelStatus();
+        this.modelInfo = modelStatus;
+        console.log("Model status:", modelStatus);
+      } catch (error) {
+        console.error("Error checking model status:", error);
+      }
+    },
   },
 };
 </script>
@@ -1761,5 +1820,57 @@ export default {
 .placeholder-card:hover {
   box-shadow: 0 8px 32px rgba(30, 64, 175, 0.2);
   border-color: rgba(30, 64, 175, 0.4);
+}
+
+/* Add these styles to your existing CSS */
+.model-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.mock-model {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.real-model {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #10b981;
+}
+
+.model-status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mock-model-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+}
+
+.mock-model-alert i {
+  font-size: 1.1rem;
 }
 </style>

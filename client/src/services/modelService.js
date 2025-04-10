@@ -66,9 +66,11 @@ class ModelService {
 
       const data = await response.json();
 
-      // If using mock model, log a warning
-      if (data.model_type === "mock") {
-        console.warn("SERVER USING MOCK MODEL:", data.warning);
+      // Process the updated model status response
+      if (data.using_mock_models) {
+        console.warn("SERVER USING MOCK MODELS:", data.notice);
+      } else if (data.status === "ready") {
+        console.log("SERVER USING REAL MODELS:", data.explanation);
       }
 
       return data;

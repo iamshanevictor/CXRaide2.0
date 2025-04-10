@@ -5,26 +5,32 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV FLASK_ENV=production
+ENV FLASK_ENV=development
 ENV MONGO_URI=mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide
 ENV DB_NAME=cxraide
 ENV SECRET_KEY=ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce
 ENV WORKER_TIMEOUT=600
 ENV GUNICORN_WORKERS=1
 ENV GUNICORN_THREADS=2
-ENV USE_LIGHTWEIGHT_MODEL=true
+# This flag should be set to false in Docker since we'll include the model files
+ENV USE_MOCK_MODELS=false
+# For Render.com deployment only, leave false for local Docker
+ENV RENDER=false
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1-mesa-glx \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
+COPY requirements.local.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies INCLUDING PyTorch (unlike Render)
+RUN pip install --no-cache-dir -r requirements.local.txt
 
 # Copy the application code
 COPY . .
@@ -32,7 +38,7 @@ COPY . .
 # -------------------------------------------
 # MODEL DOWNLOAD SECTION
 # -------------------------------------------
-# Try downloading both models using the new combined script
+# Always attempt to download models for Docker environment
 RUN echo "Attempting to download models using download_models.py..." && \
     python download_models.py || echo "Combined download script failed, trying alternatives..."
 
@@ -61,14 +67,16 @@ RUN if [ -f IT2_model_epoch_300.pth ]; then \
     echo "IT2 model file successfully included in build" && \
     stat --format="%s bytes" IT2_model_epoch_300.pth; \
     else \
-    echo "WARNING: Failed to obtain IT2 model file. Some features may not work."; \
+    echo "WARNING: Failed to obtain IT2 model file. Using mock model instead."; \
+    ENV USE_MOCK_MODELS=true; \
     fi
 
 RUN if [ -f IT3_model_epoch_260.pth ]; then \
     echo "IT3 model file successfully included in build" && \
     stat --format="%s bytes" IT3_model_epoch_260.pth; \
     else \
-    echo "WARNING: Failed to obtain IT3 model file. Some features may not work."; \
+    echo "WARNING: Failed to obtain IT3 model file. Using mock model instead."; \
+    ENV USE_MOCK_MODELS=true; \
     fi
 
 # Expose the port the app runs on

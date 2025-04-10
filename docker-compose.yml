@@ -10,6 +10,8 @@ services:
       - MONGO_URI=mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide
       - DB_NAME=cxraide
       - SECRET_KEY=ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce
+      - USE_MOCK_MODELS=false
+      - RENDER=false
     volumes:
       - ./server:/app
     networks:
