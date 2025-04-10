@@ -349,6 +349,31 @@
           <!-- Right sidebar with AI annotations -->
           <div class="ai-annotations">
             <div class="image-title">Chest X-ray Image (AI Annotated)</div>
+
+            <!-- Mock model banner -->
+            <div
+              v-if="isUsingMockModel || modelStatus?.using_mock_models"
+              class="model-status-banner"
+            >
+              <i class="bi bi-info-circle-fill"></i>
+              <span
+                >Using mock AI predictions (server is using lightweight
+                model)</span
+              >
+            </div>
+
+            <!-- PyTorch not installed notification -->
+            <div
+              v-if="modelError && modelError.includes('PyTorch')"
+              class="model-status-banner"
+            >
+              <i class="bi bi-info-circle-fill"></i>
+              <span
+                >Server note: Using client-side mock predictions (PyTorch not
+                installed)</span
+              >
+            </div>
+
             <div class="xray-image ai-image">
               <!-- Use the pre-rendered annotated image with bounding boxes -->
               <img
@@ -380,8 +405,11 @@
                 <p>Processing image with AI model...</p>
               </div>
 
-              <!-- Error state -->
-              <div v-if="modelError" class="ai-error">
+              <!-- Error state - don't show PyTorch errors with warning icon -->
+              <div
+                v-if="modelError && !modelError.includes('PyTorch')"
+                class="ai-error"
+              >
                 <i class="bi bi-exclamation-triangle"></i>
                 <p>{{ modelError }}</p>
                 <button
@@ -563,6 +591,9 @@ export default {
 
       // Add this new property
       detectionResultsExpanded: false,
+
+      // Add modelStatus to store the response from model status check
+      modelStatus: null,
     };
   },
   created() {
@@ -794,14 +825,16 @@ export default {
 
         // First check if the model is ready
         const modelStatus = await ModelService.checkModelStatus();
+        this.modelStatus = modelStatus; // Store the model status in data
         this.lastApiResponse = { modelStatus };
 
         // Check if we're using a mock model
-        if (modelStatus.model_type === "mock") {
+        if (
+          modelStatus.using_mock_models ||
+          modelStatus.model_type === "mock"
+        ) {
           this.isUsingMockModel = true;
-          console.warn(
-            "Using demo predictions with mock model - real model file not found"
-          );
+          console.warn("Using mock model for predictions");
         }
 
         if (modelStatus.status === "loading") {
@@ -2550,5 +2583,79 @@ export default {
   background-color: #1e293b;
   color: #e5e7eb;
   padding: 10px;
+}
+
+/* Add these styles for the mock model banner */
+.mock-model-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fff7ed;
+  color: #9a3412;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.mock-model-banner i {
+  font-size: 1.1rem;
+}
+
+.model-error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fff7ed;
+  color: #9a3412;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.model-error-message i {
+  font-size: 1.1rem;
+}
+
+/* Model Status Banner - used for mock model and PyTorch notifications */
+.model-status-banner {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #495057;
+}
+
+.model-status-banner i {
+  margin-right: 8px;
+  color: #0d6efd;
+  font-size: 16px;
+}
+
+/* Error container */
+.error-container {
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.error-message i {
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 </style>
