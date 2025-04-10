@@ -5,6 +5,28 @@ class ModelService {
     this.isCheckingStatus = false;
     this.maxRetries = 3;
     this.modelInputSize = 512; // Model input size is 512x512
+
+    // Create a controllers map to track active requests
+    this.controllers = new Map();
+  }
+
+  // Cancel any active requests when needed
+  cancelRequests(requestType) {
+    if (requestType) {
+      // Cancel a specific request type
+      if (this.controllers.has(requestType)) {
+        this.controllers.get(requestType).abort();
+        this.controllers.delete(requestType);
+        console.log(`Cancelled ${requestType} request`);
+      }
+    } else {
+      // Cancel all requests
+      this.controllers.forEach((controller, key) => {
+        controller.abort();
+        console.log(`Cancelled ${key} request`);
+      });
+      this.controllers.clear();
+    }
   }
 
   // Get box color based on abnormality type
@@ -49,6 +71,13 @@ class ModelService {
         return { status: "checking" };
       }
 
+      // Cancel any existing model status requests
+      this.cancelRequests("modelStatus");
+
+      // Create new controller for this request
+      const controller = new AbortController();
+      this.controllers.set("modelStatus", controller);
+
       this.isCheckingStatus = true;
 
       const response = await fetch(`${apiUrl}/api/model-status`, {
@@ -57,6 +86,7 @@ class ModelService {
           Accept: "application/json",
         },
         mode: "cors",
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -75,10 +105,15 @@ class ModelService {
 
       return data;
     } catch (error) {
+      if (error.name === "AbortError") {
+        console.log("Model status check was cancelled");
+        return { status: "cancelled" };
+      }
       console.error("Error checking model status:", error);
       return { status: "error", message: error.message };
     } finally {
       this.isCheckingStatus = false;
+      this.controllers.delete("modelStatus");
     }
   }
 
@@ -175,6 +210,13 @@ class ModelService {
     try {
       console.log(`Starting prediction process for image`);
 
+      // Cancel any existing prediction requests
+      this.cancelRequests("predict");
+
+      // Create new controller for this request
+      const controller = new AbortController();
+      this.controllers.set("predict", controller);
+
       // First resize the image for the model
       const resizedImage = await this.resizeImageForModel(imageFile);
 
@@ -232,6 +274,7 @@ class ModelService {
         credentials: "include",
         headers: headers,
         mode: "cors", // Explicitly set CORS mode
+        signal: controller.signal,
       });
 
       // Handle service unavailable - model still loading
@@ -272,7 +315,7 @@ class ModelService {
           console.warn(
             "PyTorch not installed on server, using client-side mock predictions"
           );
-          return this.generateMockPredictions(resizedImage);
+          return this.generateMockPredictions(imageFile);
         }
 
         throw new Error(
@@ -299,6 +342,11 @@ class ModelService {
         imageSize: data.image_size || { width: 512, height: 512 },
       };
     } catch (error) {
+      if (error.name === "AbortError") {
+        console.log("Prediction request was cancelled");
+        return { cancelled: true };
+      }
+
       console.error("Error making prediction:", error);
 
       // If we get an error about PyTorch not being installed, use mock predictions
@@ -308,11 +356,13 @@ class ModelService {
       }
 
       throw error;
+    } finally {
+      this.controllers.delete("predict");
     }
   }
 
   // Generate mock predictions client-side when the server can't provide them
-  async generateMockPredictions(resizedImage) {
+  async generateMockPredictions(imageFile) {
     console.log("Generating mock predictions client-side");
 
     try {
@@ -320,9 +370,9 @@ class ModelService {
       let imageElement;
       let imageURL;
 
-      if (resizedImage && resizedImage.file) {
-        // Create an image from the resized file
-        imageURL = URL.createObjectURL(resizedImage.file);
+      if (imageFile) {
+        // Create an image from the file
+        imageURL = URL.createObjectURL(imageFile);
       } else {
         // Create a blank canvas as fallback
         const canvas = document.createElement("canvas");
@@ -432,7 +482,7 @@ class ModelService {
       const cleanImageURL = imageURL;
 
       // Free the object URL if we created one
-      if (resizedImage && resizedImage.file) {
+      if (imageFile) {
         URL.revokeObjectURL(imageURL);
       }
 
@@ -456,4 +506,12 @@ class ModelService {
   }
 }
 
-export default new ModelService();
+// Create an instance to export
+const instance = new ModelService();
+
+// Add global cleanup handler for page navigation
+window.addEventListener("beforeunload", () => {
+  instance.cancelRequests();
+});
+
+export default instance;

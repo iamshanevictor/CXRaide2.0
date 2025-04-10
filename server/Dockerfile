@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9-slim AS base
 
 WORKDIR /app
 
@@ -32,6 +32,16 @@ COPY requirements.local.txt .
 # Install Python dependencies INCLUDING PyTorch (unlike Render)
 RUN pip install --no-cache-dir -r requirements.local.txt
 
+# Development stage - expects volumes to be mounted
+FROM base AS development
+# Only copy essential files for startup
+COPY *.py ./
+COPY gunicorn.conf.py ./
+# Start Flask in development mode, with auto-reload
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"]
+
+# Production stage - copies all files and downloads models
+FROM base AS production
 # Copy the application code
 COPY . .
 

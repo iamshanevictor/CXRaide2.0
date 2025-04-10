@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  # Production configuration for frontend
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production-stage
+    ports:
+      - "8080:80"
+    volumes:
+      # No source code volume in production
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://localhost:5000

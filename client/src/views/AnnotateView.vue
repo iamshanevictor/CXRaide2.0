@@ -400,10 +400,9 @@
               />
 
               <!-- Loading state -->
-              <div v-if="isModelLoading" class="ai-loading">
-                <div class="loader"></div>
-                <p>Processing image with AI model...</p>
-              </div>
+              <transition name="fade">
+                <a-i-model-loader v-if="isModelLoading" />
+              </transition>
 
               <!-- Error state - don't show PyTorch errors with warning icon -->
               <div
@@ -515,10 +514,7 @@
       </div>
 
       <!-- Loading overlay -->
-      <div v-if="isLoading" class="loader-overlay">
-        <div class="loader"></div>
-        <p>Loading annotation data...</p>
-      </div>
+      <loading-overlay v-if="isLoading" message="Loading annotation data..." />
     </div>
   </div>
 </template>
@@ -527,8 +523,14 @@
 import { apiUrl, logout } from "../utils/api";
 import { runNetworkTest } from "../utils/network-test";
 import ModelService from "../services/modelService";
+import LoadingOverlay from "../components/LoadingOverlay.vue";
+import AIModelLoader from "../components/AIModelLoader.vue";
 
 export default {
+  components: {
+    LoadingOverlay,
+    AIModelLoader,
+  },
   data() {
     return {
       apiUrl: apiUrl,
@@ -2657,5 +2659,21 @@ export default {
 .error-message i {
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+/* Add transition animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Enhance image transitions */
+.standardized-image {
+  transition: all 0.3s ease-in-out;
 }
 </style>

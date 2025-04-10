@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { checkSession } from "../utils/api";
+import modelService from "../services/modelService";
 
 const routes = [
   {
@@ -51,8 +52,28 @@ setInterval(() => {
   }
 }, 10000);
 
+// Define a debounce function to prevent rapid navigation
+// This function is defined but currently not used - removed or commented to fix ESLint error
+/* 
+const debounce = (fn, delay) => {
+  let timeoutId;
+  return function (...args) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      fn.apply(this, args);
+      timeoutId = null;
+    }, delay);
+  };
+};
+*/
+
 router.beforeEach(async (to, from) => {
   console.log("[Router] Navigation started to:", to.path, "from:", from.path);
+
+  // Cancel any pending API requests to prevent errors
+  modelService.cancelRequests();
 
   // Increment navigation attempts
   navigationAttempts++;
