@@ -201,7 +201,10 @@
               >
             </div>
 
-            <div class="xray-image ai-image">
+            <div
+              class="xray-image ai-image"
+              :class="{ 'collapsed-view': !isResultsCollapsed }"
+            >
               <!-- Use the pre-rendered annotated image with bounding boxes -->
               <img
                 :src="annotatedImage"
@@ -1375,6 +1378,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden; /* Prevent scrollbars */
 }
 
 .xray-image {
@@ -1383,13 +1387,17 @@ export default {
   background: #000;
   border-radius: 0.5rem;
   overflow: hidden;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 400px;
-  flex-shrink: 0; /* Prevent image from shrinking */
+  height: 500px; /* Default taller height when collapsed */
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: height 0.3s ease;
+}
+
+.xray-image.collapsed-view {
+  height: 350px; /* Shorter height when detection panel is expanded */
 }
 
 .ai-image {
@@ -1525,7 +1533,7 @@ export default {
 }
 
 /* Action buttons styling from AnnotateView.vue */
-.annotation-actions {
+.action-buttons.annotation-actions {
   display: flex;
   justify-content: center;
   gap: 1rem;
@@ -1534,10 +1542,10 @@ export default {
 }
 
 .action-button {
-  padding: 0.75rem 2rem;
+  padding: 0.6rem 1.5rem;
   border: none;
   border-radius: 0.5rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -1601,14 +1609,17 @@ export default {
   border-radius: 0.5rem;
   overflow: hidden;
   border: 1px solid rgba(59, 130, 246, 0.2);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  flex: 1; /* Take remaining space but don't overflow */
+  display: flex;
+  flex-direction: column;
 }
 
 .detection-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   cursor: pointer;
 }
@@ -1622,12 +1633,14 @@ export default {
 
 .detection-list {
   padding: 0;
+  overflow-y: auto; /* Allow scrolling for many items */
+  flex: 1; /* Take available space */
 }
 
 .detection-item {
   display: flex;
   align-items: center;
-  padding: 1rem;
+  padding: 0.5rem 1rem; /* Smaller padding */
   border-bottom: 1px solid rgba(30, 41, 59, 0.5);
 }
 
@@ -1637,22 +1650,22 @@ export default {
 
 .detection-color-bar {
   width: 4px;
-  height: 24px;
+  height: 18px;
   border-radius: 2px;
-  margin-right: 1rem;
+  margin-right: 0.75rem;
 }
 
 .detection-name {
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: #e5e7eb;
 }
 
 .detection-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  min-width: 50px;
+  min-width: 40px;
   text-align: right;
 }
 
@@ -1662,11 +1675,36 @@ export default {
   background: #000;
   border-radius: 0.5rem;
   overflow: hidden;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 400px;
+  height: 500px; /* Default taller height when collapsed */
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: height 0.3s ease;
+}
+
+.xray-image.collapsed-view {
+  height: 350px; /* Shorter height when detection panel is expanded */
+}
+
+.results-panel {
+  flex: 1.05;
+  background: #0f172a;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden; /* Changed from auto to hidden */
+  position: relative;
+}
+
+.ai-annotations {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent scrollbars */
 }
 </style>
