@@ -667,15 +667,7 @@ def after_request(response):
     
     return response
 
-if __name__ == '__main__':
-    # Get port from environment variable or use default
-    port = int(os.getenv('PORT', 5000))
-    logger.info(f"Starting server on port {port}")
-    
-    # Check if running with Gunicorn
-    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
-        # This is picked up by Gunicorn config
-        timeout = int(os.getenv('WORKER_TIMEOUT', 300))  # 5 minutes default
-        logger.info(f"Running under Gunicorn with timeout: {timeout}s")
-    
-    app.run(host='0.0.0.0', port=port, debug=ENVIRONMENT == 'development')
+# Add this at the end of the file to support development mode with hot-reloading
+if __name__ == "__main__":
+    # Enable hot-reloading in development
+    app.run(host="0.0.0.0", port=5000, debug=True)

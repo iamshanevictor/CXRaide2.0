@@ -1,8 +1,11 @@
+version: "3.8"
+
 services:
   backend:
     build:
       context: ./server
       dockerfile: Dockerfile
+      target: development
     ports:
       - "5000:5000"
     environment:
@@ -21,14 +24,30 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      target: development # Use development target for local development
     ports:
-      - "8080:80"
+      - "8080:8080" # Map to development server port
     environment:
       - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./client:/app # Mount source code for hot-reloading
+      - /app/node_modules # Don't override node_modules with host directory
     depends_on:
       - backend
     networks:
       - cxraide-network
+
+# Production configuration
+# Use this for testing production builds locally
+# Run with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+x-production-config:
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production-stage
+    ports:
+      - "8080:80"
 
 networks:
   cxraide-network:
