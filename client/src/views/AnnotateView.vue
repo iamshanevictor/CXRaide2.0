@@ -36,6 +36,21 @@
       </div>
     </div>
 
+    <!-- Mock model notification -->
+    <div
+      v-if="modelInfo && modelInfo.using_mock_models"
+      class="mock-model-notification"
+    >
+      <div class="notification-content">
+        <i class="bi bi-info-circle"></i>
+        <span>Using demo predictions with mock model</span>
+      </div>
+      <div class="notification-details">
+        The predictions shown are simulated examples and do not represent actual
+        AI analysis.
+      </div>
+    </div>
+
     <!-- Main content -->
     <div v-else class="app-layout">
       <!-- Left Navigation Bar (reused from HomeView) -->
@@ -118,19 +133,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Demo mode warning - positioned under header -->
-        <div v-if="isUsingMockModel" class="demo-mode-warning">
-          <i class="bi bi-exclamation-triangle"></i>
-          <span
-            >Using demo predictions with mock model (actual model file not found
-            on server)</span
-          >
-          <p class="demo-mode-details">
-            The predictions shown are simulated examples and do not represent
-            actual AI analysis of your uploaded image.
-          </p>
         </div>
 
         <!-- Main annotation area -->
@@ -347,20 +349,15 @@
               </transition>
 
               <!-- Error state - don't show PyTorch errors with warning icon -->
-              <div
-                v-if="modelError && !modelError.includes('PyTorch')"
-                class="ai-error"
-              >
-                <i class="bi bi-exclamation-triangle"></i>
-                <p>{{ modelError }}</p>
-                <button
-                  v-if="modelError && modelError.includes('loading')"
-                  @click="retryModelPrediction"
-                  class="retry-btn"
-                >
-                  <i class="bi bi-arrow-clockwise"></i> Check Again
-                </button>
-              </div>
+              <transition name="fade">
+                <model-error-overlay
+                  v-if="modelError && !modelError.includes('PyTorch')"
+                  :title="'Model could not be loaded'"
+                  :message="modelError || 'Please try again later.'"
+                  :show-retry="modelError && modelError.includes('loading')"
+                  @retry="retryModelPrediction"
+                />
+              </transition>
 
               <!-- No abnormalities message -->
               <div
@@ -454,14 +451,16 @@
 <script>
 import { apiUrl, logout } from "../utils/api";
 import { runNetworkTest } from "../utils/network-test";
-import ModelService from "../services/modelService";
 import LoadingOverlay from "../components/LoadingOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
+import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
+import ModelService from "@/services/modelService";
 
 export default {
   components: {
     LoadingOverlay,
     AIModelLoader,
+    ModelErrorOverlay,
   },
   data() {
     return {
@@ -1343,6 +1342,33 @@ export default {
 
       reader.readAsDataURL(file);
     },
+    async checkModelStatus() {
+      try {
+        const modelStatus = await ModelService.checkModelStatus();
+        this.modelStatus = modelStatus;
+
+        // Check for model errors
+        if (modelStatus.status === "loading") {
+          this.modelError =
+            "Model is still loading. Please wait a moment and try again.";
+        } else if (
+          modelStatus.status === "error" ||
+          modelStatus.status === "not_loaded"
+        ) {
+          this.modelError =
+            "Model could not be loaded. Please try again later.";
+        }
+
+        // Check if using mock models
+        if (modelStatus.using_mock_models) {
+          this.isUsingMockModel = true;
+        }
+      } catch (error) {
+        console.error("Error checking model status:", error);
+        this.modelError =
+          "Unable to connect to model service. Please try again later.";
+      }
+    },
   },
   watch: {
     selectedAbnormality(newValue) {
@@ -1366,6 +1392,9 @@ export default {
     // Set default tool but don't show default box
     this.activeTool = null; // Don't automatically select the box tool
     this.showDefaultBox = false;
+
+    // Check model status
+    this.checkModelStatus();
   },
   beforeUnmount() {
     document.removeEventListener("click", this.closeUserMenu);
@@ -1506,8 +1535,8 @@ export default {
   align-items: center;
 }
 
+/* Default styling for all icon buttons */
 .icon-button {
-  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   width: 2.5rem;
@@ -1519,22 +1548,21 @@ export default {
   transition: all 0.2s ease;
 }
 
-.icon-button:hover {
-  background: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+/* Dark styling specifically for dark mode and notification buttons */
+.dark-mode-toggle,
+.notifications {
+  background: rgba(13, 31, 65, 0.9);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-.icon-button .icon {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dark-mode-toggle:hover,
+.notifications:hover {
+  background: rgba(23, 41, 75, 0.9);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
-.user-dropdown {
-  position: relative;
-}
-
+/* Blue styling for user avatar */
 .user-avatar {
   width: 2.5rem;
   height: 2.5rem;
@@ -1546,6 +1574,19 @@ export default {
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: white;
+}
+
+.icon-button .icon {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.user-dropdown {
+  position: relative;
 }
 
 .dropdown-menu {
@@ -2861,5 +2902,42 @@ export default {
   margin: 0;
   padding: 0;
   border: none;
+}
+
+/* Mock model notification styles */
+.mock-model-notification {
+  background-color: rgba(247, 213, 212, 0.25);
+  border-left: 3px solid #f59e0b;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.notification-content i {
+  font-size: 1rem;
+}
+
+.notification-details {
+  color: #92400e;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  margin-left: 24px;
+  opacity: 0.9;
+}
+
+/* Remove the old demo mode warning styles */
+.demo-mode-warning {
+  display: none;
 }
 </style>

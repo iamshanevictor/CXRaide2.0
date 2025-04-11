@@ -916,7 +916,7 @@ def predict_image():
             else:
                 # Use combined IT2+IT3 model (default)
                 logger.info("Using combined IT2+IT3 models for prediction")
-                predictions = predict(image_tensor)
+            predictions = predict(image_tensor)
             
             logger.info(f"Processed predictions: {predictions}")
             
@@ -959,7 +959,7 @@ def predict_image():
                 "model_used": model_type
             }
             return jsonify(response_data)
-        
+            
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}", exc_info=True)
             return jsonify({'error': f"Error processing image: {str(e)}"}), 500
@@ -974,14 +974,14 @@ def predict_image():
 @model_bp.route('/model-status', methods=['GET'])
 def model_status():
     """Return the status of model loading and deployment mode"""
+    global model_it2, model_it3, model_loading
+    
     try:
         # Handle potential OPTIONS preflight request
         if request.method == 'OPTIONS':
             logger.info("Handling OPTIONS request for /model-status")
             return jsonify({"message": "CORS preflight handled"}), 200
             
-        global model_it2, model_it3, model_loading
-        
         # Check if environment is configured for mock models
         using_mock_models = os.environ.get('USE_MOCK_MODELS', 'False').lower() == 'true'
         

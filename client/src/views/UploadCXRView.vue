@@ -139,10 +139,8 @@
                   v-model="selectedModel"
                   :disabled="!currentImage || isAnalyzing"
                 >
-                  <option value="CXR-SSDVG9">SSD300_VGG16-CXR9 v2</option>
-                  <option value="CXR-SSDVG6plus3">
-                    SSD300_VGG16-CXR6plus3 v1
-                  </option>
+                  <option value="CXR-IT2">SSD300_VGG16-CXR9 v2</option>
+                  <option value="CXR-IT3">SSD300_VGG16-CXR6plus3 v1</option>
                 </select>
                 <div class="select-arrow">
                   <i class="bi bi-chevron-down"></i>
@@ -150,7 +148,7 @@
               </div>
               <p class="model-description">
                 {{
-                  selectedModel === "CXR-SSDVG9"
+                  selectedModel === "CXR-IT2"
                     ? "SSD-based model for detecting 9 types of thoracic pathologies."
                     : "Enhanced combined model with improved detection of subtle findings."
                 }}
@@ -191,6 +189,7 @@
               >
             </div>
 
+            <!-- Xray image container with dynamic sizing based on results collapsed state -->
             <div
               class="xray-image ai-image"
               :class="{ 'collapsed-view': !isResultsCollapsed }"
@@ -202,20 +201,53 @@
                 class="standardized-image result-image"
               />
 
-              <!-- Loading state -->
-              <transition name="fade">
-                <a-i-model-loader v-if="isAnalyzing" />
-              </transition>
+              <!-- Loading state with blue filter and indicators -->
+              <div
+                v-if="isAnalyzing && !annotatedImage && !modelError"
+                class="ai-processing-overlay"
+              >
+                <div class="processing-frame">
+                  <div class="processing-scan-line"></div>
+                </div>
+                <div class="processing-status">
+                  <h3>Processing Image</h3>
+                  <p>Analyzing with AI model...</p>
+
+                  <div class="processing-steps">
+                    <div
+                      class="processing-step"
+                      :class="{ active: processingStep === 1 }"
+                    >
+                      <i class="bi bi-image"></i>
+                      <span>Image Processing</span>
+                    </div>
+                    <div
+                      class="processing-step"
+                      :class="{ active: processingStep === 2 }"
+                    >
+                      <i class="bi bi-cpu"></i>
+                      <span>AI Analysis</span>
+                    </div>
+                    <div
+                      class="processing-step"
+                      :class="{ active: processingStep === 3 }"
+                    >
+                      <i class="bi bi-grid"></i>
+                      <span>Generating Results</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- AI Detection Results dropdown -->
-            <div class="ai-detection-section">
-              <div
-                class="detection-header"
-                @click="isResultsCollapsed = !isResultsCollapsed"
-              >
+            <!-- AI Detection Results section - now always shown but visibility managed by CSS -->
+            <div
+              class="ai-detection-section"
+              :class="{ expanded: !isResultsCollapsed }"
+            >
+              <div class="detection-header" @click="toggleResults($event)">
                 <h3>AI Detection Results:</h3>
-                <button class="toggle-btn">
+                <button class="toggle-btn" @click.stop="toggleResults($event)">
                   <i
                     :class="
                       isResultsCollapsed
@@ -226,7 +258,10 @@
                 </button>
               </div>
 
-              <div v-if="!isResultsCollapsed" class="detection-list">
+              <div
+                class="detection-list"
+                :class="{ expanded: !isResultsCollapsed }"
+              >
                 <div
                   class="detection-item"
                   v-for="(prediction, index) in aiPredictions"
@@ -264,7 +299,13 @@
 
           <!-- Loading overlay -->
           <transition name="fade">
-            <a-i-model-loader v-if="isAnalyzing && !annotatedImage" />
+            <model-error-overlay
+              v-if="modelError"
+              :title="'Model could not be loaded'"
+              :message="modelError"
+              :show-retry="true"
+              @retry="analyzeImage"
+            />
           </transition>
         </div>
       </div>
@@ -273,30 +314,38 @@
 </template>
 
 <script>
-import ModelService from "../services/modelService";
-import AIModelLoader from "../components/AIModelLoader.vue";
-import { logout } from "../utils/api";
+// import { apiUrl, logout } from "../utils/api"; // Original line with unused apiUrl
+import { logout } from "../utils/api"; // Keep only logout since apiUrl isn't used
+import ModelService from "@/services/modelService";
+// Remove or comment out the unused import
+// import AIModelLoader from "../components/AIModelLoader.vue";
+import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 
 export default {
   name: "UploadCXRView",
   components: {
-    AIModelLoader,
+    // Remove AIModelLoader from components if we're not using it
+    // AIModelLoader,
+    ModelErrorOverlay,
   },
   data() {
     return {
       currentImage: null,
-      selectedModel: "CXR-SSDVG6plus3", // Default to the combined model
+      selectedModel: "CXR-IT3", // Default to the combined model
       isAnalyzing: false,
       annotatedImage: null,
       aiPredictions: [],
       imageFile: null,
       modelType: null,
-      isResultsCollapsed: false,
+      isResultsCollapsed: false, // Default to expanded results (visible)
       isDragging: false,
       username: "User",
       showUserMenu: false,
       isResultsPanelExpanded: false,
       isUsingMockModel: false,
+      modelError: null, // Add this to track model errors
+      processingStep: 1, // Track which processing step is active (1, 2, or 3)
+      processingInterval: null, // For interval timer
     };
   },
   created() {
@@ -316,6 +365,9 @@ export default {
     } catch (e) {
       console.error("[Upload] Error accessing localStorage:", e);
     }
+
+    // Check model status on initialization
+    this.checkModelStatus();
   },
   methods: {
     toggleUserMenu() {
@@ -393,27 +445,69 @@ export default {
 
       try {
         this.isAnalyzing = true;
+        this.modelError = null; // Reset any previous errors
+        this.processingStep = 1; // Start with step 1 active
 
-        // Set model type based on selection
-        if (this.selectedModel === "CXR-SSDVG9") {
-          this.modelType = "it2";
-        } else {
-          this.modelType = "combined";
+        // Set up a timer to cycle through the processing steps
+        this.processingInterval = setInterval(() => {
+          if (this.processingStep < 3) {
+            this.processingStep++;
+          } else {
+            this.processingStep = 1;
+          }
+        }, 2000); // Change step every 2 seconds
+
+        // First check model status
+        const modelStatus = await ModelService.checkModelStatus();
+
+        if (modelStatus.status === "loading") {
+          clearInterval(this.processingInterval);
+          this.modelError =
+            "Model is still loading. Please wait a moment and try again.";
+          return;
+        } else if (
+          modelStatus.status === "error" ||
+          modelStatus.status === "not_loaded"
+        ) {
+          clearInterval(this.processingInterval);
+          this.modelError =
+            "Model could not be loaded. Please try again later.";
+          return;
         }
 
-        // Create a FormData object if we need to specify model
+        // Set model type based on selection
+        if (this.selectedModel === "CXR-IT2") {
+          this.modelType = "IT2";
+        } else if (this.selectedModel === "CXR-IT3") {
+          this.modelType = "IT3";
+        } else {
+          this.modelType = "combined"; // Default to combined model
+        }
+
+        // Create a FormData object to specify model
         const formData = new FormData();
         formData.append("model_type", this.modelType);
 
-        // Get predictions from the selected model
-        const result = await ModelService.predict(this.imageFile, formData);
+        // Download the image from the URL if we don't have the file object
+        let imageFile = this.imageFile;
+        if (!imageFile && this.currentImage) {
+          const response = await fetch(this.currentImage);
+          const blob = await response.blob();
+          imageFile = new File([blob], "image.jpg", { type: "image/jpeg" });
+        }
+
+        // Get predictions from model service
+        const result = await ModelService.predict(imageFile, formData);
+
+        // Stop the step cycling interval
+        clearInterval(this.processingInterval);
 
         // Check if using mock model
         if (result.using_mock_models) {
           this.isUsingMockModel = true;
         }
 
-        // Update UI with results
+        // Update the annotated image
         this.annotatedImage = result.annotatedImage;
 
         // Process predictions
@@ -422,13 +516,19 @@ export default {
             ...pred,
             class: pred.class || "Unknown",
             score: pred.score || 0,
+            confidenceText: this.formatConfidence(
+              pred.confidence || pred.score || 0
+            ),
+            color: this.getColorForFinding(pred.class || "Unknown"),
           }));
         } else {
           this.aiPredictions = [];
         }
       } catch (error) {
+        clearInterval(this.processingInterval);
         console.error("Error analyzing image:", error);
-        alert("An error occurred during image analysis. Please try again.");
+        this.modelError =
+          error.message || "Failed to analyze image. Please try again.";
       } finally {
         this.isAnalyzing = false;
       }
@@ -480,12 +580,63 @@ export default {
         this.$router.push("/login");
       }
     },
+    async checkModelStatus() {
+      try {
+        const modelStatus = await ModelService.checkModelStatus();
+
+        // Check for model errors
+        if (modelStatus.status === "loading") {
+          this.modelError =
+            "Model is still loading. Please wait a moment and try again.";
+        } else if (
+          modelStatus.status === "error" ||
+          modelStatus.status === "not_loaded"
+        ) {
+          this.modelError =
+            "Model could not be loaded. Please try again later.";
+        }
+
+        // Check if using mock models
+        if (modelStatus.using_mock_models) {
+          this.isUsingMockModel = true;
+        }
+      } catch (error) {
+        console.error("Error checking model status:", error);
+        this.modelError =
+          "Unable to connect to model service. Please try again later.";
+      }
+    },
+    toggleResults(event) {
+      // Stop event propagation to prevent interference with image
+      if (event) {
+        event.stopPropagation();
+      }
+
+      // Toggle the collapsed state
+      this.isResultsCollapsed = !this.isResultsCollapsed;
+
+      // Allow time for the animation to complete
+      if (!this.isResultsCollapsed) {
+        // When expanding, ensure all items are visible
+        setTimeout(() => {
+          const detectionList = document.querySelector(".detection-list");
+          if (detectionList) {
+            detectionList.scrollTop = 0;
+          }
+        }, 300);
+      }
+
+      console.log("Results collapsed:", this.isResultsCollapsed);
+    },
   },
   mounted() {
     document.addEventListener("click", this.closeUserMenu);
   },
   beforeUnmount() {
     document.removeEventListener("click", this.closeUserMenu);
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+    }
   },
 };
 </script>
@@ -614,8 +765,8 @@ export default {
   align-items: center;
 }
 
+/* Default styling for all icon buttons */
 .icon-button {
-  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   width: 2.5rem;
@@ -627,23 +778,21 @@ export default {
   transition: all 0.2s ease;
 }
 
-.icon-button:hover {
-  background: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+/* Dark styling specifically for dark mode and notification buttons */
+.dark-mode-toggle,
+.notifications {
+  background: rgba(13, 31, 65, 0.9);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-.icon-button .icon {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #e5e7eb;
+.dark-mode-toggle:hover,
+.notifications:hover {
+  background: rgba(23, 41, 75, 0.9);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
-.user-dropdown {
-  position: relative;
-}
-
+/* Blue styling for user avatar */
 .user-avatar {
   width: 2.5rem;
   height: 2.5rem;
@@ -653,9 +802,17 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: white;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: white;
+}
+
+.icon-button .icon {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 
 .dropdown-menu {
@@ -715,7 +872,7 @@ export default {
 .content-area {
   display: flex;
   gap: 2rem;
-  height: calc(100vh - 150px);
+  height: calc(100vh - 120px);
   width: 100%;
   margin: 0;
   align-items: stretch;
@@ -749,13 +906,13 @@ export default {
 
 .results-panel {
   flex: 1.05;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.7);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.75rem;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   position: relative;
 }
@@ -961,387 +1118,6 @@ export default {
   padding-left: 0.5rem;
 }
 
-.analyze-button {
-  width: 100%;
-  padding: 0.75rem;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border: none;
-  border-radius: 0.5rem;
-  color: white;
-  font-weight: 600;
-  font-size: 1.05rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  margin-top: 0.4rem;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-}
-
-.analyze-button:hover:not(:disabled) {
-  background: linear-gradient(90deg, #2563eb, #4f94ff);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
-}
-
-.results-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #94a3b8;
-  text-align: center;
-  padding: 2rem;
-}
-
-.results-placeholder i {
-  font-size: 4rem;
-  margin-bottom: 2rem;
-  color: #3b82f6;
-  opacity: 0.7;
-}
-
-.results-placeholder p {
-  font-size: 1.1rem;
-  color: #94a3b8;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.results-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin-bottom: 0;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.result-image-container {
-  width: 100%;
-  background: #000;
-  margin-bottom: 1.5rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px;
-  position: relative;
-}
-
-.result-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-}
-
-.action-button {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 0.5rem;
-  color: #e5e7eb;
-  font-size: 0.95rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-button:hover {
-  background: rgba(59, 130, 246, 0.15);
-  transform: translateY(-2px);
-}
-
-.download-btn {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.download-btn:hover {
-  background: rgba(16, 185, 129, 0.25);
-}
-
-.new-analysis-btn {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.findings-section {
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  margin-bottom: 1.5rem;
-  position: relative;
-}
-
-.findings-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-  background: rgba(15, 23, 42, 0.9);
-}
-
-.findings-header h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin: 0;
-}
-
-.findings-container {
-  background: rgba(15, 23, 42, 0.9);
-  transition: all 0.3s ease;
-  max-height: 500px;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
-.findings-container.collapsed {
-  max-height: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* New styles for the findings list view */
-.findings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.finding-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.finding-color-bar {
-  width: 4px;
-  height: 24px;
-  border-radius: 2px;
-}
-
-.finding-name {
-  flex: 1;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #e5e7eb;
-}
-
-.finding-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  min-width: 50px;
-  text-align: right;
-}
-
-.confidence-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.confidence-bar {
-  flex: 1;
-  height: 8px;
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-.confidence-fill {
-  height: 100%;
-  transition: width 0.5s ease-out;
-  border-radius: 4px;
-}
-
-.confidence-value {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #f3f4f6;
-  min-width: 3.5rem;
-  text-align: right;
-}
-
-.finding-column {
-  width: 70%;
-}
-
-.confidence-column {
-  width: 30%;
-}
-
-/* Media queries for responsiveness */
-@media (max-width: 1400px) {
-  .content-area {
-    gap: 1.5rem;
-  }
-
-  .upload-panel,
-  .results-panel {
-    padding: 1.25rem;
-  }
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* Style for the expanded image */
-.result-image-container.expanded {
-  position: absolute;
-  top: 0;
-  left: -20px;
-  right: -20px;
-  height: 90vh;
-  width: calc(100% + 40px);
-  max-height: none;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.9);
-  border-radius: 0;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-}
-
-.result-image-container.expanded .result-image {
-  max-height: 85vh;
-}
-
-.upload-panel {
-  flex: 0.95;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  padding: 0 0 130px 0;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.panel-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin-bottom: 0;
-}
-
-.upload-area {
-  border: 2px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 0 0 0.75rem 0.75rem;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #0f172a;
-  position: relative;
-  overflow: hidden;
-  height: 520px;
-  margin-bottom: auto;
-  flex-shrink: 0;
-}
-
-.upload-area:hover {
-  border-color: #3b82f6;
-  background: rgba(15, 23, 42, 0.6);
-}
-
-.upload-area.has-image {
-  border-style: solid;
-  border-color: rgba(59, 130, 246, 0.6);
-  padding: 0;
-}
-
-/* More compact model selection area */
-.model-selection-compact {
-  margin-top: auto;
-  padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 0.75rem 0.75rem 0.75rem 0.75rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-left: 1rem;
-  margin-right: 1rem;
-  margin-bottom: 1rem;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-
-.model-selection-compact.disabled {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.model-selection-compact h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin-bottom: 0.4rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
-}
-
-.model-selection-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
-}
-
-.model-description {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  line-height: 1.4;
-  margin: 0;
-  padding-left: 0.5rem;
-}
-
 .select-container {
   position: relative;
   width: 100%;
@@ -1393,33 +1169,33 @@ export default {
 
 .ai-annotations {
   flex: 1;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .xray-image {
   position: relative;
   width: 100%;
   background: #000;
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   overflow: hidden;
   margin-bottom: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px;
+  border: none;
+  height: 400px; /* Default height */
   display: flex;
   align-items: center;
   justify-content: center;
   transition: height 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .xray-image.collapsed-view {
-  height: 350px;
+  height: 250px; /* Smaller height when results are showing */
 }
 
 .ai-image {
@@ -1430,15 +1206,16 @@ export default {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0f172a;
-  border-radius: 0.75rem;
+  background-color: #000;
+  border-radius: 1rem;
 }
 
 .standardized-image {
-  width: 100%;
-  height: 100%;
+  max-width: 85%;
+  max-height: 85%;
   object-fit: contain;
   display: block;
+  margin: 0 auto;
 }
 
 .ai-confidence-summary {
@@ -1500,8 +1277,8 @@ export default {
 }
 
 .toggle-btn {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: transparent;
+  border: none;
   border-radius: 0.5rem;
   width: 32px;
   height: 32px;
@@ -1514,7 +1291,7 @@ export default {
 }
 
 .toggle-btn:hover {
-  background: rgba(59, 130, 246, 0.25);
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .confidence-label {
@@ -1546,6 +1323,9 @@ export default {
   color: #94a3b8;
   text-align: center;
   padding: 2rem;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
 }
 
 .placeholder-ai-message i {
@@ -1565,51 +1345,65 @@ export default {
 .action-buttons.annotation-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-top: auto;
-  padding-top: 1rem;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 0;
 }
 
 .action-button {
-  padding: 0.6rem 1.5rem;
+  padding: 0.85rem 1.75rem;
   border: none;
-  border-radius: 0.5rem;
-  font-size: 0.95rem;
+  border-radius: 1rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   transition: all 0.2s ease;
 }
 
-.save-button,
-.expert-button {
+.save-button {
   background: linear-gradient(90deg, #f92672, #ff5e98);
   color: white;
   min-width: 160px;
+  box-shadow: 0 4px 10px rgba(249, 38, 114, 0.3);
 }
 
-.action-button:hover {
+.expert-button {
+  background: rgba(15, 23, 42, 0.6);
+  color: white;
+  min-width: 160px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.save-button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(249, 38, 114, 0.4);
+  box-shadow: 0 6px 15px rgba(249, 38, 114, 0.4);
+}
+
+.expert-button:hover {
+  transform: translateY(-3px);
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* New styles for the model status banner */
 .model-status-banner {
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 0.5rem;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 0.75rem;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 152, 0, 0.2);
 }
 
 .model-status-banner i {
   font-size: 1.2rem;
-  color: #3b82f6;
+  color: #ff9800;
 }
 
 .model-status-banner span {
@@ -1634,23 +1428,33 @@ export default {
 
 /* AI detection section styling to match AnnotateView */
 .ai-detection-section {
-  background: rgba(15, 23, 42, 0.9);
-  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 0.75rem;
   overflow: hidden;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: none;
   margin-bottom: 1rem;
-  flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  transform-origin: top;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.ai-detection-section.expanded {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .detection-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 0.85rem 1.25rem;
+  background: rgba(15, 23, 42, 0.8);
   cursor: pointer;
+  border-bottom: none;
 }
 
 .detection-header h3 {
@@ -1662,15 +1466,36 @@ export default {
 
 .detection-list {
   padding: 0;
+  overflow: auto;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  max-height: 0;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.detection-list.expanded {
+  max-height: 300px;
+  padding: 0.75rem 0;
   overflow-y: auto;
-  flex: 1;
+}
+
+.detection-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .detection-item {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+  padding: 0.75rem 1.25rem;
+  border-bottom: none;
+  transition: background 0.2s ease;
+}
+
+.detection-item:hover {
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .detection-item:last-child {
@@ -1679,66 +1504,248 @@ export default {
 
 .detection-color-bar {
   width: 4px;
-  height: 18px;
+  height: 22px;
   border-radius: 2px;
-  margin-right: 0.75rem;
+  margin-right: 1rem;
 }
 
 .detection-name {
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 500;
   color: #e5e7eb;
 }
 
 .detection-value {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   min-width: 40px;
   text-align: right;
 }
 
-.xray-image {
-  position: relative;
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.results-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Clean up the model status banner */
+.model-status-banner {
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+.model-status-banner i {
+  font-size: 1.2rem;
+  color: #ff9800;
+}
+
+.model-status-banner span {
+  font-size: 0.95rem;
+  color: #e5e7eb;
+}
+
+/* placeholder message */
+.placeholder-ai-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.analyze-button {
   width: 100%;
-  background: #000;
+  padding: 0.75rem;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border: none;
   border-radius: 0.5rem;
-  overflow: hidden;
-  margin-bottom: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  height: 500px;
+  color: white;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: height 0.3s ease;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  margin-top: 0.4rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
-.xray-image.collapsed-view {
-  height: 350px;
+.analyze-button:hover:not(:disabled) {
+  background: linear-gradient(90deg, #2563eb, #4f94ff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
 }
 
-.results-panel {
-  flex: 1.05;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  padding: 1.5rem;
+.analyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Add these styles to your existing CSS */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+  max-height: 250px;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* Add processing overlay styles */
+.ai-processing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: 1rem;
+  z-index: 50;
+}
+
+.processing-frame {
+  width: 240px;
+  height: 240px;
+  border: 2px solid #3b82f6;
+  border-radius: 0.5rem;
   position: relative;
+  margin-bottom: 2rem;
+  background: rgba(15, 23, 42, 0.5);
 }
 
-.ai-annotations {
-  flex: 1;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+.processing-frame::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 30px;
+  height: 30px;
+  border-top: 3px solid #3b82f6;
+  border-left: 3px solid #3b82f6;
+  border-top-left-radius: 5px;
+}
+
+.processing-frame::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 30px;
+  height: 30px;
+  border-bottom: 3px solid #3b82f6;
+  border-right: 3px solid #3b82f6;
+  border-bottom-right-radius: 5px;
+}
+
+.processing-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #3b82f6,
+    #60a5fa,
+    transparent
+  );
+  animation: scan-animation 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+}
+
+@keyframes scan-animation {
+  0% {
+    top: 0;
+  }
+  50% {
+    top: calc(100% - 3px);
+  }
+  100% {
+    top: 0;
+  }
+}
+
+.processing-status {
+  text-align: center;
+  color: #e5e7eb;
+}
+
+.processing-status h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.processing-status p {
+  font-size: 1rem;
+  color: #94a3b8;
+  margin-bottom: 1.5rem;
+}
+
+.processing-steps {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.processing-step {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.processing-step.active {
+  opacity: 1;
+}
+
+.processing-step i {
+  font-size: 1.5rem;
+  color: #3b82f6;
+  margin-bottom: 0.5rem;
+}
+
+.processing-step span {
+  font-size: 0.8rem;
+  color: #94a3b8;
 }
 </style>
