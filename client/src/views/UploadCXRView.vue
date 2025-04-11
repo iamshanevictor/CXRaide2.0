@@ -1748,4 +1748,62 @@ export default {
   font-size: 0.8rem;
   color: #94a3b8;
 }
+
+.card,
+.info-card,
+.status-card,
+.upload-card,
+.results-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.status-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(23, 37, 84, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.status-icon i {
+  font-size: 1rem;
+  color: #60a5fa;
+}
+
+.status-active-text {
+  color: #38bdf8;
+}
+
+.status-inactive-text {
+  color: #f87171;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.card-header h2,
+.info-card h2,
+.status-card h2,
+.upload-header h2 {
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+.metric-value,
+.uploaded-count {
+  color: #60a5fa;
+}
 </style>

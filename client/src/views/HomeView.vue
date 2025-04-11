@@ -187,7 +187,7 @@
                 </div>
               </div>
 
-              <!-- Workflow section with improved styling -->
+              <!-- Workflow section with improved styling - using arrows -->
               <div class="workflow-container">
                 <div class="workflow-title">CXRaide 2.0 Workflow</div>
                 <div class="workflow-steps">
@@ -196,14 +196,18 @@
                     <div class="step-label">Upload CXR</div>
                   </div>
 
-                  <div class="step-connector"></div>
+                  <div class="workflow-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                  </div>
 
                   <div class="workflow-step">
                     <div class="step-circle">2</div>
                     <div class="step-label">Annotate</div>
                   </div>
 
-                  <div class="step-connector"></div>
+                  <div class="workflow-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                  </div>
 
                   <div class="workflow-step">
                     <div class="step-circle">3</div>
@@ -213,14 +217,17 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Performance Metrics Card -->
-          <div class="card secondary-card">
+        <!-- New content grid for the bottom containers -->
+        <div class="content-grid">
+          <!-- Performance Metrics Container -->
+          <div class="performance-metrics-container">
             <div class="card-header">
               <h2>Performance Metrics</h2>
               <div class="iteration-badge">Iteration 3</div>
             </div>
-            <div class="metrics-content">
+            <div class="card-content">
               <div class="metrics-columns">
                 <div class="metrics-column">
                   <h3 class="metrics-category">Precision Metrics</h3>
@@ -296,129 +303,122 @@
             </div>
           </div>
 
-          <!-- Dataset Information Card and System Status in a flex container -->
-          <div class="info-status-container">
-            <!-- Dataset Information Card -->
-            <div class="card info-card">
-              <div class="card-header">
-                <h2>Dataset Information</h2>
-                <div class="dataset-source">NIH + VinBig Datasets</div>
+          <!-- Dataset Information Container -->
+          <div class="dataset-info-container">
+            <div class="card-header">
+              <h2>Dataset Information</h2>
+              <div class="dataset-source">NIH + VinBig Datasets</div>
+            </div>
+            <div class="card-content">
+              <div class="dataset-metrics">
+                <div class="dataset-total">
+                  <span class="total-number">4,850</span>
+                  <span class="total-label">Total Images</span>
+                </div>
+                <div class="dataset-divider"></div>
+                <div class="dataset-samples">
+                  <span class="samples-number">9,613</span>
+                  <span class="samples-label">Abnormality Samples</span>
+                </div>
               </div>
 
-              <div class="dataset-content">
-                <!-- Dataset metrics summary -->
-                <div class="dataset-metrics">
-                  <div class="dataset-total">
-                    <span class="total-number">4,850</span>
-                    <span class="total-label">Total Images</span>
-                  </div>
-                  <div class="dataset-divider"></div>
-                  <div class="dataset-samples">
-                    <span class="samples-number">9,613</span>
-                    <span class="samples-label">Abnormality Samples</span>
+              <div class="distribution-chart">
+                <div class="distribution-item">
+                  <div class="distribution-label">Cardiomegaly</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 100%"></div>
+                    <span class="distribution-value">2,405</span>
                   </div>
                 </div>
-
-                <!-- Distribution chart with colored bars -->
-                <div class="distribution-chart">
-                  <div class="distribution-item">
-                    <div class="distribution-label">Cardiomegaly</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 100%"></div>
-                      <span class="distribution-value">2,405</span>
-                    </div>
+                <div class="distribution-item">
+                  <div class="distribution-label">Pleural Thickening</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 82%"></div>
+                    <span class="distribution-value">1,981</span>
                   </div>
-                  <div class="distribution-item">
-                    <div class="distribution-label">Pleural Thickening</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 82%"></div>
-                      <span class="distribution-value">1,981</span>
-                    </div>
+                </div>
+                <div class="distribution-item">
+                  <div class="distribution-label">Pulmonary Fibrosis</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 67%"></div>
+                    <span class="distribution-value">1,617</span>
                   </div>
-                  <div class="distribution-item">
-                    <div class="distribution-label">Pulmonary Fibrosis</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 67%"></div>
-                      <span class="distribution-value">1,617</span>
-                    </div>
+                </div>
+                <div class="distribution-item">
+                  <div class="distribution-label">Pleural Effusion</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 49%"></div>
+                    <span class="distribution-value">1,173</span>
                   </div>
-                  <div class="distribution-item">
-                    <div class="distribution-label">Pleural Effusion</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 49%"></div>
-                      <span class="distribution-value">1,173</span>
-                    </div>
+                </div>
+                <div class="distribution-item">
+                  <div class="distribution-label">Nodule/Mass</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 40%"></div>
+                    <span class="distribution-value">960</span>
                   </div>
-                  <div class="distribution-item">
-                    <div class="distribution-label">Nodule/Mass</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 40%"></div>
-                      <span class="distribution-value">960</span>
-                    </div>
-                  </div>
-                  <div class="distribution-item">
-                    <div class="distribution-label">Other Classes</div>
-                    <div class="distribution-bar-container">
-                      <div class="distribution-bar" style="width: 30%"></div>
-                      <span class="distribution-value">1,477</span>
-                    </div>
+                </div>
+                <div class="distribution-item">
+                  <div class="distribution-label">Other Classes</div>
+                  <div class="distribution-bar-container">
+                    <div class="distribution-bar" style="width: 30%"></div>
+                    <span class="distribution-value">1,477</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- System Status -->
-            <div class="status-card">
-              <h2>
-                System Status
-                <span class="status-timestamp">Last updated: 7:12:19 AM</span>
-              </h2>
+          <!-- System Status Container -->
+          <div class="system-status-container">
+            <div class="card-header">
+              <h2>System Status</h2>
+              <div class="status-timestamp">Last updated: 7:12:19 AM</div>
+            </div>
+            <div class="card-content">
+              <div class="status-items">
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-cpu"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Model Service</div>
+                    <div class="status-active-text">Online</div>
+                    <div class="status-subtext">Operational</div>
+                  </div>
+                </div>
 
-              <!-- Model Service -->
-              <div class="status-item">
-                <div class="status-icon">
-                  <i class="bi bi-cpu"></i>
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-server"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Server Load</div>
+                    <div class="status-value">42%</div>
+                    <div class="status-subtext">Normal range</div>
+                  </div>
                 </div>
-                <div class="status-info">
-                  <div class="status-label">Model Service</div>
-                  <div class="status-value" style="color: #10b981">Online</div>
-                  <div class="status-subtext">Operational</div>
-                </div>
-              </div>
 
-              <!-- Server Load -->
-              <div class="status-item">
-                <div class="status-icon">
-                  <i class="bi bi-server"></i>
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-layers"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Processing Queue</div>
+                    <div class="status-value">3 items</div>
+                    <div class="status-subtext">Processing on schedule</div>
+                  </div>
                 </div>
-                <div class="status-info">
-                  <div class="status-label">Server Load</div>
-                  <div class="status-value">42%</div>
-                  <div class="status-subtext">Normal range</div>
-                </div>
-              </div>
 
-              <!-- Processing Queue -->
-              <div class="status-item">
-                <div class="status-icon">
-                  <i class="bi bi-layers"></i>
-                </div>
-                <div class="status-info">
-                  <div class="status-label">Processing Queue</div>
-                  <div class="status-value">3 items</div>
-                  <div class="status-subtext">Processing on schedule</div>
-                </div>
-              </div>
-
-              <!-- System Uptime -->
-              <div class="status-item">
-                <div class="status-icon">
-                  <i class="bi bi-clock-history"></i>
-                </div>
-                <div class="status-info">
-                  <div class="status-label">System Uptime</div>
-                  <div class="status-value">5d 14h 22m</div>
-                  <div class="status-subtext">Since last restart</div>
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-clock-history"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">System Uptime</div>
+                    <div class="status-value">5d 14h 22m</div>
+                    <div class="status-subtext">Since last restart</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -946,8 +946,46 @@ export default {
   }
 }
 
+.card,
+.info-card,
+.status-card,
+.model-info-card,
+.primary-card,
+.secondary-card {
+  background: rgba(13, 18, 30, 0.95);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card:hover,
+.info-card:hover,
+.status-card:hover,
+.model-info-card:hover {
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.25);
+  transform: translateY(-3px);
+}
+
+/* Override specific variations */
+.primary-card {
+  background: rgba(13, 18, 30, 0.95);
+}
+
+.secondary-card {
+  background: rgba(13, 18, 30, 0.95);
+}
+
 .model-info-card {
-  background: rgba(13, 18, 30, 0.8);
+  background: rgba(13, 18, 30, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.info-card,
+.status-card {
+  background: rgba(13, 18, 30, 0.95);
   border: 1px solid rgba(59, 130, 246, 0.15);
 }
 
@@ -1017,6 +1055,7 @@ export default {
   color: #f3f4f6;
 }
 
+/* Workflow section with improved styling - using arrows */
 .workflow-container {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
@@ -1035,7 +1074,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem; /* Reduced gap between elements */
 }
 
 .workflow-step {
@@ -1073,34 +1112,22 @@ export default {
   max-width: 120px;
 }
 
-.step-connector {
-  height: 2px;
-  background: #3b82f6;
-  width: 3rem;
-  position: relative;
-  top: -24px;
-  z-index: 1;
-}
-
-.card {
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  overflow: hidden;
+.workflow-arrow {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 360px;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 1.2rem;
+  padding: 0 0.25rem; /* Reduced padding */
 }
 
-.card:hover {
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-5px);
+.workflow-arrow i {
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.5));
+}
+
+/* Remove the step-connector style that was using lines */
+.step-connector {
+  display: none; /* Hide the line connectors */
 }
 
 .card-header {
@@ -2107,14 +2134,20 @@ export default {
 }
 
 .status-icon {
-  width: 48px;
-  height: 48px;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(23, 37, 84, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.status-icon i {
+  font-size: 1rem;
+  color: #60a5fa;
 }
 
 .status-active {
@@ -2144,17 +2177,18 @@ export default {
 }
 
 .status-value {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
 }
 
 .status-active-text {
-  color: #10b981;
+  color: #38bdf8;
 }
 
 .status-inactive-text {
-  color: #ef4444;
+  color: #f87171;
 }
 
 .status-subtext {
@@ -2184,9 +2218,9 @@ export default {
 
 .info-card,
 .status-card {
-  background: rgba(13, 18, 30, 0.8);
+  background: rgba(13, 18, 30, 0.95);
   border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.15);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   padding: 1.5rem;
 }
@@ -2196,7 +2230,7 @@ export default {
 }
 
 .status-card {
-  background: rgba(13, 18, 30, 0.8);
+  background: rgba(13, 18, 30, 0.95);
   border-radius: 0.75rem;
   padding: 1.25rem;
   border: 1px solid rgba(59, 130, 246, 0.15);
@@ -2232,7 +2266,7 @@ export default {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(23, 37, 84, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2242,7 +2276,7 @@ export default {
 
 .status-icon i {
   font-size: 1rem;
-  color: #3b82f6;
+  color: #60a5fa;
 }
 
 .status-info {
@@ -2258,7 +2292,7 @@ export default {
 .status-value {
   font-size: 1.1rem;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   line-height: 1.2;
 }
 
@@ -2269,7 +2303,7 @@ export default {
 }
 
 .model-info-container {
-  background: rgba(13, 18, 30, 0.8);
+  background: rgba(13, 18, 30, 0.95);
   border-radius: 1rem;
   padding: 1.5rem;
   border: 1px solid rgba(59, 130, 246, 0.15);
@@ -2391,13 +2425,7 @@ export default {
 }
 
 .step-connector {
-  height: 2px;
-  background: #3b82f6;
-  flex: 1;
-  margin: 0 -0.5rem;
-  position: relative;
-  top: -2rem;
-  z-index: 1;
+  display: none; /* Hide the line connectors */
 }
 
 /* Make the layout responsive */
@@ -2415,5 +2443,44 @@ export default {
   .workflow-steps {
     gap: 2rem;
   }
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.performance-metrics-container,
+.dataset-info-container,
+.system-status-container {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.1);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.performance-metrics-container .card-header,
+.dataset-info-container .card-header,
+.system-status-container .card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(13, 18, 30, 0.8);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.performance-metrics-container .card-content,
+.dataset-info-container .card-content,
+.system-status-container .card-content {
+  padding: 1.5rem;
+  flex: 1;
 }
 </style>
