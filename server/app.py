@@ -148,6 +148,7 @@ logger.info(f"Running in {ENVIRONMENT} environment")
 
 # MongoDB Configuration - Direct configuration
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide')
+LOCAL_MONGO_URI = 'mongodb://localhost:27017'
 DB_NAME = os.getenv('DB_NAME', 'cxraide')
 
 # JWT Configuration - Direct configuration
@@ -198,7 +199,7 @@ CORS(
 # MongoDB Setup
 mongodb_connected = False
 try:
-    logger.info("Attempting to connect to MongoDB...")
+    logger.info("Attempting to connect to MongoDB Atlas...")
     client = MongoClient(
         MONGO_URI,
         serverSelectionTimeoutMS=5000,  # 5 second timeout for server selection
@@ -207,15 +208,39 @@ try:
     )
     # Test the connection
     client.server_info()
-    logger.info("Successfully connected to MongoDB")
+    logger.info("Successfully connected to MongoDB Atlas")
     db = client[DB_NAME]
     users_collection = db.users
     mongodb_connected = True
 except Exception as e:
     mongodb_connected = False
-    logger.error(f"MongoDB connection error: {str(e)}")
-    # Don't raise exception here, allow app to start with degraded functionality
-    # We'll check mongodb_connected status in routes that need the database
+    logger.warning(f"MongoDB Atlas connection failed: {str(e)}")
+    logger.info("Attempting to connect to local MongoDB...")
+    try:
+        client = MongoClient(
+            LOCAL_MONGO_URI,
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=45000
+        )
+        # Test the local connection
+        client.server_info()
+        logger.info("Successfully connected to local MongoDB")
+        db = client[DB_NAME]
+        users_collection = db.users
+        mongodb_connected = True
+        
+        # Check if admin user exists in local DB, if not create it
+        if not users_collection.find_one({"username": "admin"}):
+            logger.info("Creating default admin user in local MongoDB...")
+            users_collection.insert_one({
+                "username": "admin",
+                "password": generate_password_hash("admin123")
+            })
+            logger.info("Default admin user created successfully")
+    except Exception as local_e:
+        logger.error(f"Local MongoDB connection also failed: {str(local_e)}")
+        # Don't raise exception here, allow app to start with degraded functionality
 
 # Function to check MongoDB connection health
 def check_mongodb_connection():

@@ -416,9 +416,16 @@ def load_specific_model(model_filename, model_identifier):
             logger.info(f"Skipping real {model_identifier} model load due to USE_MOCK_MODELS flag")
             return None
         
-        # Create model architecture
-        logger.info(f"Creating {model_identifier} model architecture (empty weights)...")
-        temp_model = models.detection.ssd300_vgg16(weights=None)
+        # Create model architecture with pretrained weights to enable caching
+        logger.info(f"Creating {model_identifier} model architecture...")
+        cache_dir = os.path.join(os.path.dirname(__file__), '.model_cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        # Set the torch hub cache directory to our local cache
+        os.environ['TORCH_HOME'] = cache_dir
+        
+        # Initialize the base model - this will use cached weights if available
+        temp_model = models.detection.ssd300_vgg16(weights=models.detection.SSD300_VGG16_Weights.DEFAULT)
         
         # Check multiple possible locations for the model file
         possible_paths = [

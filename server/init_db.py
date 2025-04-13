@@ -3,11 +3,15 @@ from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 import os
 
-client = MongoClient(os.getenv("MONGO_URI"))
-db = client[os.getenv("DB_NAME")]
+# Connect to local MongoDB
+client = MongoClient("mongodb://localhost:27017")
+db = client["cxraide"]
 
-# Create sample user
+# Drop existing users collection if it exists
+db.users.drop()
+
+# Create admin user with specified credentials
 db.users.insert_one({
     "username": "admin",
-    "password": generate_password_hash("password")
+    "password": generate_password_hash("admin123")
 })
