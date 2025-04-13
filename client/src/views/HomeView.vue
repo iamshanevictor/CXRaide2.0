@@ -49,7 +49,7 @@
         </div>
         <div class="nav-items">
           <div class="nav-item active">
-            <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
           <div class="nav-item" @click="$router.push('/upload-cxr')">
@@ -120,9 +120,9 @@
         <!-- Main dashboard cards -->
         <div class="dashboard-grid">
           <!-- Model Information Card (Updated with more details) -->
-          <div class="card primary-card">
-            <div class="card-header">
-              <h2>Model: SSD300_VGG16</h2>
+          <div class="card primary-card model-info-card">
+            <div class="card-header model-header">
+              <h2 class="model-title">Model: SSD300_VGG16</h2>
               <div class="model-status-wrapper">
                 <div
                   class="model-status-badge"
@@ -135,21 +135,14 @@
                   {{
                     modelInfo.using_mock_models ? "Mock Model" : "Real Model"
                   }}
-                  <span class="model-status-icon">
-                    <i
-                      :class="
-                        modelInfo.using_mock_models
-                          ? 'bi bi-pc-display'
-                          : 'bi bi-cpu'
-                      "
-                    ></i>
-                  </span>
+                  <i
+                    :class="
+                      modelInfo.using_mock_models
+                        ? 'bi bi-pc-display'
+                        : 'bi bi-cpu-fill'
+                    "
+                  ></i>
                 </div>
-                <button class="icon-button">
-                  <span class="icon"
-                    ><i class="bi bi-three-dots-vertical"></i
-                  ></span>
-                </button>
               </div>
             </div>
             <div class="card-content model-content">
@@ -161,67 +154,80 @@
                 <i class="bi bi-info-circle-fill"></i>
                 <span>{{ modelInfo.explanation }}</span>
               </div>
-              <div class="model-architecture">
-                <div class="architecture-item">
-                  <div class="architecture-label">Base:</div>
-                  <div class="architecture-value">VGG16 backbone</div>
+
+              <!-- Model specs in a grid layout -->
+              <div class="model-specs">
+                <div class="spec-item">
+                  <div class="spec-label">Base:</div>
+                  <div class="spec-value">VGG16 backbone</div>
                 </div>
-                <div class="architecture-item">
-                  <div class="architecture-label">Input Size:</div>
-                  <div class="architecture-value">300x300px</div>
+
+                <div class="spec-item">
+                  <div class="spec-label">Input Size:</div>
+                  <div class="spec-value">300x300px</div>
                 </div>
-                <div class="architecture-item">
-                  <div class="architecture-label">Feature Layers:</div>
-                  <div class="architecture-value">
+
+                <div class="spec-item">
+                  <div class="spec-label">Feature Layers:</div>
+                  <div class="spec-value">
                     conv4_3, conv7, conv8_2, conv9_2, conv10_2, conv11_2
                   </div>
                 </div>
-                <div class="architecture-item">
-                  <div class="architecture-label">Training:</div>
-                  <div class="architecture-value">
+
+                <div class="spec-item">
+                  <div class="spec-label">Training:</div>
+                  <div class="spec-value">
                     Transfer Learning with Fine-tuning
                   </div>
                 </div>
-                <div class="architecture-item">
-                  <div class="architecture-label">Loss Function:</div>
-                  <div class="architecture-value">
-                    Focal Loss + Smooth L1 Loss
-                  </div>
+
+                <div class="spec-item">
+                  <div class="spec-label">Loss Function:</div>
+                  <div class="spec-value">Focal Loss + Smooth L1 Loss</div>
                 </div>
               </div>
-              <div class="system-workflow">
+
+              <!-- Workflow section with improved styling - using arrows -->
+              <div class="workflow-container">
                 <div class="workflow-title">CXRaide 2.0 Workflow</div>
                 <div class="workflow-steps">
                   <div class="workflow-step">
-                    <div class="step-number">1</div>
+                    <div class="step-circle step-active">1</div>
                     <div class="step-label">Upload CXR</div>
                   </div>
+
                   <div class="workflow-arrow">
-                    <i class="bi bi-chevron-right"></i>
+                    <i class="bi bi-arrow-right"></i>
                   </div>
+
                   <div class="workflow-step">
-                    <div class="step-number">2</div>
+                    <div class="step-circle">2</div>
                     <div class="step-label">Annotate</div>
                   </div>
+
                   <div class="workflow-arrow">
-                    <i class="bi bi-chevron-right"></i>
+                    <i class="bi bi-arrow-right"></i>
                   </div>
+
                   <div class="workflow-step">
-                    <div class="step-number">3</div>
+                    <div class="step-circle">3</div>
                     <div class="step-label">Generate Report</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Performance Metrics Card -->
-          <div class="card secondary-card">
+        <!-- New content grid for the bottom containers -->
+        <div class="content-grid">
+          <!-- Performance Metrics Container -->
+          <div class="performance-metrics-container">
             <div class="card-header">
               <h2>Performance Metrics</h2>
               <div class="iteration-badge">Iteration 3</div>
             </div>
-            <div class="metrics-content">
+            <div class="card-content">
               <div class="metrics-columns">
                 <div class="metrics-column">
                   <h3 class="metrics-category">Precision Metrics</h3>
@@ -297,13 +303,13 @@
             </div>
           </div>
 
-          <!-- Dataset Information Card -->
-          <div class="card wide-card">
+          <!-- Dataset Information Container -->
+          <div class="dataset-info-container">
             <div class="card-header">
               <h2>Dataset Information</h2>
               <div class="dataset-source">NIH + VinBig Datasets</div>
             </div>
-            <div class="dataset-content">
+            <div class="card-content">
               <div class="dataset-metrics">
                 <div class="dataset-total">
                   <span class="total-number">4,850</span>
@@ -315,6 +321,7 @@
                   <span class="samples-label">Abnormality Samples</span>
                 </div>
               </div>
+
               <div class="distribution-chart">
                 <div class="distribution-item">
                   <div class="distribution-label">Cardiomegaly</div>
@@ -361,6 +368,61 @@
               </div>
             </div>
           </div>
+
+          <!-- System Status Container -->
+          <div class="system-status-container">
+            <div class="card-header">
+              <h2>System Status</h2>
+              <div class="status-timestamp">Last updated: 7:12:19 AM</div>
+            </div>
+            <div class="card-content">
+              <div class="status-items">
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-cpu"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Model Service</div>
+                    <div class="status-active-text">Online</div>
+                    <div class="status-subtext">Operational</div>
+                  </div>
+                </div>
+
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-server"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Server Load</div>
+                    <div class="status-value">42%</div>
+                    <div class="status-subtext">Normal range</div>
+                  </div>
+                </div>
+
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-layers"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">Processing Queue</div>
+                    <div class="status-value">3 items</div>
+                    <div class="status-subtext">Processing on schedule</div>
+                  </div>
+                </div>
+
+                <div class="status-item">
+                  <div class="status-icon">
+                    <i class="bi bi-clock-history"></i>
+                  </div>
+                  <div class="status-info">
+                    <div class="status-label">System Uptime</div>
+                    <div class="status-value">5d 14h 22m</div>
+                    <div class="status-subtext">Since last restart</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -402,6 +464,10 @@ export default {
           ? window.location.hostname || "Local"
           : "Local",
       modelInfo: null,
+      modelServiceActive: true,
+      serverLoad: 42,
+      processingQueue: 3,
+      systemUptime: "5d 14h 22m",
     };
   },
   created() {
@@ -601,6 +667,30 @@ export default {
         console.error("Error checking model status:", error);
       }
     },
+    getCurrentTime() {
+      const now = new Date();
+      return now.toLocaleTimeString();
+    },
+    getServerLoadClass() {
+      if (this.serverLoad < 50) return "status-good";
+      if (this.serverLoad < 80) return "status-warning";
+      return "status-critical";
+    },
+    getServerLoadColor() {
+      if (this.serverLoad < 50) return "#10b981";
+      if (this.serverLoad < 80) return "#f59e0b";
+      return "#ef4444";
+    },
+    getQueueStatusClass() {
+      if (this.processingQueue < 5) return "status-good";
+      if (this.processingQueue < 15) return "status-warning";
+      return "status-critical";
+    },
+    getQueueStatusText() {
+      if (this.processingQueue < 5) return "Processing on schedule";
+      if (this.processingQueue < 15) return "Slight delay expected";
+      return "Heavy load, delays possible";
+    },
   },
 };
 </script>
@@ -733,8 +823,8 @@ export default {
   align-items: center;
 }
 
+/* Default styling for all icon buttons */
 .icon-button {
-  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   width: 2.5rem;
@@ -746,22 +836,21 @@ export default {
   transition: all 0.2s ease;
 }
 
-.icon-button:hover {
-  background: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+/* Dark styling specifically for dark mode and notification buttons */
+.dark-mode-toggle,
+.notifications {
+  background: rgba(13, 31, 65, 0.9);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-.icon-button .icon {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dark-mode-toggle:hover,
+.notifications:hover {
+  background: rgba(23, 41, 75, 0.9);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
-.user-dropdown {
-  position: relative;
-}
-
+/* Blue styling for user avatar */
 .user-avatar {
   width: 2.5rem;
   height: 2.5rem;
@@ -773,6 +862,19 @@ export default {
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: white;
+}
+
+.icon-button .icon {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.user-dropdown {
+  position: relative;
 }
 
 .dropdown-menu {
@@ -829,67 +931,203 @@ export default {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+  margin-bottom: 2rem;
 }
 
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .model-info-card {
+    grid-column: 1 / -1; /* Make it span the full width */
+  }
+}
+
+.card,
+.info-card,
+.status-card,
+.model-info-card,
+.primary-card,
+.secondary-card {
+  background: rgba(13, 18, 30, 0.95);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card:hover,
+.info-card:hover,
+.status-card:hover,
+.model-info-card:hover {
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.25);
+  transform: translateY(-3px);
+}
+
+/* Override specific variations */
 .primary-card {
-  grid-column: 1;
-  grid-row: 1;
+  background: rgba(13, 18, 30, 0.95);
 }
 
 .secondary-card {
-  grid-column: 2;
-  grid-row: 1;
+  background: rgba(13, 18, 30, 0.95);
 }
 
-.wide-card {
-  grid-column: 1 / span 2;
-  grid-row: 2;
+.model-info-card {
+  background: rgba(13, 18, 30, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.15);
 }
 
-@media (max-width: 1200px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-  }
-
-  .primary-card {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .secondary-card {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .wide-card {
-    grid-column: 1;
-    grid-row: 3;
-  }
+.info-card,
+.status-card {
+  background: rgba(13, 18, 30, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.15);
 }
 
-.card {
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  overflow: hidden;
+.model-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.model-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0;
+}
+
+.model-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.model-status-badge i {
+  font-size: 1rem;
+}
+
+.real-model {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.mock-model {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.model-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.spec-item {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 360px;
+  gap: 0.25rem;
 }
 
-.card:hover {
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-5px);
+.spec-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.spec-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+/* Workflow section with improved styling - using arrows */
+.workflow-container {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.workflow-title {
+  font-size: 1.1rem;
+  color: #e5e7eb;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.workflow-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem; /* Reduced gap between elements */
+}
+
+.workflow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+
+.step-active {
+  background: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.step-label {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  text-align: center;
+  max-width: 120px;
+}
+
+.workflow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 1.2rem;
+  padding: 0 0.25rem; /* Reduced padding */
+}
+
+.workflow-arrow i {
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.5));
+}
+
+/* Remove the step-connector style that was using lines */
+.step-connector {
+  display: none; /* Hide the line connectors */
 }
 
 .card-header {
@@ -1490,17 +1728,15 @@ export default {
 
 .total-number,
 .samples-number {
-  font-size: 1.75rem;
-  font-weight: 600;
-  background: linear-gradient(120deg, #3b82f6, #60a5fa);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 0.5rem;
 }
 
 .total-label,
 .samples-label {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   color: #9ca3af;
 }
 
@@ -1535,9 +1771,9 @@ export default {
 }
 
 .distribution-bar {
-  height: 0.5rem;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border-radius: 1rem;
+  height: 8px;
+  background: #60a5fa;
+  border-radius: 4px;
 }
 
 .distribution-value {
@@ -1578,7 +1814,7 @@ export default {
 .architecture-label {
   font-weight: 600;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: #94a3b8;
   min-width: 100px;
 }
 
@@ -1604,7 +1840,7 @@ export default {
 
 .workflow-title {
   font-size: 0.9rem;
-  color: #9ca3af;
+  color: #e5e7eb;
   text-align: center;
   margin-bottom: 0.75rem;
   font-weight: 500;
@@ -1621,7 +1857,7 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
+  position: relative;
 }
 
 .step-number {
@@ -1872,5 +2108,379 @@ export default {
 
 .mock-model-alert i {
   font-size: 1.1rem;
+}
+
+/* New styles for system status indicators */
+.system-status-card {
+  margin-top: 1.5rem;
+}
+
+.status-timestamp {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  opacity: 0.8;
+}
+
+.status-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(23, 37, 84, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.status-icon i {
+  font-size: 1rem;
+  color: #60a5fa;
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.status-inactive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.status-neutral {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.status-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-name {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.status-active-text {
+  color: #38bdf8;
+}
+
+.status-inactive-text {
+  color: #f87171;
+}
+
+.status-subtext {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.status-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.status-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.info-status-container {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.info-card,
+.status-card {
+  background: rgba(13, 18, 30, 0.95);
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+}
+
+.info-card {
+  flex: 1.7;
+}
+
+.status-card {
+  background: rgba(13, 18, 30, 0.95);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  width: 100%;
+  max-width: 280px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.status-card h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-timestamp {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.status-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(23, 37, 84, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.status-icon i {
+  font-size: 1rem;
+  color: #60a5fa;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 0.15rem;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.status-subtext {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.model-info-container {
+  background: rgba(13, 18, 30, 0.95);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+}
+
+.model-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.model-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.model-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  padding: 0.35rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.model-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+}
+
+.spec-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+/* Workflow section */
+.workflow-container {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.workflow-title {
+  font-size: 1.1rem;
+  color: #e5e7eb;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.workflow-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.workflow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-circle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+
+.step-active {
+  background: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.step-label {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  text-align: center;
+  max-width: 120px;
+}
+
+.step-connector {
+  display: none; /* Hide the line connectors */
+}
+
+/* Make the layout responsive */
+@media (min-width: 1024px) {
+  .dashboard-card-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .model-info-container {
+    grid-column: span 2;
+  }
+
+  .workflow-steps {
+    gap: 2rem;
+  }
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.performance-metrics-container,
+.dataset-info-container,
+.system-status-container {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.1);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.performance-metrics-container .card-header,
+.dataset-info-container .card-header,
+.system-status-container .card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(13, 18, 30, 0.8);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.performance-metrics-container .card-content,
+.dataset-info-container .card-content,
+.system-status-container .card-content {
+  padding: 1.5rem;
+  flex: 1;
 }
 </style>

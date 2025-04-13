@@ -36,6 +36,21 @@
       </div>
     </div>
 
+    <!-- Mock model notification -->
+    <div
+      v-if="modelInfo && modelInfo.using_mock_models"
+      class="mock-model-notification"
+    >
+      <div class="notification-content">
+        <i class="bi bi-info-circle"></i>
+        <span>Using demo predictions with mock model</span>
+      </div>
+      <div class="notification-details">
+        The predictions shown are simulated examples and do not represent actual
+        AI analysis.
+      </div>
+    </div>
+
     <!-- Main content -->
     <div v-else class="app-layout">
       <!-- Left Navigation Bar (reused from HomeView) -->
@@ -49,7 +64,7 @@
         </div>
         <div class="nav-items">
           <div class="nav-item" @click="$router.push('/home')">
-            <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="nav-label">Dashboard</div>
           </div>
           <div class="nav-item" @click="$router.push('/upload-cxr')">
@@ -118,19 +133,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Demo mode warning - positioned under header -->
-        <div v-if="isUsingMockModel" class="demo-mode-warning">
-          <i class="bi bi-exclamation-triangle"></i>
-          <span
-            >Using demo predictions with mock model (actual model file not found
-            on server)</span
-          >
-          <p class="demo-mode-details">
-            The predictions shown are simulated examples and do not represent
-            actual AI analysis of your uploaded image.
-          </p>
         </div>
 
         <!-- Main annotation area -->
@@ -287,7 +289,10 @@
 
           <!-- Right sidebar with AI annotations -->
           <div class="ai-annotations">
-            <!-- Removed the title as requested -->
+            <!-- Add AI Results header to match UploadCXRView -->
+            <div class="results-header">
+              <h2>AI Results</h2>
+            </div>
 
             <!-- Mock model banner -->
             <div
@@ -344,20 +349,15 @@
               </transition>
 
               <!-- Error state - don't show PyTorch errors with warning icon -->
-              <div
-                v-if="modelError && !modelError.includes('PyTorch')"
-                class="ai-error"
-              >
-                <i class="bi bi-exclamation-triangle"></i>
-                <p>{{ modelError }}</p>
-                <button
-                  v-if="modelError && modelError.includes('loading')"
-                  @click="retryModelPrediction"
-                  class="retry-btn"
-                >
-                  <i class="bi bi-arrow-clockwise"></i> Check Again
-                </button>
-              </div>
+              <transition name="fade">
+                <model-error-overlay
+                  v-if="modelError && !modelError.includes('PyTorch')"
+                  :title="'Model could not be loaded'"
+                  :message="modelError || 'Please try again later.'"
+                  :show-retry="modelError && modelError.includes('loading')"
+                  @retry="retryModelPrediction"
+                />
+              </transition>
 
               <!-- No abnormalities message -->
               <div
@@ -374,17 +374,7 @@
                 <button @click="retryModelPrediction" class="retry-btn">
                   <i class="bi bi-arrow-clockwise"></i> Retry Detection
                 </button>
-                <button @click="debugMode = !debugMode" class="debug-btn">
-                  <i class="bi bi-bug"></i>
-                  {{ debugMode ? "Hide" : "Show" }} Debug Info
-                </button>
-                <div v-if="debugMode" class="debug-info">
-                  <p><strong>Last API Response:</strong></p>
-                  <pre>{{ lastApiResponse }}</pre>
-                  <button @click="reduceConfidenceThreshold" class="debug-btn">
-                    <i class="bi bi-gear"></i> Try Lower Threshold
-                  </button>
-                </div>
+                <!-- Removed the debug button as requested -->
               </div>
 
               <!-- Empty state -->
@@ -461,14 +451,16 @@
 <script>
 import { apiUrl, logout } from "../utils/api";
 import { runNetworkTest } from "../utils/network-test";
-import ModelService from "../services/modelService";
 import LoadingOverlay from "../components/LoadingOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
+import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
+import ModelService from "@/services/modelService";
 
 export default {
   components: {
     LoadingOverlay,
     AIModelLoader,
+    ModelErrorOverlay,
   },
   data() {
     return {
@@ -1350,6 +1342,33 @@ export default {
 
       reader.readAsDataURL(file);
     },
+    async checkModelStatus() {
+      try {
+        const modelStatus = await ModelService.checkModelStatus();
+        this.modelStatus = modelStatus;
+
+        // Check for model errors
+        if (modelStatus.status === "loading") {
+          this.modelError =
+            "Model is still loading. Please wait a moment and try again.";
+        } else if (
+          modelStatus.status === "error" ||
+          modelStatus.status === "not_loaded"
+        ) {
+          this.modelError =
+            "Model could not be loaded. Please try again later.";
+        }
+
+        // Check if using mock models
+        if (modelStatus.using_mock_models) {
+          this.isUsingMockModel = true;
+        }
+      } catch (error) {
+        console.error("Error checking model status:", error);
+        this.modelError =
+          "Unable to connect to model service. Please try again later.";
+      }
+    },
   },
   watch: {
     selectedAbnormality(newValue) {
@@ -1373,6 +1392,9 @@ export default {
     // Set default tool but don't show default box
     this.activeTool = null; // Don't automatically select the box tool
     this.showDefaultBox = false;
+
+    // Check model status
+    this.checkModelStatus();
   },
   beforeUnmount() {
     document.removeEventListener("click", this.closeUserMenu);
@@ -1513,8 +1535,8 @@ export default {
   align-items: center;
 }
 
+/* Default styling for all icon buttons */
 .icon-button {
-  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   width: 2.5rem;
@@ -1526,22 +1548,21 @@ export default {
   transition: all 0.2s ease;
 }
 
-.icon-button:hover {
-  background: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+/* Dark styling specifically for dark mode and notification buttons */
+.dark-mode-toggle,
+.notifications {
+  background: rgba(13, 31, 65, 0.9);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-.icon-button .icon {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dark-mode-toggle:hover,
+.notifications:hover {
+  background: rgba(23, 41, 75, 0.9);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
-.user-dropdown {
-  position: relative;
-}
-
+/* Blue styling for user avatar */
 .user-avatar {
   width: 2.5rem;
   height: 2.5rem;
@@ -1553,6 +1574,19 @@ export default {
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: white;
+}
+
+.icon-button .icon {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.user-dropdown {
+  position: relative;
 }
 
 .dropdown-menu {
@@ -2264,7 +2298,8 @@ export default {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #000;
+  background-color: #0f172a;
+  border-radius: 0.75rem;
 }
 
 /* Style for the image coming from the server (standardized 512x512) */
@@ -2734,7 +2769,7 @@ export default {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(9, 12, 20, 0.3);
+  background: #0f172a; /* Updated background to match UploadCXRView */
   flex: 1;
   position: relative;
   overflow: hidden;
@@ -2743,7 +2778,12 @@ export default {
 
 .upload-area:hover {
   border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(
+    15,
+    23,
+    42,
+    0.6
+  ); /* Updated hover background to match UploadCXRView */
 }
 
 .upload-area.has-image {
@@ -2769,15 +2809,16 @@ export default {
 }
 
 .upload-placeholder i {
-  font-size: 3rem;
+  font-size: 4rem; /* Increased size to match UploadCXRView */
   color: #3b82f6;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
+  opacity: 0.9; /* Added opacity to match UploadCXRView */
 }
 
 .upload-placeholder p {
   color: #94a3b8;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
+  line-height: 1.6; /* Updated line height to match UploadCXRView */
 }
 
 .xray-image-container {
@@ -2805,5 +2846,155 @@ export default {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Empty state */
+.placeholder-ai-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #94a3b8; /* Updated color to match UploadCXRView */
+  text-align: center;
+}
+
+.placeholder-ai-message i {
+  font-size: 4rem; /* Increased size to match UploadCXRView style */
+  color: #3b82f6; /* Updated color to match UploadCXRView */
+  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
+  opacity: 0.9; /* Added opacity to match UploadCXRView */
+}
+
+.placeholder-ai-message p {
+  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
+  line-height: 1.6; /* Added line height to match UploadCXRView */
+}
+
+.ai-annotations {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  width: 100%;
+}
+
+.results-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Mock model notification styles */
+.mock-model-notification {
+  background-color: rgba(247, 213, 212, 0.25);
+  border-left: 3px solid #f59e0b;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.notification-content i {
+  font-size: 1rem;
+}
+
+.notification-details {
+  color: #92400e;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  margin-left: 24px;
+  opacity: 0.9;
+}
+
+/* Remove the old demo mode warning styles */
+.demo-mode-warning {
+  display: none;
+}
+
+.card,
+.info-card,
+.status-card,
+.model-info-card,
+.results-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.status-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(23, 37, 84, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.status-icon i {
+  font-size: 1rem;
+  color: #60a5fa;
+}
+
+.status-active-text {
+  color: #38bdf8;
+}
+
+.status-inactive-text {
+  color: #f87171;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.card-header h2,
+.info-card h2,
+.status-card h2,
+.model-header h2 {
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+.metric-value {
+  color: #60a5fa;
 }
 </style>

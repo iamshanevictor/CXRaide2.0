@@ -416,9 +416,16 @@ def load_specific_model(model_filename, model_identifier):
             logger.info(f"Skipping real {model_identifier} model load due to USE_MOCK_MODELS flag")
             return None
         
-        # Create model architecture
-        logger.info(f"Creating {model_identifier} model architecture (empty weights)...")
-        temp_model = models.detection.ssd300_vgg16(weights=None)
+        # Create model architecture with pretrained weights to enable caching
+        logger.info(f"Creating {model_identifier} model architecture...")
+        cache_dir = os.path.join(os.path.dirname(__file__), '.model_cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        # Set the torch hub cache directory to our local cache
+        os.environ['TORCH_HOME'] = cache_dir
+        
+        # Initialize the base model - this will use cached weights if available
+        temp_model = models.detection.ssd300_vgg16(weights=models.detection.SSD300_VGG16_Weights.DEFAULT)
         
         # Check multiple possible locations for the model file
         possible_paths = [
@@ -916,7 +923,7 @@ def predict_image():
             else:
                 # Use combined IT2+IT3 model (default)
                 logger.info("Using combined IT2+IT3 models for prediction")
-                predictions = predict(image_tensor)
+            predictions = predict(image_tensor)
             
             logger.info(f"Processed predictions: {predictions}")
             
@@ -959,7 +966,7 @@ def predict_image():
                 "model_used": model_type
             }
             return jsonify(response_data)
-        
+            
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}", exc_info=True)
             return jsonify({'error': f"Error processing image: {str(e)}"}), 500
@@ -974,14 +981,14 @@ def predict_image():
 @model_bp.route('/model-status', methods=['GET'])
 def model_status():
     """Return the status of model loading and deployment mode"""
+    global model_it2, model_it3, model_loading
+    
     try:
         # Handle potential OPTIONS preflight request
         if request.method == 'OPTIONS':
             logger.info("Handling OPTIONS request for /model-status")
             return jsonify({"message": "CORS preflight handled"}), 200
             
-        global model_it2, model_it3, model_loading
-        
         # Check if environment is configured for mock models
         using_mock_models = os.environ.get('USE_MOCK_MODELS', 'False').lower() == 'true'
         

@@ -1,6 +1,15 @@
 version: "3.8"
 
 services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cxraide-network
+
   backend:
     build:
       context: ./server
@@ -10,7 +19,7 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
-      - MONGO_URI=mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide
+      - MONGO_URI=mongodb://mongodb:27017
       - DB_NAME=cxraide
       - SECRET_KEY=ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce
       - USE_MOCK_MODELS=false
@@ -19,6 +28,8 @@ services:
       - ./server:/app
     networks:
       - cxraide-network
+    depends_on:
+      - mongodb
 
   frontend:
     build:
@@ -48,6 +59,9 @@ x-production-config:
       target: production-stage
     ports:
       - "8080:80"
+
+volumes:
+  mongodb_data:
 
 networks:
   cxraide-network:
