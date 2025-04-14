@@ -225,7 +225,7 @@
             <div
               class="upload-area"
               :class="{ 'has-image': currentImage }"
-              @click="triggerFileUpload"
+              @click="!currentImage && triggerFileUpload()"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleFileDrop"
@@ -241,7 +241,12 @@
                   PNG
                 </p>
               </div>
-              <div v-else class="xray-image-container">
+              <div
+                v-else
+                class="xray-image-container"
+                ref="imageContainer"
+                @click="handleClick"
+              >
                 <img :src="currentImage" alt="X-ray image" ref="xrayImage" />
                 <div class="annotation-overlays">
                   <!-- Box annotations -->
@@ -255,8 +260,10 @@
                       top: `${box.y}px`,
                       width: `${box.width}px`,
                       height: `${box.height}px`,
-                      borderColor: box.color,
-                      backgroundColor: `${box.color}33`, // Add transparency
+                      borderColor: box.color || getBoxColor(box.type),
+                      backgroundColor: `${
+                        box.color || getBoxColor(box.type)
+                      }33`, // Add transparency
                     }"
                     @mousedown.stop="selectBox(index, $event)"
                   >
@@ -269,13 +276,50 @@
                     </button>
                     <div
                       class="annotation-label"
-                      :style="{ backgroundColor: box.color }"
+                      :style="{
+                        backgroundColor: box.color || getBoxColor(box.type),
+                      }"
                     >
-                      {{ box.label }}
+                      {{ box.label || box.type }}
                     </div>
+                    <!-- Add resize handles -->
+                    <div
+                      v-if="selectedBoxIndex === index"
+                      class="resize-handle top-left"
+                      @mousedown.stop="startResize($event, 'top-left')"
+                    ></div>
+                    <div
+                      v-if="selectedBoxIndex === index"
+                      class="resize-handle top-right"
+                      @mousedown.stop="startResize($event, 'top-right')"
+                    ></div>
+                    <div
+                      v-if="selectedBoxIndex === index"
+                      class="resize-handle bottom-left"
+                      @mousedown.stop="startResize($event, 'bottom-left')"
+                    ></div>
+                    <div
+                      v-if="selectedBoxIndex === index"
+                      class="resize-handle bottom-right"
+                      @mousedown.stop="startResize($event, 'bottom-right')"
+                    ></div>
                   </div>
+
+                  <!-- Point markers -->
+                  <div
+                    v-for="(point, index) in points"
+                    :key="`point-${index}`"
+                    class="point-marker"
+                    :style="{
+                      left: `${point.x}px`,
+                      top: `${point.y}px`,
+                    }"
+                    @click.stop="removePoint(index)"
+                  ></div>
                 </div>
               </div>
+
+              <!-- Hidden file input for image upload -->
               <input
                 type="file"
                 id="xray-upload"
@@ -284,6 +328,54 @@
                 @change="handleFileUpload"
                 class="hidden-file-input"
               />
+
+              <!-- Abnormality Selection Panel (always visible) -->
+              <div class="abnormality-selection-container" @click.stop>
+                <div class="abnormality-selector">
+                  <div class="selector-label">Abnormality Type:</div>
+                  <div class="selector-dropdown-container">
+                    <select
+                      class="select-dropdown"
+                      v-model="selectedAbnormality"
+                      @change="updateSelectedBoxType"
+                      @click.stop
+                    >
+                      <option value="Nodule/Mass">Nodule/Mass</option>
+                      <option value="Pleural Effusion">Pleural Effusion</option>
+                      <option value="Cardiomegaly">Cardiomegaly</option>
+                      <option value="Infiltration">Infiltration</option>
+                      <option value="Pleural Thickening">
+                        Pleural Thickening
+                      </option>
+                      <option value="Pulmonary Fibrosis">
+                        Pulmonary Fibrosis
+                      </option>
+                      <option value="Consolidation">Consolidation</option>
+                      <option value="Atelectasis">Atelectasis</option>
+                      <option value="Pneumothorax">Pneumothorax</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="abnormality-selector">
+                  <div class="selector-label">Subtype:</div>
+                  <div class="selector-dropdown-container">
+                    <select
+                      class="select-dropdown"
+                      v-model="selectedSubtype"
+                      @change="updateSelectedBoxSubtype"
+                      @click.stop
+                    >
+                      <option value="No Subtype-Abnormality">
+                        No Subtype-Abnormality
+                      </option>
+                      <option value="Subtype 1">Subtype 1</option>
+                      <option value="Subtype 2">Subtype 2</option>
+                      <option value="Subtype 3">Subtype 3</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -498,13 +590,6 @@ export default {
       // Annotation properties
       selectedAbnormality: "Nodule/Mass",
       selectedSubtype: "Select Subtype Abnormality",
-      selectedColor: "#3b82f6",
-      colors: [
-        { value: "#3b82f6", name: "Blue" },
-        { value: "#ef4444", name: "Red" },
-        { value: "#10b981", name: "Green" },
-        { value: "#f59e0b", name: "Orange" },
-      ],
 
       // Tool state
       zoomLevel: 1,
@@ -606,8 +691,8 @@ export default {
 
     // Annotation Tool Methods
     setActiveTool(tool) {
-      // If we're clicking the box tool while it's already active, add a new box
-      if (tool === "box" && this.activeTool === "box") {
+      // If tool is 'box', create a new box when it's first selected
+      if (tool === "box") {
         if (this.currentImage) {
           // Create a box in the center of the container
           const containerRect =
@@ -622,6 +707,9 @@ export default {
             width: 100,
             height: 100,
             type: this.selectedAbnormality,
+            label: this.selectedAbnormality,
+            color: this.getBoxColor(this.selectedAbnormality),
+            subtype: "No Subtype-Abnormality",
           };
 
           this.boxes.push(newBox);
@@ -642,9 +730,8 @@ export default {
           this.showDefaultBox = false;
         }
       } else {
-        // Changing to a different tool, deselect any box
-        this.selectedBoxIndex = null;
-        // Always hide the default box when switching tools
+        // Don't deselect box when changing tools - keep context for the panel
+        // Only hide the default preview box when switching tools
         this.showDefaultBox = false;
       }
 
@@ -660,34 +747,11 @@ export default {
 
     // Add this new method to delete a box - completely rewritten for reliability
     deleteBox(index) {
-      console.log(`Attempting to delete box at index ${index}`);
-
-      try {
-        // Create a new array without the box at the specified index
-        const newBoxes = this.boxes.filter((_, i) => i !== index);
-
-        // Replace the boxes array with the new filtered array
-        this.boxes = newBoxes;
-
-        // Also update initialBoxPositions
-        if (this.initialBoxPositions.length > 0) {
-          this.initialBoxPositions = this.initialBoxPositions.filter(
-            (_, i) => i !== index
-          );
-        }
-
-        // Reset selection if the selected box was deleted
-        if (this.selectedBoxIndex === index) {
-          this.selectedBoxIndex = null;
-        } else if (this.selectedBoxIndex > index) {
-          // Adjust the index if a box before the selected one was deleted
-          this.selectedBoxIndex--;
-        }
-
-        console.log(`Box deleted. Remaining boxes: ${this.boxes.length}`);
-      } catch (err) {
-        console.error("Error deleting box:", err);
+      if (this.selectedBoxIndex === index) {
+        this.selectedBoxIndex = null;
       }
+      this.boxes.splice(index, 1);
+      this.initialBoxPositions.splice(index, 1);
     },
 
     // File upload
@@ -873,35 +937,48 @@ export default {
 
     // Box drawing methods
     handleMouseDown(e) {
-      // Don't process if no image is loaded
-      if (!this.currentImage) return;
+      // Don't process if no image is loaded or if not in box tool mode
+      if (!this.currentImage || this.activeTool !== "box") return;
 
+      // Skip if clicking on select elements or the abnormality panel
+      if (
+        e.target.tagName === "SELECT" ||
+        e.target.tagName === "OPTION" ||
+        e.target.closest(".abnormality-selection-container")
+      ) {
+        return;
+      }
+
+      // Get coordinates relative to the image container
       const rect = this.$refs.imageContainer.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      if (this.activeTool === "box") {
-        // Only handle box selection and dragging, no default box creation
-        if (this.selectedBoxIndex !== null) {
-          // If we already have a box selected, check if we're clicking inside it
-          const selectedBox = this.boxes[this.selectedBoxIndex];
-          if (
-            mouseX >= selectedBox.x &&
-            mouseX <= selectedBox.x + selectedBox.width &&
-            mouseY >= selectedBox.y &&
-            mouseY <= selectedBox.y + selectedBox.height
-          ) {
-            // Start dragging the selected box
-            this.isDraggingBox = true;
-            this.dragStartX = mouseX;
-            this.dragStartY = mouseY;
-            this.initialBoxState = { ...selectedBox };
-          } else {
-            // Clicked outside the selected box, deselect it
-            this.selectedBoxIndex = null;
-          }
+      // Check if we clicked on an existing box
+      let clickedOnBox = false;
+
+      for (let i = 0; i < this.boxes.length; i++) {
+        const box = this.boxes[i];
+        if (
+          mouseX >= box.x &&
+          mouseX <= box.x + box.width &&
+          mouseY >= box.y &&
+          mouseY <= box.y + box.height
+        ) {
+          // We clicked on a box, select it
+          this.selectedBoxIndex = i;
+          this.isDraggingBox = true;
+          this.dragStartX = mouseX;
+          this.dragStartY = mouseY;
+          this.initialBoxState = { ...box };
+          clickedOnBox = true;
+          break;
         }
-        e.preventDefault();
+      }
+
+      // If we didn't click on a box, deselect the current box
+      if (!clickedOnBox && !e.target.classList.contains("resize-handle")) {
+        this.selectedBoxIndex = null;
       }
     },
 
@@ -922,22 +999,20 @@ export default {
         box.y = this.initialBoxState.y + deltaY;
 
         // Keep the box within the image container
-        const containerRect = this.$refs.imageContainer.getBoundingClientRect();
         if (box.x < 0) box.x = 0;
         if (box.y < 0) box.y = 0;
-        if (box.x + box.width > containerRect.width) {
-          box.x = containerRect.width - box.width;
+        if (box.x + box.width > rect.width) {
+          box.x = rect.width - box.width;
         }
-        if (box.y + box.height > containerRect.height) {
-          box.y = containerRect.height - box.height;
+        if (box.y + box.height > rect.height) {
+          box.y = rect.height - box.height;
         }
       } else if (this.isResizing && this.selectedBoxIndex !== null) {
         this.resizeBox(e);
       }
     },
 
-    // eslint-disable-next-line no-unused-vars
-    handleMouseUp(e) {
+    handleMouseUp() {
       if (this.isDraggingBox) {
         this.isDraggingBox = false;
 
@@ -974,6 +1049,7 @@ export default {
       if (this.activeTool !== "box") return;
 
       this.selectedBoxIndex = index;
+
       // Don't propagate if clicking on a resize handle
       if (event.target.classList.contains("resize-handle")) {
         event.stopPropagation();
@@ -985,7 +1061,7 @@ export default {
       this.dragStartX = event.clientX - rect.left;
       this.dragStartY = event.clientY - rect.top;
 
-      // Set isDraggingBox flag to true - this was missing!
+      // Set isDraggingBox flag to true
       this.isDraggingBox = true;
 
       // Store the initial box state for dragging
@@ -1077,13 +1153,31 @@ export default {
 
     // Point tool methods
     handleClick(e) {
-      if (this.activeTool === "point") {
-        const rect = this.$refs.imageContainer.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+      // Only process clicks for point tool
+      if (this.activeTool !== "point") return;
 
-        this.points.push({ x, y });
+      // Skip if clicking on select elements or the abnormality panel
+      if (
+        e.target.tagName === "SELECT" ||
+        e.target.tagName === "OPTION" ||
+        e.target.closest(".abnormality-selection-container") ||
+        e.target.classList.contains("point-marker")
+      ) {
+        return;
       }
+
+      const rect = this.$refs.imageContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Add a new point at the click coordinates
+      this.points.push({
+        x,
+        y,
+        color: "#f59e0b", // Orange color for points
+      });
+
+      console.log("Added point at", x, y);
     },
 
     // Helper methods
@@ -1369,13 +1463,55 @@ export default {
           "Unable to connect to model service. Please try again later.";
       }
     },
+    updateSelectedBoxType() {
+      if (this.selectedBoxIndex !== null && this.boxes[this.selectedBoxIndex]) {
+        // Update the type of the selected box
+        this.boxes[this.selectedBoxIndex].type = this.selectedAbnormality;
+        this.boxes[this.selectedBoxIndex].label = this.selectedAbnormality;
+
+        // Always update the color based on the abnormality type
+        this.boxes[this.selectedBoxIndex].color = this.getBoxColor(
+          this.selectedAbnormality
+        );
+      }
+      // Store the selection even if no box is selected, to use as default for new boxes
+    },
+    updateSelectedBoxSubtype() {
+      if (this.selectedBoxIndex !== null && this.boxes[this.selectedBoxIndex]) {
+        // Update the subtype of the selected box
+        this.boxes[this.selectedBoxIndex].subtype = this.selectedSubtype;
+      }
+      // Store the selection even if no box is selected, to use as default for new boxes
+    },
+    setBoxColor(color) {
+      this.selectedColor = color;
+
+      if (this.selectedBoxIndex !== null) {
+        // Update the color of the selected box
+        this.boxes[this.selectedBoxIndex].color = color;
+        this.boxes[this.selectedBoxIndex].customColor = true;
+      }
+    },
+    removePoint(index) {
+      this.points.splice(index, 1);
+    },
   },
   watch: {
-    selectedAbnormality(newValue) {
-      // Update the type of the selected box when dropdown changes
-      if (this.selectedBoxIndex !== null) {
-        this.boxes[this.selectedBoxIndex].type = newValue;
+    selectedBoxIndex(newValue) {
+      if (newValue !== null && this.boxes[newValue]) {
+        // Update form controls to match the selected box
+        const selectedBox = this.boxes[newValue];
+        this.selectedAbnormality = selectedBox.type || "Nodule/Mass";
+        this.selectedSubtype = selectedBox.subtype || "No Subtype-Abnormality";
       }
+      // If no box is selected, keep the current selections for new boxes
+    },
+    selectedAbnormality() {
+      // Let the updateSelectedBoxType method handle the changes
+      if (this.selectedBoxIndex !== null && this.boxes[this.selectedBoxIndex]) {
+        this.updateSelectedBoxType();
+      }
+      // If no box is selected, the selection is stored for future use
     },
     activeTool(newValue) {
       // Reset cursor when tool changes
@@ -1389,6 +1525,11 @@ export default {
   mounted() {
     document.addEventListener("click", this.closeUserMenu);
 
+    // Add event listeners for box dragging and resizing
+    document.addEventListener("mousedown", this.handleMouseDown);
+    document.addEventListener("mousemove", this.handleMouseMove);
+    document.addEventListener("mouseup", this.handleMouseUp);
+
     // Set default tool but don't show default box
     this.activeTool = null; // Don't automatically select the box tool
     this.showDefaultBox = false;
@@ -1398,6 +1539,12 @@ export default {
   },
   beforeUnmount() {
     document.removeEventListener("click", this.closeUserMenu);
+
+    // Remove mouse event listeners
+    document.removeEventListener("mousedown", this.handleMouseDown);
+    document.removeEventListener("mousemove", this.handleMouseMove);
+    document.removeEventListener("mouseup", this.handleMouseUp);
+
     // Reset cursor
     document.body.style.cursor = "default";
   },
@@ -1942,13 +2089,21 @@ export default {
 /* Point marker */
 .point-marker {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   background-color: #f59e0b;
   border: 2px solid white;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.point-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
 }
 
 /* Tool button active state */
@@ -2571,65 +2726,58 @@ export default {
 /* Styling for the new abnormality dropdown below the X-ray image */
 .abnormality-selection-container {
   margin-top: 1rem;
-  padding: 1.25rem;
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 0.5rem;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 1rem 1.5rem;
+  background: rgba(17, 24, 39, 0.8);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-direction: row;
+  gap: 2rem;
+  justify-content: flex-start;
 }
 
 .abnormality-selector {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .selector-label {
-  font-size: 1rem;
-  color: #e5e7eb;
+  font-size: 0.9rem;
+  color: #f9fafb;
   font-weight: 500;
-  flex: 0 0 180px;
   white-space: nowrap;
+  min-width: 120px;
+}
+
+.selector-dropdown-container {
+  min-width: 180px;
 }
 
 .select-dropdown {
-  flex: 1;
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   background: rgba(30, 41, 59, 0.8);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 0.5rem;
-  color: #e5e7eb;
+  color: #f3f4f6;
   font-size: 0.9rem;
-  font-weight: 500;
   cursor: pointer;
+  appearance: auto;
   transition: all 0.2s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2360a5fa%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 0.75rem auto;
-  padding-right: 2.5rem;
 }
 
-.select-dropdown:hover {
-  background-color: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
+.select-dropdown:hover,
 .select-dropdown:focus {
+  border-color: rgba(59, 130, 246, 0.7);
   outline: none;
-  border-color: rgba(59, 130, 246, 0.8);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 .select-dropdown option {
   background-color: #1e293b;
-  color: #e5e7eb;
-  padding: 10px;
+  color: #f3f4f6;
 }
 
 /* Add these styles for the mock model banner */
