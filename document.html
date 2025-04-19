@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Radiographic Report</title>
+    <link rel="stylesheet" href="../static/css/about.css">
+
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 12pt;
+        }
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header img {
+            width: 150px; 
+        }
+        .header h1 {
+            margin: 0;
+            color: #d00000; 
+            font-size: 24pt;
+        }
+        .header h4{
+            margin-top: -10px;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        .patient-info, .interpretation, .abnormalities {
+            margin-bottom: 20px;
+        }
+        .patient-info td {
+            padding: 2px 20px;
+        }
+        .signature {
+            margin-top: 80px;
+            text-align: right;
+        }
+        .signature img {
+            width: 100px; 
+        }
+        .not-valid {
+            font-size: 10pt;
+            color: grey;
+            text-align: center;
+            margin-top: 40px;
+        }
+        .interpretation h3{
+            text-align: center;
+            margin-top: 50px;
+        } .recommendations {
+        /* text-align: center; */
+
+
+        } .findings h3 {
+
+        }
+        .interpretation p{
+            margin-top: 30px;
+        }
+        .footer{
+            margin-top: 200px;
+        }
+        .images {
+            /* Ensure images div starts on a new page */
+            page-break-before: always;
+        }
+        .images img{
+            width: 150mm;
+            height: 150mm;
+            text-align: center;
+            align-items: center;
+            display: flex;
+        }
+        .radiologist-info{
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <!-- <img src="logo.png" alt="Clinic Logo"> -->
+        <h4>CXRAide Annotation Tool</h4>
+        <h1>RADIOGRAPHIC REPORT</h1>
+    </div>
+    <div class="content">
+        <table class="patient-info">
+            <tr>
+                <hr>
+                <td>Patient Name:</td>
+                <td>{{ patient_name }}</td>
+                <td>Patient ID No.:</td>
+                <td>{{ patient_id }}</td>
+            </tr>
+            <tr>
+                <td>Gender:</td>
+                <td>{{ gender }}</td>
+                <td>Age:</td>
+                <td>{{ age }}</td>
+            </tr>
+            <tr>
+                <td>Exam Taken:</td>
+                <td>CHEST </td>
+                <td>Address:</td>
+                <td>DAVAO CITY</td>
+
+            </tr>
+            <tr>
+                <td>Result Date:</td>
+                <td id="current_date">{{ current_date }}</td>
+                <td>Result Time:</td>
+                <td id="current_time">{{ current_time }}</td>
+            </tr>
+        </table>
+        <hr>
+        <div class="clinical-indication">
+            <h3>CLINICAL INDICATION</h3>
+            <p>{{ clinicalIndication }}</p>
+        </div>
+    
+        <!-- <div class="interpretation">
+            <h3>INTERPRETATION</h3>
+            <p>The patient undergoes a chest X-ray to assess the condition of the lungs. On the PA chest film, it is important to examine all areas where the lungs border the diaphragm, the heart, and other mediastinal structures.</p>
+        </div> -->
+
+        <!-- <div class="interpretation">
+            <h3>INTERPRETATION</h3>
+            <p>
+                {% for result in interpretation %}
+                    {{ result.abnormality }}: {{ result.description }}<br>
+                    {{ result.interpretation }}<br><br>
+                {% endfor %}
+            </p>
+        </div> -->
+
+        <!-- <div class="interpretation">
+            <h3>INTERPRETATION</h3>
+            <p>
+                {% for result in interpretation %}
+                    <strong>{{ result.abnormality }}:</strong> {{ result.description }}<br>
+                    {{ result.interpretation }}<br><br>
+                {% endfor %}
+            </p> 
+             <p> The trachea is {{trachea}}. The lung fields are {{lungs}}. The pulmonary vasculatures are {{vasculatures}}. The heart is {{heart}}. 
+                The diaphragm and costrophrenic sulci are {{dia}}. </p>
+        </div> -->
+        
+    
+        <div class="findings">
+            <h3>FINDINGS</h3>
+            <p><strong> Lungs: </strong> {{ lungFindings }}</p>
+            <p> <strong>Heart:</strong> {{ heartFindings }}</p>
+            <p> <strong>Mediastinum:</strong> {{ mediastinumFindings }}</p>
+            <p> <strong>Diaphragm and Pleura:</strong> {{ diaphragmAndPleuraFindings }}</p>
+            <p> <strong> Soft Tissues and Bones:</strong> {{ softTissuesAndBonesFindings }}</p>
+            <p>{{ moreFindings }}</p>
+        </div>
+
+        <div class="abnormalities">
+            <!-- MANUALLY ANNOTATED BY EXPERTS -->
+            {% if annotated_cxray %}
+            <h3>THE ABNORMALITY FOUND IS/ARE:</h3>
+            <p>Main Abnormality: {{ mainAbnormality }}</p>
+
+            <p>Sub Abnormality: {{ subAbnormality }}</p>
+            {% endif %}
+        
+            <!-- GENERATED BY AI -->
+            {% if annotated_cxray_ai %}
+            <h3>THE ABNORMALITY FOUND IS/ARE:</h3>
+            <p>Main Abnormality: {{ abnormalitiesAI }}</p>
+            {% endif %}
+        </div>
+        
+    
+        <div class="impression">
+            <h3>IMPRESSION</h3>
+            <p>{{ impression }}</p>
+        </div>
+    
+        <div class="recommendations">
+            <h3>RECOMMENDATIONS</h3>
+            <p>{{ recommendations }}</p>
+        </div>
+    
+        <div class="radiologist-info">
+            <h3>REPORT PREPARED BY</h3>
+            <p><strong>Radiologist:</strong> Dr. {{ radiologist_name }}</p>
+            <p><strong>Radiographer:</strong> {{ radiographer_name }}</p>
+        </div>
+        
+        </div>
+    </div>
+
+    <div class="images">
+        <!-- MANUALLY ANNOTATE BY EXPERTS -->
+        {% if annotated_cxray %}
+            <h4>Chest X-ray Image (Expert Annotated)</h4>
+            <img src="{{ annotated_cxray.url }}" alt="Annotated Chest X-ray">
+        {% endif %}
+        <!-- GENERATED BY AI -->
+        {% if annotated_cxray_ai %}
+            <h4>Chest X-ray Image (AI Annotated)</h4>
+            <img src="{{ annotated_cxray_ai.url }}" alt="Annotated Chest X-ray">
+        {% endif %}
+    </div>
+    <div class="footer">
+        <p>Not Valid without seal</p>
+    </div>
+
+    <script>
+        function updateCurrentDateTime() {
+            const now = new Date();
+            document.getElementById('current_date').textContent = now.toISOString().split('T')[0];
+            document.getElementById('current_time').textContent = now.toTimeString().split(' ')[0];
+        }
+        updateCurrentDateTime(); // Ensures it updates even if server values are stale
+    </script>
+</body>
+</html>

@@ -319,61 +319,70 @@
                 </div>
               </div>
 
-              <!-- Hidden file input for image upload -->
-              <input
-                type="file"
-                id="xray-upload"
-                ref="fileInput"
-                accept="image/*"
-                @change="handleFileUpload"
-                class="hidden-file-input"
-              />
+              <!-- Expert Download button - moved outside container for better positioning -->
+            </div>
+            
+            <!-- Centered Expert Download button -->
+            <div v-if="currentImage" class="download-print-container">
+              <button class="download-print-btn" @click="downloadExpertReport">
+                Download and Print
+              </button>
+            </div>
 
-              <!-- Abnormality Selection Panel (always visible) -->
-              <div class="abnormality-selection-container" @click.stop>
-                <div class="abnormality-selector">
-                  <div class="selector-label">Abnormality Type:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedAbnormality"
-                      @change="updateSelectedBoxType"
-                      @click.stop
-                    >
-                      <option value="Nodule/Mass">Nodule/Mass</option>
-                      <option value="Pleural Effusion">Pleural Effusion</option>
-                      <option value="Cardiomegaly">Cardiomegaly</option>
-                      <option value="Infiltration">Infiltration</option>
-                      <option value="Pleural Thickening">
-                        Pleural Thickening
-                      </option>
-                      <option value="Pulmonary Fibrosis">
-                        Pulmonary Fibrosis
-                      </option>
-                      <option value="Consolidation">Consolidation</option>
-                      <option value="Atelectasis">Atelectasis</option>
-                      <option value="Pneumothorax">Pneumothorax</option>
-                    </select>
-                  </div>
+            <!-- Hidden file input for image upload -->
+            <input
+              type="file"
+              id="xray-upload"
+              ref="fileInput"
+              accept="image/*"
+              @change="handleFileUpload"
+              class="hidden-file-input"
+            />
+
+            <!-- Abnormality Selection Panel (always visible) -->
+            <div class="abnormality-selection-container" @click.stop>
+              <div class="abnormality-selector">
+                <div class="selector-label">Abnormality Type:</div>
+                <div class="selector-dropdown-container">
+                  <select
+                    class="select-dropdown"
+                    v-model="selectedAbnormality"
+                    @change="updateSelectedBoxType"
+                    @click.stop
+                  >
+                    <option value="Nodule/Mass">Nodule/Mass</option>
+                    <option value="Pleural Effusion">Pleural Effusion</option>
+                    <option value="Cardiomegaly">Cardiomegaly</option>
+                    <option value="Infiltration">Infiltration</option>
+                    <option value="Pleural Thickening">
+                      Pleural Thickening
+                    </option>
+                    <option value="Pulmonary Fibrosis">
+                      Pulmonary Fibrosis
+                    </option>
+                    <option value="Consolidation">Consolidation</option>
+                    <option value="Atelectasis">Atelectasis</option>
+                    <option value="Pneumothorax">Pneumothorax</option>
+                  </select>
                 </div>
+              </div>
 
-                <div class="abnormality-selector">
-                  <div class="selector-label">Subtype:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedSubtype"
-                      @change="updateSelectedBoxSubtype"
-                      @click.stop
-                    >
-                      <option value="No Subtype-Abnormality">
-                        No Subtype-Abnormality
-                      </option>
-                      <option value="Subtype 1">Subtype 1</option>
-                      <option value="Subtype 2">Subtype 2</option>
-                      <option value="Subtype 3">Subtype 3</option>
-                    </select>
-                  </div>
+              <div class="abnormality-selector">
+                <div class="selector-label">Subtype:</div>
+                <div class="selector-dropdown-container">
+                  <select
+                    class="select-dropdown"
+                    v-model="selectedSubtype"
+                    @change="updateSelectedBoxSubtype"
+                    @click.stop
+                  >
+                    <option value="No Subtype-Abnormality">
+                      No Subtype-Abnormality
+                    </option>
+                    <option value="Subtype 1">Subtype 1</option>
+                    <option value="Subtype 2">Subtype 2</option>
+                    <option value="Subtype 3">Subtype 3</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -477,60 +486,60 @@
                 <i class="bi bi-robot"></i>
                 <p>AI annotations will appear here</p>
               </div>
-            </div>
 
-            <!-- AI Confidence Summary -->
-            <div
-              v-if="aiPredictions.length > 0"
-              class="ai-confidence-summary"
-              :class="{ collapsed: !detectionResultsExpanded }"
-            >
-              <div class="summary-header" @click="toggleDetectionResults">
-                <h3>AI Detection Results:</h3>
-                <button class="toggle-btn">
-                  <i
-                    :class="
-                      detectionResultsExpanded
-                        ? 'bi bi-chevron-up'
-                        : 'bi bi-chevron-down'
-                    "
-                  ></i>
-                </button>
-              </div>
-              <div v-show="detectionResultsExpanded" class="confidence-list">
-                <div
-                  v-for="prediction in aiPredictions"
-                  :key="prediction.id"
-                  class="confidence-item"
-                  :style="{
-                    borderLeft: `4px solid ${getBoxColor(
-                      prediction.class || ''
-                    )}`,
-                  }"
-                >
-                  <span class="confidence-label"
-                    >{{ prediction.class || "Unknown" }}:</span
+              <!-- AI Confidence Summary -->
+              <div
+                v-if="aiPredictions.length > 0"
+                class="ai-confidence-summary"
+                :class="{ collapsed: !detectionResultsExpanded }"
+              >
+                <div class="summary-header" @click="toggleDetectionResults">
+                  <h3>AI Detection Results:</h3>
+                  <button class="toggle-btn">
+                    <i
+                      :class="
+                        detectionResultsExpanded
+                          ? 'bi bi-chevron-up'
+                          : 'bi bi-chevron-down'
+                      "
+                    ></i>
+                  </button>
+                </div>
+                <div v-show="detectionResultsExpanded" class="confidence-list">
+                  <div
+                    v-for="prediction in aiPredictions"
+                    :key="prediction.id"
+                    class="confidence-item"
+                    :style="{
+                      borderLeft: `4px solid ${getBoxColor(
+                        prediction.class || ''
+                      )}`,
+                    }"
                   >
-                  <span
-                    class="confidence-value"
-                    :style="{ color: getBoxColor(prediction.class || '') }"
-                  >
-                    {{ formatConfidence(prediction.score) }}
-                  </span>
+                    <span class="confidence-label"
+                      >{{ prediction.class || "Unknown" }}:</span
+                    >
+                    <span
+                      class="confidence-value"
+                      :style="{ color: getBoxColor(prediction.class || '') }"
+                    >
+                      {{ formatConfidence(prediction.score) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Action buttons -->
-        <div class="annotation-actions">
-          <button class="action-button save-button">
-            <i class="bi bi-save"></i> Save Now
-          </button>
-          <button class="action-button expert-button">
-            <i class="bi bi-check-circle"></i> Save Expert Annotation
-          </button>
+            <!-- Restore and update the action buttons at the bottom to match the image style -->
+            <div class="annotation-actions">
+              <button class="action-button submit-btn" @click="downloadExpertReport">
+                Submit and Proceed
+              </button>
+              <button class="action-button cancel-btn" @click="cancelAction">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -538,6 +547,14 @@
       <loading-overlay v-if="isLoading" message="Loading annotation data..." />
     </div>
   </div>
+
+  <!-- Add this at the end, right before the closing </template> tag -->
+  <patient-info-modal 
+    :show="showPatientInfoModal" 
+    :reportType="currentReportType"
+    @close="showPatientInfoModal = false"
+    @submit="handlePatientSubmit"
+  />
 </template>
 
 <script>
@@ -547,12 +564,14 @@ import LoadingOverlay from "../components/LoadingOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 import ModelService from "@/services/modelService";
+import PatientInfoModal from "../components/PatientInfoModal.vue";
 
 export default {
   components: {
     LoadingOverlay,
     AIModelLoader,
     ModelErrorOverlay,
+    PatientInfoModal,
   },
   data() {
     return {
@@ -613,6 +632,10 @@ export default {
       // Add modelStatus to store the response from model status check
       modelStatus: null,
       isDragging: false,
+      
+      // Add these new properties
+      showPatientInfoModal: false,
+      currentReportType: "Expert",
     };
   },
   created() {
@@ -1495,6 +1518,45 @@ export default {
     removePoint(index) {
       this.points.splice(index, 1);
     },
+    downloadAndPrint() {
+      // Implement download and print functionality
+      console.log("Download and print functionality not implemented yet");
+    },
+    downloadExpertReport() {
+      this.currentReportType = "Expert";
+      this.showPatientInfoModal = true;
+    },
+    downloadAIReport() {
+      this.currentReportType = "AI";
+      this.showPatientInfoModal = true;
+    },
+    handlePatientSubmit(data) {
+      const { patientInfo, reportType } = data;
+      
+      // Close the modal
+      this.showPatientInfoModal = false;
+      
+      // Download the appropriate image based on report type
+      if (reportType === "Expert" && this.currentImage) {
+        const link = document.createElement("a");
+        link.href = this.currentImage;
+        link.download = `CXRaide_Expert_${patientInfo.id}_${new Date().toISOString().slice(0, 10)}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (reportType === "AI" && this.annotatedImage) {
+        const link = document.createElement("a");
+        link.href = this.annotatedImage;
+        link.download = `CXRaide_AI_${patientInfo.id}_${new Date().toISOString().slice(0, 10)}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    },
+    cancelAction() {
+      // Handle cancel action - could reset or do nothing
+      console.log("Action cancelled");
+    },
   },
   watch: {
     selectedBoxIndex(newValue) {
@@ -1993,7 +2055,7 @@ export default {
   padding: 0.5rem 0.75rem;
   background: rgba(15, 23, 42, 0.6);
   border-radius: 0.5rem 0.5rem 0 0;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: #e5e7eb;
   margin-bottom: 0.25rem;
 }
@@ -2299,19 +2361,39 @@ export default {
   justify-content: center;
   gap: 1rem;
   margin-top: 1rem;
+  padding: 1rem;
 }
 
 .action-button {
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
+  justify-content: center;
+  min-width: 200px;
+  border: none;
+}
+
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #43A047;
+}
+
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #e53935;
 }
 
 .save-button {
@@ -2630,7 +2712,7 @@ export default {
 
 /* Demo mode warning - visible at top of page */
 .demo-mode-warning {
-  background-color: rgba(254, 226, 226, 0.9);
+  background-color: rgba(254, 226, 226, 0.25);
   border: 1px solid #ef4444;
   border-radius: 6px;
   padding: 15px;
@@ -3144,5 +3226,41 @@ export default {
 
 .metric-value {
   color: #60a5fa;
+}
+
+.download-print-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.download-print-btn {
+  background-color: #e91e63;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.download-print-btn:hover {
+  background-color: #c2185b;
+}
+
+/* Update action-button styling to match the downloaded button */
+.action-button.download-print-btn {
+  background-color: #e91e63;
+  color: white;
+}
+
+.action-button.download-print-btn:hover {
+  background-color: #c2185b;
 }
 </style>
