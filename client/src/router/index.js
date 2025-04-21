@@ -17,7 +17,11 @@ const routes = [
     path: "/annotate",
     name: "annotate",
     component: () => import("../views/AnnotateView.vue"), // Dynamic import
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true,
+      // Add a leave guard to ensure component cleanup
+      leaveGuard: true 
+    },
   },
   {
     path: "/login",
@@ -75,8 +79,38 @@ const debounce = (fn, delay) => {
 };
 */
 
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to, from, next) => {
   console.log("[Router] Navigation started to:", to.path, "from:", from.path);
+
+  // Special handling for leaving AnnotateView page
+  if (from.name === 'annotate') {
+    console.log("[Router] Leaving Annotation page - performing additional cleanup");
+    // Force cleanup of any potentially problematic resources
+    try {
+      // Cancel any pending requests
+      modelService.cancelRequests();
+      
+      // Clear any cached images that might be causing issues
+      const imageElements = document.querySelectorAll('img');
+      imageElements.forEach(img => {
+        // Clear image src to help with memory cleanup
+        if (img.src && img.src.startsWith('blob:')) {
+          try {
+            URL.revokeObjectURL(img.src);
+            img.src = '';
+          } catch (e) {
+            console.error("[Router] Error cleaning up image:", e);
+          }
+        }
+      });
+      
+      // Reset any global CSS that might be affecting other pages
+      document.body.style.cursor = 'default';
+      
+    } catch (error) {
+      console.error("[Router] Error during annotation page cleanup:", error);
+    }
+  }
 
   // Cancel any pending API requests to prevent errors
   modelService.cancelRequests();
@@ -94,9 +128,9 @@ router.beforeEach(async (to, from) => {
     // Force navigation to login and clear any auth state
     localStorage.removeItem("authToken");
     if (to.path !== "/login") {
-      return "/login";
+      return next("/login");
     }
-    return true;
+    return next();
   }
 
   // Bypass auth check for login page
@@ -105,9 +139,9 @@ router.beforeEach(async (to, from) => {
     const token = localStorage.getItem("authToken");
     if (token) {
       console.log("[Auth] User already has token, redirecting to home");
-      return "/home";
+      return next("/home");
     }
-    return true;
+    return next();
   }
 
   const token = localStorage.getItem("authToken");
@@ -115,7 +149,7 @@ router.beforeEach(async (to, from) => {
   // No token - redirect to login
   if (!token) {
     console.log("[Auth] No token found");
-    return "/login";
+    return next("/login");
   }
 
   try {
@@ -130,11 +164,11 @@ router.beforeEach(async (to, from) => {
       );
       // Successful navigation decreases the counter
       navigationAttempts = Math.max(0, navigationAttempts - 1);
-      return true;
+      return next();
     } else {
       console.log("[Auth] Session is invalid");
       localStorage.removeItem("authToken");
-      return "/login";
+      return next("/login");
     }
   } catch (error) {
     console.error("[Auth] Session check failed:", error);
@@ -144,7 +178,7 @@ router.beforeEach(async (to, from) => {
     if (error.response && error.response.status === 401) {
       console.log("[Auth] Unauthorized, clearing token");
       localStorage.removeItem("authToken");
-      return "/login";
+      return next("/login");
     }
 
     if (error.code === "ERR_NETWORK") {
@@ -161,13 +195,33 @@ router.beforeEach(async (to, from) => {
       }
 
       // Allow navigation to proceed despite network error
-      return true;
+      return next();
     }
 
     // For other errors, clear token and redirect to login
     localStorage.removeItem("authToken");
-    return "/login";
+    return next("/login");
   }
+});
+
+// Add afterEach navigation hook to perform cleanup
+router.afterEach((to, from) => {
+  console.log("[Router] Navigation completed to:", to.path, "from:", from.path);
+  
+  // Free up memory by running garbage collection via setTimeout
+  setTimeout(() => {
+    navigationAttempts = Math.max(0, navigationAttempts - 1);
+    
+    // This helps release memory more quickly
+    if (window.gc) {
+      try {
+        window.gc();
+        console.log("[Router] Manual garbage collection triggered");
+      } catch (e) {
+        console.warn("[Router] Manual garbage collection not available");
+      }
+    }
+  }, 100);
 });
 
 export default router;

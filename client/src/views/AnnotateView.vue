@@ -206,292 +206,288 @@
             </div>
           </div>
 
-          <!-- Main image display area -->
-          <div class="image-container">
-            <div class="file-info-bar">
-              <span
-                >Raw CXRay Name:
-                {{ currentImageName || "No file selected" }}</span
-              >
-              <button
-                class="upload-btn"
-                @click="triggerFileUpload"
-                :disabled="isModelLoading"
-              >
-                <i class="bi bi-cloud-arrow-up"></i> Upload X-ray
-              </button>
-            </div>
-
-            <div
-              class="upload-area"
-              :class="{ 'has-image': currentImage }"
-              @click="!currentImage && triggerFileUpload()"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @drop.prevent="handleFileDrop"
-            >
-              <div
-                v-if="!currentImage"
-                class="upload-placeholder"
-                :class="{ dragging: isDragging }"
-              >
-                <i class="bi bi-cloud-arrow-up"></i>
-                <p>
-                  Click to upload or drag & drop<br />Supported formats: JPEG,
-                  PNG
-                </p>
+          <!-- Main content area with both original image and AI annotations -->
+          <div class="main-content-area">
+            <!-- Left side - Original image display area -->
+            <div class="image-container">
+              <div class="file-info-bar">
+                <span
+                  >Raw CXRay Name:
+                  {{ currentImageName || "No file selected" }}</span
+                >
+                <button
+                  class="upload-btn"
+                  @click="triggerFileUpload"
+                  :disabled="isModelLoading"
+                >
+                  <i class="bi bi-cloud-arrow-up"></i> Upload X-ray
+                </button>
               </div>
+
               <div
-                v-else
-                class="xray-image-container"
-                ref="imageContainer"
-                @click="handleClick"
+                class="upload-area"
+                :class="{ 'has-image': currentImage }"
+                @click="!currentImage && triggerFileUpload()"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleFileDrop"
               >
-                <img :src="currentImage" alt="X-ray image" ref="xrayImage" />
-                <div class="annotation-overlays">
-                  <!-- Box annotations -->
-                  <div
-                    v-for="(box, index) in boxes"
-                    :key="`box-${index}`"
-                    class="annotation-box"
-                    :class="{ selected: selectedBoxIndex === index }"
-                    :style="{
-                      left: `${box.x}px`,
-                      top: `${box.y}px`,
-                      width: `${box.width}px`,
-                      height: `${box.height}px`,
-                      borderColor: box.color || getBoxColor(box.type),
-                      backgroundColor: `${
-                        box.color || getBoxColor(box.type)
-                      }33`, // Add transparency
-                    }"
-                    @mousedown.stop="selectBox(index, $event)"
-                  >
-                    <button
-                      v-if="selectedBoxIndex === index"
-                      @click.stop="deleteBox(index)"
-                      class="delete-box-btn"
-                    >
-                      <i class="bi bi-x"></i>
-                    </button>
+                <div
+                  v-if="!currentImage"
+                  class="upload-placeholder"
+                  :class="{ dragging: isDragging }"
+                >
+                  <i class="bi bi-cloud-arrow-up"></i>
+                  <p>
+                    Click to upload or drag & drop<br />Supported formats: JPEG,
+                    PNG
+                  </p>
+                </div>
+                <div
+                  v-else
+                  class="xray-image-container"
+                  ref="imageContainer"
+                  @click="handleClick"
+                >
+                  <img :src="currentImage" alt="X-ray image" ref="xrayImage" />
+                  <div class="annotation-overlays">
+                    <!-- Box annotations -->
                     <div
-                      class="annotation-label"
+                      v-for="(box, index) in boxes"
+                      :key="`box-${index}`"
+                      class="annotation-box"
+                      :class="{ selected: selectedBoxIndex === index }"
                       :style="{
-                        backgroundColor: box.color || getBoxColor(box.type),
+                        left: `${box.x}px`,
+                        top: `${box.y}px`,
+                        width: `${box.width}px`,
+                        height: `${box.height}px`,
+                        borderColor: box.color || getBoxColor(box.type),
+                        backgroundColor: `${
+                          box.color || getBoxColor(box.type)
+                        }33`, // Add transparency
                       }"
+                      @mousedown.stop="selectBox(index, $event)"
                     >
-                      {{ box.label || box.type }}
+                      <button
+                        v-if="selectedBoxIndex === index"
+                        @click.stop="deleteBox(index)"
+                        class="delete-box-btn"
+                      >
+                        <i class="bi bi-x"></i>
+                      </button>
+                      <div
+                        class="annotation-label"
+                        :style="{
+                          backgroundColor: box.color || getBoxColor(box.type),
+                        }"
+                      >
+                        {{ box.label || box.type }}
+                      </div>
+                      <!-- Add resize handles -->
+                      <div
+                        v-if="selectedBoxIndex === index"
+                        class="resize-handle top-left"
+                        @mousedown.stop="startResize($event, 'top-left')"
+                      ></div>
+                      <div
+                        v-if="selectedBoxIndex === index"
+                        class="resize-handle top-right"
+                        @mousedown.stop="startResize($event, 'top-right')"
+                      ></div>
+                      <div
+                        v-if="selectedBoxIndex === index"
+                        class="resize-handle bottom-left"
+                        @mousedown.stop="startResize($event, 'bottom-left')"
+                      ></div>
+                      <div
+                        v-if="selectedBoxIndex === index"
+                        class="resize-handle bottom-right"
+                        @mousedown.stop="startResize($event, 'bottom-right')"
+                      ></div>
                     </div>
-                    <!-- Add resize handles -->
+
+                    <!-- Point markers -->
                     <div
-                      v-if="selectedBoxIndex === index"
-                      class="resize-handle top-left"
-                      @mousedown.stop="startResize($event, 'top-left')"
-                    ></div>
-                    <div
-                      v-if="selectedBoxIndex === index"
-                      class="resize-handle top-right"
-                      @mousedown.stop="startResize($event, 'top-right')"
-                    ></div>
-                    <div
-                      v-if="selectedBoxIndex === index"
-                      class="resize-handle bottom-left"
-                      @mousedown.stop="startResize($event, 'bottom-left')"
-                    ></div>
-                    <div
-                      v-if="selectedBoxIndex === index"
-                      class="resize-handle bottom-right"
-                      @mousedown.stop="startResize($event, 'bottom-right')"
+                      v-for="(point, index) in points"
+                      :key="`point-${index}`"
+                      class="point-marker"
+                      :style="{
+                        left: `${point.x}px`,
+                        top: `${point.y}px`,
+                      }"
+                      @click.stop="removePoint(index)"
                     ></div>
                   </div>
-
-                  <!-- Point markers -->
-                  <div
-                    v-for="(point, index) in points"
-                    :key="`point-${index}`"
-                    class="point-marker"
-                    :style="{
-                      left: `${point.x}px`,
-                      top: `${point.y}px`,
-                    }"
-                    @click.stop="removePoint(index)"
-                  ></div>
                 </div>
+
+                <!-- Expert Download button - moved outside container for better positioning -->
               </div>
-
-              <!-- Expert Download button - moved outside container for better positioning -->
-            </div>
-            
-            <!-- Centered Expert Download button -->
-            <div v-if="currentImage" class="download-print-container">
-              <button class="download-print-btn" @click="downloadExpertReport">
-                Download and Print
-              </button>
-            </div>
-
-            <!-- Hidden file input for image upload -->
-            <input
-              type="file"
-              id="xray-upload"
-              ref="fileInput"
-              accept="image/*"
-              @change="handleFileUpload"
-              class="hidden-file-input"
-            />
-
-            <!-- Abnormality Selection Panel (always visible) -->
-            <div class="abnormality-selection-container" @click.stop>
-              <div class="abnormality-selector">
-                <div class="selector-label">Abnormality Type:</div>
-                <div class="selector-dropdown-container">
-                  <select
-                    class="select-dropdown"
-                    v-model="selectedAbnormality"
-                    @change="updateSelectedBoxType"
-                    @click.stop
-                  >
-                    <option value="Nodule/Mass">Nodule/Mass</option>
-                    <option value="Pleural Effusion">Pleural Effusion</option>
-                    <option value="Cardiomegaly">Cardiomegaly</option>
-                    <option value="Infiltration">Infiltration</option>
-                    <option value="Pleural Thickening">
-                      Pleural Thickening
-                    </option>
-                    <option value="Pulmonary Fibrosis">
-                      Pulmonary Fibrosis
-                    </option>
-                    <option value="Consolidation">Consolidation</option>
-                    <option value="Atelectasis">Atelectasis</option>
-                    <option value="Pneumothorax">Pneumothorax</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="abnormality-selector">
-                <div class="selector-label">Subtype:</div>
-                <div class="selector-dropdown-container">
-                  <select
-                    class="select-dropdown"
-                    v-model="selectedSubtype"
-                    @change="updateSelectedBoxSubtype"
-                    @click.stop
-                  >
-                    <option value="No Subtype-Abnormality">
-                      No Subtype-Abnormality
-                    </option>
-                    <option value="Subtype 1">Subtype 1</option>
-                    <option value="Subtype 2">Subtype 2</option>
-                    <option value="Subtype 3">Subtype 3</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right sidebar with AI annotations -->
-          <div class="ai-annotations">
-            <!-- Add AI Results header to match UploadCXRView -->
-            <div class="results-header">
-              <h2>AI Results</h2>
-            </div>
-
-            <!-- Mock model banner -->
-            <div
-              v-if="isUsingMockModel || modelStatus?.using_mock_models"
-              class="model-status-banner"
-            >
-              <i class="bi bi-info-circle-fill"></i>
-              <span
-                >Using mock AI predictions (server is using lightweight
-                model)</span
-              >
-            </div>
-
-            <!-- PyTorch not installed notification -->
-            <div
-              v-if="modelError && modelError.includes('PyTorch')"
-              class="model-status-banner"
-            >
-              <i class="bi bi-info-circle-fill"></i>
-              <span
-                >Server note: Using client-side mock predictions (PyTorch not
-                installed)</span
-              >
-            </div>
-
-            <div class="xray-image ai-image">
-              <!-- Use the pre-rendered annotated image with bounding boxes -->
-              <img
-                v-if="annotatedImage"
-                :src="annotatedImage"
-                alt="AI annotated X-ray"
-                ref="aiXrayImage"
-                class="standardized-image"
-              />
-              <!-- Use the clean image without annotations -->
-              <img
-                v-else-if="cleanImage"
-                :src="cleanImage"
-                alt="X-ray without annotations"
-                ref="aiXrayImage"
-                class="standardized-image"
-              />
-              <!-- Fallback to the original image if no images from server yet -->
-              <img
-                v-else-if="currentImage"
-                :src="currentImage"
-                alt="X-ray"
-                ref="aiXrayImage"
-              />
-
-              <!-- Loading state -->
-              <transition name="fade">
-                <a-i-model-loader v-if="isModelLoading" />
-              </transition>
-
-              <!-- Error state - don't show PyTorch errors with warning icon -->
-              <transition name="fade">
-                <model-error-overlay
-                  v-if="modelError && !modelError.includes('PyTorch')"
-                  :title="'Model could not be loaded'"
-                  :message="modelError || 'Please try again later.'"
-                  :show-retry="modelError && modelError.includes('loading')"
-                  @retry="retryModelPrediction"
-                />
-              </transition>
-
-              <!-- No abnormalities message -->
-              <div
-                v-if="
-                  !isModelLoading &&
-                  !modelError &&
-                  aiPredictions.length === 0 &&
-                  (cleanImage || currentImage)
-                "
-                class="no-abnormalities"
-              >
-                <i class="bi bi-exclamation-triangle"></i>
-                <p>No abnormalities detected in the image</p>
-                <button @click="retryModelPrediction" class="retry-btn">
-                  <i class="bi bi-arrow-clockwise"></i> Retry Detection
+              
+              <!-- Centered Expert Download button -->
+              <div v-if="currentImage" class="download-print-container">
+                <button class="download-print-btn" @click="downloadExpertReport">
+                  Download and Print
                 </button>
-                <!-- Removed the debug button as requested -->
               </div>
 
-              <!-- Empty state -->
+              <!-- Hidden file input for image upload -->
+              <input
+                type="file"
+                id="xray-upload"
+                ref="fileInput"
+                accept="image/*"
+                @change="handleFileUpload"
+                class="hidden-file-input"
+              />
+
+              <!-- Abnormality Selection Panel (always visible) -->
+              <div class="abnormality-selection-container" @click.stop>
+                <div class="abnormality-selector">
+                  <div class="selector-label">Abnormality Type:</div>
+                  <div class="selector-dropdown-container">
+                    <select
+                      class="select-dropdown"
+                      v-model="selectedAbnormality"
+                      @change="updateSelectedBoxType"
+                      @click.stop
+                    >
+                      <option value="Nodule/Mass">Nodule/Mass</option>
+                      <option value="Pleural Effusion">Pleural Effusion</option>
+                      <option value="Cardiomegaly">Cardiomegaly</option>
+                      <option value="Infiltration">Infiltration</option>
+                      <option value="Pleural Thickening">
+                        Pleural Thickening
+                      </option>
+                      <option value="Pulmonary Fibrosis">
+                        Pulmonary Fibrosis
+                      </option>
+                      <option value="Consolidation">Consolidation</option>
+                      <option value="Atelectasis">Atelectasis</option>
+                      <option value="Pneumothorax">Pneumothorax</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="abnormality-selector">
+                  <div class="selector-label">Subtype:</div>
+                  <div class="selector-dropdown-container">
+                    <select
+                      class="select-dropdown"
+                      v-model="selectedSubtype"
+                      @change="updateSelectedBoxSubtype"
+                      @click.stop
+                    >
+                      <option value="No Subtype-Abnormality">
+                        No Subtype-Abnormality
+                      </option>
+                      <option value="Subtype 1">Subtype 1</option>
+                      <option value="Subtype 2">Subtype 2</option>
+                      <option value="Subtype 3">Subtype 3</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right side - AI annotations with vertical layout -->
+            <div class="ai-annotations-container">
+              <!-- Add AI Results header to match UploadCXRView -->
+              <div class="results-header">
+                <h2>AI Results</h2>
+              </div>
+
+              <!-- Mock model banner -->
               <div
-                v-if="!currentImage && !cleanImage && !annotatedImage"
-                class="placeholder-ai-message"
+                v-if="isUsingMockModel || modelStatus?.using_mock_models"
+                class="model-status-banner"
               >
-                <i class="bi bi-robot"></i>
-                <p>AI annotations will appear here</p>
+                <i class="bi bi-info-circle-fill"></i>
+                <span>Using mock AI predictions (server is using lightweight model)</span>
               </div>
 
-              <!-- AI Confidence Summary -->
+              <!-- PyTorch not installed notification -->
+              <div
+                v-if="modelError && modelError.includes('PyTorch')"
+                class="model-status-banner"
+              >
+                <i class="bi bi-info-circle-fill"></i>
+                <span>Server note: Using client-side mock predictions (PyTorch not installed)</span>
+              </div>
+
+              <!-- AI annotated image -->
+              <div class="xray-image ai-image">
+                <!-- Use the pre-rendered annotated image with bounding boxes -->
+                <img
+                  v-if="annotatedImage"
+                  :src="annotatedImage"
+                  alt="AI annotated X-ray"
+                  ref="aiXrayImage"
+                  class="standardized-image"
+                />
+                <!-- Use the clean image without annotations -->
+                <img
+                  v-else-if="cleanImage"
+                  :src="cleanImage"
+                  alt="X-ray without annotations"
+                  ref="aiXrayImage"
+                  class="standardized-image"
+                />
+                <!-- Fallback to the original image if no images from server yet -->
+                <img
+                  v-else-if="currentImage"
+                  :src="currentImage"
+                  alt="X-ray"
+                  ref="aiXrayImage"
+                />
+
+                <!-- Loading state -->
+                <transition name="fade">
+                  <a-i-model-loader v-if="isModelLoading" />
+                </transition>
+
+                <!-- Error state - don't show PyTorch errors with warning icon -->
+                <transition name="fade">
+                  <model-error-overlay
+                    v-if="modelError && !modelError.includes('PyTorch')"
+                    :title="'Model could not be loaded'"
+                    :message="modelError || 'Please try again later.'"
+                    :show-retry="modelError && modelError.includes('loading')"
+                    @retry="retryModelPrediction"
+                  />
+                </transition>
+
+                <!-- No abnormalities message -->
+                <div
+                  v-if="
+                    !isModelLoading &&
+                    !modelError &&
+                    aiPredictions.length === 0 &&
+                    (cleanImage || currentImage)
+                  "
+                  class="no-abnormalities"
+                >
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <p>No abnormalities detected in the image</p>
+                  <button @click="retryModelPrediction" class="retry-btn">
+                    <i class="bi bi-arrow-clockwise"></i> Retry Detection
+                  </button>
+                </div>
+
+                <!-- Empty state -->
+                <div
+                  v-if="!currentImage && !cleanImage && !annotatedImage"
+                  class="placeholder-ai-message"
+                >
+                  <i class="bi bi-robot"></i>
+                  <p>AI annotations will appear here</p>
+                </div>
+              </div>
+
+              <!-- AI Confidence Summary - now below the image -->
               <div
                 v-if="aiPredictions.length > 0"
-                class="ai-confidence-summary"
-                :class="{ collapsed: !detectionResultsExpanded }"
+                class="ai-detection-results"
               >
                 <div class="summary-header" @click="toggleDetectionResults">
                   <h3>AI Detection Results:</h3>
@@ -516,9 +512,7 @@
                       )}`,
                     }"
                   >
-                    <span class="confidence-label"
-                      >{{ prediction.class || "Unknown" }}:</span
-                    >
+                    <span class="confidence-label">{{ prediction.class || "Unknown" }}:</span>
                     <span
                       class="confidence-value"
                       :style="{ color: getBoxColor(prediction.class || '') }"
@@ -528,16 +522,13 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Restore and update the action buttons at the bottom to match the image style -->
-            <div class="annotation-actions">
-              <button class="action-button submit-btn" @click="downloadExpertReport">
-                Submit and Proceed
-              </button>
-              <button class="action-button cancel-btn" @click="cancelAction">
-                Cancel
-              </button>
+              <!-- Download button -->
+              <div class="download-print-container">
+                <button class="download-print-btn" @click="downloadExpertReport">
+                  Download and Print
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1557,6 +1548,60 @@ export default {
       // Handle cancel action - could reset or do nothing
       console.log("Action cancelled");
     },
+    // Add a new cleanup method for image references
+    cleanupImageReferences() {
+      // Release object URLs if we created any
+      if (this.currentImage && this.currentImage.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(this.currentImage);
+        } catch (e) {
+          console.error("Error revoking object URL:", e);
+        }
+      }
+      
+      if (this.cleanImage && this.cleanImage.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(this.cleanImage);
+        } catch (e) {
+          console.error("Error revoking object URL:", e);
+        }
+      }
+      
+      if (this.annotatedImage && this.annotatedImage.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(this.annotatedImage);
+        } catch (e) {
+          console.error("Error revoking object URL:", e);
+        }
+      }
+      
+      // Remove reference to DOM elements to prevent memory leaks
+      if (this.$refs.xrayImage) {
+        // Remove any event listeners that might be attached
+        const xrayImg = this.$refs.xrayImage;
+        if (xrayImg) {
+          xrayImg.onload = null;
+          xrayImg.onerror = null;
+        }
+      }
+      
+      if (this.$refs.aiXrayImage) {
+        const aiImg = this.$refs.aiXrayImage;
+        if (aiImg) {
+          aiImg.onload = null;
+          aiImg.onerror = null;
+        }
+      }
+      
+      if (this.$refs.imageContainer) {
+        // Clear any event listeners from the container
+        const container = this.$refs.imageContainer;
+        if (container) {
+          // Vue will handle most event listeners, but clean up any manually added ones
+          container.onclick = null;
+        }
+      }
+    },
   },
   watch: {
     selectedBoxIndex(newValue) {
@@ -1609,6 +1654,20 @@ export default {
 
     // Reset cursor
     document.body.style.cursor = "default";
+    
+    // Cancel any pending API requests to prevent errors after component is unmounted
+    ModelService.cancelRequests();
+    
+    // Clean up references to DOM elements
+    this.cleanupImageReferences();
+    
+    // Reset all state to prevent memory leaks
+    this.currentImage = null;
+    this.cleanImage = null;
+    this.annotatedImage = null;
+    this.boxes = [];
+    this.points = [];
+    this.isModelLoading = false;
   },
 };
 </script>
@@ -1928,7 +1987,7 @@ export default {
 }
 
 .image-container,
-.ai-annotations {
+.ai-annotations-container {
   flex: 1;
   background: rgba(15, 23, 42, 0.5);
   border-radius: 1rem;
@@ -1937,6 +1996,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .image-title {
@@ -2632,13 +2692,11 @@ export default {
 }
 
 .toggle-btn {
-  background: transparent;
+  background: none;
   border: none;
-  color: #e5e7eb;
+  color: #60a5fa;
   cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  font-size: 0.8rem;
 }
 
 .toggle-btn:hover {
@@ -2652,21 +2710,16 @@ export default {
 }
 
 .confidence-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  padding: 0.5rem;
 }
 
 .confidence-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 4px;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
+  padding: 0.5rem 1rem;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .confidence-item:hover {
@@ -2675,17 +2728,13 @@ export default {
 }
 
 .confidence-label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #e5e7eb;
-  font-weight: 500;
 }
 
 .confidence-value {
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* Ensure images have the same aspect ratio preservation */
@@ -3262,5 +3311,122 @@ export default {
 
 .action-button.download-print-btn:hover {
   background-color: #c2185b;
+}
+
+/* Specific styles for AI annotations container */
+.ai-annotations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.results-header {
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 1rem 1rem 0 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.results-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+.model-status-banner {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0 1rem 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #e5e7eb;
+}
+
+.model-status-banner i {
+  color: #60a5fa;
+  font-size: 1rem;
+}
+
+.ai-image {
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Download button styling */
+.download-print-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.download-print-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.download-print-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(220, 38, 38, 0.3);
+}
+
+.ai-detection-results {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  margin: 0.5rem;
+  overflow: hidden;
+}
+
+/* New main content area styles */
+.main-content-area {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  height: 100%;
+}
+
+.tool-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tool-button:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.tool-button i {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #60a5fa;
+}
+
+.tool-button span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #e5e7eb;
 }
 </style>

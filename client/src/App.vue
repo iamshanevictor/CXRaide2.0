@@ -17,6 +17,7 @@
       </div>
       <router-view
         v-else-if="!errorOccurred"
+        :key="$route.fullPath"
         @loading-start="startLoading"
         @loading-end="stopLoading"
       />
@@ -48,14 +49,19 @@ export default {
   created() {
     // Setup global navigation guards to show loading state
     this.$router.beforeEach((to, from, next) => {
-      this.startLoading();
+      // Use a longer loading time when coming from the annotation page
+      if (from.name === 'annotate') {
+        this.startLoading(true); // Use extended loading for annotation page transitions
+      } else {
+        this.startLoading();
+      }
       next();
     });
     this.$router.afterEach(() => {
-      // Delay hiding loader slightly to prevent flashing on fast loads
+      // Use a longer delay for hiding loader after navigation from annotation page
       setTimeout(() => {
         this.stopLoading();
-      }, 300);
+      }, 500); // Increase from 300ms to 500ms
     });
   },
   errorCaptured(err, vm, info) {
@@ -67,9 +73,24 @@ export default {
     reloadApp() {
       window.location.reload();
     },
-    startLoading() {
+    startLoading(extended = false) {
       clearTimeout(this.loadingTimeout);
       this.isLoading = true;
+
+      // If coming from annotation page, force a small delay to ensure proper cleanup
+      if (extended) {
+        console.log("[App] Using extended loading sequence");
+        // Force component cleanup during loading
+        setTimeout(() => {
+          // Clear any hanging DOM references
+          Array.from(document.querySelectorAll('canvas')).forEach(canvas => {
+            const context = canvas.getContext('2d');
+            if (context) {
+              context.clearRect(0, 0, canvas.width, canvas.height);
+            }
+          });
+        }, 100);
+      }
     },
     stopLoading() {
       // Use timeout to prevent quick flashes of loading screen
@@ -116,6 +137,37 @@ a:hover {
 
 button {
   font-family: "Montserrat", sans-serif;
+}
+
+/* Global select element styling */
+select {
+  appearance: none;
+  background-color: rgba(15, 23, 42, 0.95);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 35px;
+  cursor: pointer;
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+select:hover, select:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+}
+
+select option {
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #f3f4f6;
+  padding: 10px;
 }
 
 /* Custom scrollbar */

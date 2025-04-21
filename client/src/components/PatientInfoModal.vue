@@ -333,6 +333,37 @@ input, select, textarea {
   transition: border-color 0.2s;
 }
 
+/* Fix for dropdown options visibility */
+select {
+  appearance: menulist;
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+select option {
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #f3f4f6;
+  padding: 10px;
+}
+
+/* Show the dropdown arrow clearly */
+select {
+  appearance: none;
+  background-color: rgba(15, 23, 42, 0.95);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 35px; /* Space for the arrow */
+  cursor: pointer;
+}
+
+/* Style for the dropdown on hover/focus */
+select:hover, select:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+}
+
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #3b82f6;
@@ -348,6 +379,7 @@ textarea {
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 4px;
   padding: 1rem;
+  background-color: rgba(15, 23, 42, 0.4);
 }
 
 .form-section h3 {
@@ -356,6 +388,22 @@ textarea {
   margin: 0 0 1rem 0;
   text-align: center;
   font-weight: 500;
+  background-color: rgba(15, 23, 42, 0.6);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* Specific styling for selects in form sections */
+.form-section select {
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-section select:hover {
+  border-color: #3b82f6;
+  background-color: rgba(15, 23, 42, 0.8);
 }
 
 .finding-group {
