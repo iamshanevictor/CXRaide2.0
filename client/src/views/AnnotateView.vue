@@ -320,11 +320,47 @@
                     ></div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Expert Download button - moved outside container for better positioning -->
+              <!-- Abnormality Selection Panel moved below image -->
+              <div class="abnormality-type-container" @click.stop>
+                <div class="abnormality-type-row">
+                  <div class="abnormality-label">Abnormality Type:</div>
+                  <select
+                    class="abnormality-select"
+                    v-model="selectedAbnormality"
+                    @change="updateSelectedBoxType"
+                    @click.stop
+                  >
+                    <option value="Nodule/Mass">Nodule/Mass</option>
+                    <option value="Pleural Effusion">Pleural Effusion</option>
+                    <option value="Cardiomegaly">Cardiomegaly</option>
+                    <option value="Infiltration">Infiltration</option>
+                    <option value="Pleural Thickening">Pleural Thickening</option>
+                    <option value="Pulmonary Fibrosis">Pulmonary Fibrosis</option>
+                    <option value="Consolidation">Consolidation</option>
+                    <option value="Atelectasis">Atelectasis</option>
+                    <option value="Pneumothorax">Pneumothorax</option>
+                  </select>
+                </div>
+                
+                <div class="abnormality-type-row">
+                  <div class="abnormality-label">Subtype:</div>
+                  <select
+                    class="abnormality-select"
+                    v-model="selectedSubtype"
+                    @change="updateSelectedBoxSubtype"
+                    @click.stop
+                  >
+                    <option value="No Subtype-Abnormality">No Subtype-Abnormality</option>
+                    <option value="Subtype 1">Subtype 1</option>
+                    <option value="Subtype 2">Subtype 2</option>
+                    <option value="Subtype 3">Subtype 3</option>
+                  </select>
+                </div>
               </div>
               
-              <!-- Centered Expert Download button -->
+              <!-- Download button moved to bottom -->
               <div v-if="currentImage" class="download-print-container">
                 <button class="download-print-btn" @click="downloadExpertReport">
                   Download and Print
@@ -340,54 +376,6 @@
                 @change="handleFileUpload"
                 class="hidden-file-input"
               />
-
-              <!-- Abnormality Selection Panel (always visible) -->
-              <div class="abnormality-selection-container" @click.stop>
-                <div class="abnormality-selector">
-                  <div class="selector-label">Abnormality Type:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedAbnormality"
-                      @change="updateSelectedBoxType"
-                      @click.stop
-                    >
-                      <option value="Nodule/Mass">Nodule/Mass</option>
-                      <option value="Pleural Effusion">Pleural Effusion</option>
-                      <option value="Cardiomegaly">Cardiomegaly</option>
-                      <option value="Infiltration">Infiltration</option>
-                      <option value="Pleural Thickening">
-                        Pleural Thickening
-                      </option>
-                      <option value="Pulmonary Fibrosis">
-                        Pulmonary Fibrosis
-                      </option>
-                      <option value="Consolidation">Consolidation</option>
-                      <option value="Atelectasis">Atelectasis</option>
-                      <option value="Pneumothorax">Pneumothorax</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="abnormality-selector">
-                  <div class="selector-label">Subtype:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedSubtype"
-                      @change="updateSelectedBoxSubtype"
-                      @click.stop
-                    >
-                      <option value="No Subtype-Abnormality">
-                        No Subtype-Abnormality
-                      </option>
-                      <option value="Subtype 1">Subtype 1</option>
-                      <option value="Subtype 2">Subtype 2</option>
-                      <option value="Subtype 3">Subtype 3</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <!-- Right side - AI annotations with vertical layout -->
@@ -1989,14 +1977,14 @@ export default {
 .image-container,
 .ai-annotations-container {
   flex: 1;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  height: 100%;
 }
 
 .image-title {
@@ -2689,6 +2677,21 @@ export default {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.summary-header:hover {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.summary-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
 }
 
 .toggle-btn {
@@ -2696,45 +2699,93 @@ export default {
   border: none;
   color: #60a5fa;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .toggle-btn:hover {
   background-color: rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
-.ai-confidence-summary h3 {
-  font-size: 0.9rem;
-  color: #e5e7eb;
-  margin-bottom: 0;
+.toggle-btn i {
+  transition: transform 0.2s ease;
 }
 
 .confidence-list {
-  padding: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.4);
+  margin-top: 0.25rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease-in-out;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Add these new style classes */
+.confidence-list-enter-active,
+.confidence-list-leave-active {
+  transition: all 0.3s ease;
+  max-height: 300px;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.confidence-list-enter-from,
+.confidence-list-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* Style for the dropdown chevron rotation */
+.toggle-btn i.bi-chevron-down {
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
+}
+
+.toggle-btn i.bi-chevron-up {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
 }
 
 .confidence-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: rgba(15, 23, 42, 0.3);
-  border-radius: 0.25rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.35rem;
   margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .confidence-item:hover {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.7);
   transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .confidence-label {
-  font-size: 0.8rem;
-  color: #e5e7eb;
+  font-size: 0.85rem;
+  color: #f3f4f6;
+  font-weight: 500;
 }
 
 .confidence-value {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
 }
 
 /* Ensure images have the same aspect ratio preservation */
@@ -2856,12 +2907,10 @@ export default {
 
 /* Styling for the new abnormality dropdown below the X-ray image */
 .abnormality-selection-container {
-  margin-top: 1rem;
-  padding: 1rem 1.5rem;
-  background: rgba(17, 24, 39, 0.8);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  margin-top: 0;
+  padding: 0.75rem 1rem;
+  background: rgba(17, 24, 39, 0.7);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
   display: flex;
   flex-direction: row;
   gap: 2rem;
@@ -3006,7 +3055,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(17, 24, 39, 0.7);
   border-radius: 0.5rem 0.5rem 0 0;
   padding: 0.75rem 1rem;
   color: #e5e7eb;
@@ -3039,37 +3088,34 @@ export default {
 }
 
 .upload-area {
-  border: 2px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 0 0 0.5rem 0.5rem;
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 0.5rem;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #0f172a; /* Updated background to match UploadCXRView */
   flex: 1;
   position: relative;
+  background-color: rgba(13, 25, 42, 0.95);
   overflow: hidden;
   min-height: 300px;
+  margin: 1rem;
+  transition: all 0.3s ease;
 }
 
 .upload-area:hover {
-  border-color: #3b82f6;
-  background: rgba(
-    15,
-    23,
-    42,
-    0.6
-  ); /* Updated hover background to match UploadCXRView */
+  background-color: rgba(17, 30, 52, 0.95);
+  border-color: rgba(59, 130, 246, 0.7);
 }
 
-.upload-area.has-image {
-  border-style: solid;
-  border-color: rgba(59, 130, 246, 0.6);
-  padding: 0;
-  min-height: auto;
+.upload-placeholder.dragging {
+  background-color: rgba(17, 34, 64, 0.95);
+}
+
+.upload-placeholder.dragging i {
+  transform: scale(1.1);
+  color: #60a5fa;
 }
 
 .upload-placeholder {
@@ -3080,250 +3126,58 @@ export default {
   justify-content: center;
   width: 100%;
   height: 100%;
-}
-
-.upload-placeholder.dragging {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
+  padding: 2rem;
 }
 
 .upload-placeholder i {
-  font-size: 4rem; /* Increased size to match UploadCXRView */
+  font-size: 3.5rem;
   color: #3b82f6;
-  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
-  opacity: 0.9; /* Added opacity to match UploadCXRView */
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
 }
 
 .upload-placeholder p {
-  color: #94a3b8;
-  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
-  line-height: 1.6; /* Updated line height to match UploadCXRView */
-}
-
-.xray-image-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
-.xray-image-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-.annotation-overlays {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* Empty state */
-.placeholder-ai-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #94a3b8; /* Updated color to match UploadCXRView */
+  color: #b4c6ef;
+  font-size: 0.95rem;
+  line-height: 1.6;
   text-align: center;
 }
 
-.placeholder-ai-message i {
-  font-size: 4rem; /* Increased size to match UploadCXRView style */
-  color: #3b82f6; /* Updated color to match UploadCXRView */
-  margin-bottom: 2rem; /* Increased margin to match UploadCXRView */
-  opacity: 0.9; /* Added opacity to match UploadCXRView */
-}
-
-.placeholder-ai-message p {
-  font-size: 1.05rem; /* Updated font size to match UploadCXRView */
-  line-height: 1.6; /* Added line height to match UploadCXRView */
-}
-
-.ai-annotations {
-  flex: 1;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  padding: 1.5rem;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+.xray-image-container {
   width: 100%;
-}
-
-.results-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-/* Mock model notification styles */
-.mock-model-notification {
-  background-color: rgba(247, 213, 212, 0.25);
-  border-left: 3px solid #f59e0b;
-  padding: 8px 16px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
+  height: 100%;
   display: flex;
-  flex-direction: column;
-}
-
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: #b45309;
-}
-
-.notification-content i {
-  font-size: 1rem;
-}
-
-.notification-details {
-  color: #92400e;
-  font-size: 0.8rem;
-  margin-top: 2px;
-  margin-left: 24px;
-  opacity: 0.9;
-}
-
-/* Remove the old demo mode warning styles */
-.demo-mode-warning {
-  display: none;
-}
-
-.card,
-.info-card,
-.status-card,
-.model-info-card,
-.results-card {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.1);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  overflow: hidden;
-}
-
-.status-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: rgba(23, 37, 84, 0.6);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background-color: #000;
 }
 
-.status-icon i {
-  font-size: 1rem;
-  color: #60a5fa;
-}
-
-.status-active-text {
-  color: #38bdf8;
-}
-
-.status-inactive-text {
-  color: #f87171;
-}
-
-.status-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.2;
-}
-
-.card-header h2,
-.info-card h2,
-.status-card h2,
-.model-header h2 {
-  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
-}
-
-.metric-value {
-  color: #60a5fa;
+.abnormality-type-container {
+  margin-top: 0;
+  padding: 0.75rem 1rem;
+  background: rgba(17, 24, 39, 0.7);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  justify-content: flex-start;
 }
 
 .download-print-container {
   display: flex;
   justify-content: center;
-  margin-top: 15px;
-  margin-bottom: 15px;
-  width: 100%;
-}
-
-.download-print-btn {
-  background-color: #e91e63;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-}
-
-.download-print-btn:hover {
-  background-color: #c2185b;
-}
-
-/* Update action-button styling to match the downloaded button */
-.action-button.download-print-btn {
-  background-color: #e91e63;
-  color: white;
-}
-
-.action-button.download-print-btn:hover {
-  background-color: #c2185b;
-}
-
-/* Specific styles for AI annotations container */
-.ai-annotations-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(17, 24, 39, 0.7);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .results-header {
   padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 1rem 1rem 0 0;
+  background: rgba(17, 24, 39, 0.7);
+  border-radius: 0.5rem 0.5rem 0 0;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
@@ -3388,9 +3242,9 @@ export default {
 }
 
 .ai-detection-results {
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 0.5rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: transparent;
+  border-radius: 0;
+  border: none;
   margin: 0.5rem;
   overflow: hidden;
 }
@@ -3428,5 +3282,93 @@ export default {
   font-size: 0.7rem;
   font-weight: 600;
   color: #e5e7eb;
+}
+
+.abnormality-type-container {
+  margin-top: 0;
+  padding: 0.75rem 1rem;
+  background: rgba(17, 24, 39, 0.7);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  justify-content: flex-start;
+}
+
+.abnormality-type-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.abnormality-label {
+  font-size: 0.9rem;
+  color: #f9fafb;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.abnormality-select {
+  min-width: 180px;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.25rem;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 35px;
+}
+
+.abnormality-select:hover,
+.abnormality-select:focus {
+  border-color: rgba(59, 130, 246, 0.7);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.select-dropdown option {
+  background-color: #1e293b;
+  color: #f3f4f6;
+}
+
+.abnormality-label {
+  font-size: 0.9rem;
+  color: #f9fafb;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.upload-area.has-image {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background-color: #000;
+  border-radius: 0;
+}
+
+.xray-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background-color: #000;
+}
+
+/* Make sure the image scales properly */
+.xray-image-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 </style>
