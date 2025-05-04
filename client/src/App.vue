@@ -1,5 +1,11 @@
 <template>
   <div id="app">
+    <!-- Offline mode notification -->
+    <div v-if="isOfflineMode" class="offline-notification">
+      <i class="bi bi-wifi-off"></i>
+      <span>Offline Mode - Limited Functionality</span>
+    </div>
+    
     <transition name="fade" mode="out-in">
       <div v-if="isLoading" class="loading-screen">
         <div class="loading-container">
@@ -44,9 +50,16 @@ export default {
       errorOccurred: false,
       isLoading: false,
       loadingTimeout: null,
+      isOfflineMode: false,
     };
   },
   created() {
+    // Check if we're in offline mode
+    this.checkOfflineMode();
+    
+    // Setup interval to check offline mode every minute
+    setInterval(this.checkOfflineMode, 60000);
+    
     // Setup global navigation guards to show loading state
     this.$router.beforeEach((to, from, next) => {
       // Use a longer loading time when coming from the annotation page
@@ -58,6 +71,9 @@ export default {
       next();
     });
     this.$router.afterEach(() => {
+      // Check offline status after each navigation
+      this.checkOfflineMode();
+      
       // Use a longer delay for hiding loader after navigation from annotation page
       setTimeout(() => {
         this.stopLoading();
@@ -98,6 +114,24 @@ export default {
         this.isLoading = false;
       }, 300);
     },
+    checkOfflineMode() {
+      try {
+        // Check if token exists
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          this.isOfflineMode = false;
+          return;
+        }
+        
+        // Check if it's an offline token
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        this.isOfflineMode = decoded.offline_mode === true;
+      } catch (error) {
+        console.error('[App] Error checking offline mode:', error);
+        this.isOfflineMode = false;
+      }
+    }
   },
 };
 </script>
@@ -376,5 +410,27 @@ select option {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Offline mode notification */
+.offline-notification {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(244, 63, 94, 0.9);
+  color: white;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.offline-notification i {
+  font-size: 1rem;
 }
 </style>

@@ -175,14 +175,29 @@ export default {
           status: error.response?.status,
         });
 
-        if (error.code === "ECONNABORTED") {
-          this.error =
-            "Connection timed out. Please check your internet connection.";
-        } else if (!error.response) {
-          this.error = "Network error. Please check your internet connection.";
-        } else if (error.response.status === 500) {
+        // Network error or connection issue detected - bypass login
+        if (error.code === "ECONNABORTED" || error.code === "ERR_NETWORK" || !error.response) {
+          console.log("[Login] Network error detected - bypassing authentication");
+          
+          // Create a mock token (with appropriate expiration)
+          const mockToken = this.createMockToken(this.username || "guest_user");
+          localStorage.setItem("authToken", mockToken);
+          
+          // Show a warning to the user
+          this.error = "Connection to server failed. Proceeding in offline mode with limited functionality.";
+          
+          // Delay for 1.5 seconds so user can see the message
+          setTimeout(() => {
+            this.$router.push("/home");
+          }, 1500);
+          
+          return;
+        }
+        
+        // Handle other errors normally
+        if (error.response && error.response.status === 500) {
           this.error = "Server error. Please try again later.";
-        } else if (error.response.status === 401) {
+        } else if (error.response && error.response.status === 401) {
           this.error = "Invalid credentials. Please try again.";
         } else {
           this.error =
@@ -191,6 +206,41 @@ export default {
       } finally {
         this.isLoading = false;
       }
+    },
+    // Helper function to create a mock JWT token
+    createMockToken(username) {
+      // Create header
+      const header = {
+        alg: "HS256",
+        typ: "JWT"
+      };
+      
+      // Create payload with 24 hour expiration
+      const now = Math.floor(Date.now() / 1000);
+      const payload = {
+        sub: username,
+        name: username,
+        username: username,
+        iat: now,
+        exp: now + 86400, // 24 hours from now
+        offline_mode: true // Flag to indicate this is a bypass token
+      };
+      
+      // For mock token, we'll use base64 encoding (not actual JWT signing)
+      const encodeBase64 = (obj) => {
+        return btoa(JSON.stringify(obj))
+          .replace(/=/g, '')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_');
+      };
+      
+      // Create the token parts
+      const headerEncoded = encodeBase64(header);
+      const payloadEncoded = encodeBase64(payload);
+      const signatureEncoded = encodeBase64({sig: "mock_signature"});
+      
+      // Combine into a JWT token format
+      return `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`;
     },
   },
 };

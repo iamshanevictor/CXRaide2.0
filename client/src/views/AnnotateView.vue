@@ -513,8 +513,8 @@
 
               <!-- Download button -->
               <div class="download-print-container">
-                <button class="download-print-btn" @click="downloadExpertReport">
-                  Download and Print
+                <button class="download-print-btn" @click="generatePDF">
+                  <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
                 </button>
               </div>
             </div>
@@ -524,6 +524,11 @@
 
       <!-- Loading overlay -->
       <loading-overlay v-if="isLoading" message="Loading annotation data..." />
+      <!-- Loading overlay -->
+      <div v-if="isModelLoading" class="loader-overlay">
+        <div class="loader"></div>
+        <div>{{ loadingMessage || "Loading..." }}</div>
+      </div>
     </div>
   </div>
 
@@ -537,20 +542,21 @@
 </template>
 
 <script>
-import { apiUrl, logout } from "../utils/api";
-import { runNetworkTest } from "../utils/network-test";
+import { logout, health, runNetworkTest } from "../utils/api";
 import LoadingOverlay from "../components/LoadingOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 import ModelService from "@/services/modelService";
-import PatientInfoModal from "../components/PatientInfoModal.vue";
+import PatientInfoModal from "@/components/PatientInfoModal.vue";
+import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas';
 
 export default {
   components: {
     LoadingOverlay,
     AIModelLoader,
     ModelErrorOverlay,
-    PatientInfoModal,
+    PatientInfoModal
   },
   data() {
     return {
@@ -615,6 +621,7 @@ export default {
       // Add these new properties
       showPatientInfoModal: false,
       currentReportType: "Expert",
+      loadingMessage: "",
     };
   },
   created() {
@@ -1515,21 +1522,203 @@ export default {
       // Close the modal
       this.showPatientInfoModal = false;
       
-      // Download the appropriate image based on report type
-      if (reportType === "Expert" && this.currentImage) {
-        const link = document.createElement("a");
-        link.href = this.currentImage;
-        link.download = `CXRaide_Expert_${patientInfo.id}_${new Date().toISOString().slice(0, 10)}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else if (reportType === "AI" && this.annotatedImage) {
-        const link = document.createElement("a");
-        link.href = this.annotatedImage;
-        link.download = `CXRaide_AI_${patientInfo.id}_${new Date().toISOString().slice(0, 10)}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Show loading overlay
+      this.isModelLoading = true;
+      this.loadingMessage = "Generating PDF report...";
+      
+      try {
+        // Get current date and time
+        const currentDate = new Date().toISOString().split('T')[0];
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        
+        // Create a template with the patient information
+        let templateHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <title>Radiographic Report</title>
+              <style>
+                  body {
+                      font-family: 'Times New Roman', Times, serif;
+                      margin: 0;
+                      padding: 20px;
+                      font-size: 12pt;
+                  }
+                  .header, .footer {
+                      text-align: center;
+                      margin-bottom: 20px;
+                  }
+                  .header img {
+                      width: 150px; 
+                  }
+                  .header h1 {
+                      margin: 0;
+                      color: #d00000; 
+                      font-size: 24pt;
+                  }
+                  .header h4{
+                      margin-top: -10px;
+                  }
+                  .content {
+                      margin-top: 20px;
+                  }
+                  .patient-info, .interpretation, .abnormalities {
+                      margin-bottom: 20px;
+                  }
+                  .patient-info td {
+                      padding: 2px 20px;
+                  }
+                  .signature {
+                      margin-top: 80px;
+                      text-align: right;
+                  }
+                  .signature img {
+                      width: 100px; 
+                  }
+                  .interpretation h3{
+                      text-align: center;
+                      margin-top: 50px;
+                  }
+                  .findings h3 {
+                      text-align: center;
+                  }
+                  .interpretation p{
+                      margin-top: 30px;
+                  }
+                  .footer{
+                      margin-top: 200px;
+                  }
+                  .images {
+                      page-break-before: always;
+                      text-align: center;
+                  }
+                  .images img{
+                      width: 150mm;
+                      height: 150mm;
+                      display: block;
+                      margin: 0 auto;
+                  }
+                  .radiologist-info{
+                      text-align: right;
+                  }
+                  h3 {
+                      text-align: center;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h4>CXRAide Annotation Tool</h4>
+                  <h1>RADIOGRAPHIC REPORT</h1>
+              </div>
+              <div class="content">
+                  <table class="patient-info">
+                      <tr>
+                          <hr>
+                          <td>Patient Name:</td>
+                          <td>${patientInfo.name || 'N/A'}</td>
+                          <td>Patient ID No.:</td>
+                          <td>${patientInfo.id || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                          <td>Gender:</td>
+                          <td>${patientInfo.gender || 'N/A'}</td>
+                          <td>Age:</td>
+                          <td>${patientInfo.age || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                          <td>Exam Taken:</td>
+                          <td>${patientInfo.examTaken || 'CHEST'}</td>
+                          <td>Address:</td>
+                          <td>${patientInfo.address || 'DAVAO CITY'}</td>
+                      </tr>
+                      <tr>
+                          <td>Result Date:</td>
+                          <td>${currentDate}</td>
+                          <td>Result Time:</td>
+                          <td>${currentTime}</td>
+                      </tr>
+                  </table>
+                  <hr>
+                  <div class="clinical-indication">
+                      <h3>CLINICAL INDICATION</h3>
+                      <p>${patientInfo.clinicalIndication || 'N/A'}</p>
+                  </div>
+              
+                  <div class="findings">
+                      <h3>FINDINGS</h3>
+                      <p><strong>Lungs:</strong> ${patientInfo.findings.lungs || 'N/A'}</p>
+                      <p><strong>Heart:</strong> ${patientInfo.findings.heart || 'N/A'}</p>
+                      <p><strong>Mediastinum:</strong> ${patientInfo.findings.mediastinum || 'N/A'}</p>
+                      <p><strong>Diaphragm and Pleura:</strong> ${patientInfo.findings.diaphragmPleura || 'N/A'}</p>
+                      <p><strong>Soft Tissues and Bones:</strong> ${patientInfo.findings.softTissuesBones || 'N/A'}</p>
+                      <p>${patientInfo.findings.additional || ''}</p>
+                  </div>
+
+                  <div class="abnormalities">
+                      <h3>THE ABNORMALITY FOUND IS/ARE:</h3>
+                      <p><strong>Main Abnormality:</strong> ${patientInfo.abnormalities.main || 'N/A'}</p>
+                      <p><strong>Sub Abnormality:</strong> ${patientInfo.abnormalities.sub || 'N/A'}</p>
+                  </div>
+                  
+                  <div class="impression">
+                      <h3>IMPRESSION</h3>
+                      <p>${patientInfo.impression || 'N/A'}</p>
+                  </div>
+              
+                  <div class="recommendations">
+                      <h3>RECOMMENDATIONS</h3>
+                      <p>${patientInfo.recommendations || 'N/A'}</p>
+                  </div>
+              
+                  <div class="radiologist-info">
+                      <h3>REPORT PREPARED BY</h3>
+                      <p><strong>Radiologist:</strong> Dr. ${patientInfo.radiologist || 'N/A'}</p>
+                      <p><strong>Radiographer:</strong> ${patientInfo.radiographer || 'N/A'}</p>
+                  </div>
+              </div>
+
+              <div class="images">
+                  <h4>Chest X-ray Image (${reportType} Annotated)</h4>
+                  <img src="${reportType === 'Expert' ? this.currentImage : this.annotatedImage}" alt="Annotated Chest X-ray">
+              </div>
+              
+              <div class="footer">
+                  <p>Not Valid without seal</p>
+              </div>
+          </body>
+          </html>
+        `;
+        
+        // Convert the HTML template to PDF
+        const element = document.createElement('div');
+        element.innerHTML = templateHtml;
+        document.body.appendChild(element);
+        
+        // Configure PDF options
+        const options = {
+          margin: 10,
+          filename: `CXRaide_Report_${patientInfo.id}_${currentDate}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Generate the PDF
+        html2pdf().from(element).set(options).save();
+        
+        // Clean up the DOM
+        document.body.removeChild(element);
+        
+        console.log("[PDF] Report generated successfully");
+      } catch (error) {
+        console.error("[PDF] Error generating report:", error);
+        alert("Error generating PDF report. Please try again.");
+      } finally {
+        // Hide loading overlay
+        this.isModelLoading = false;
+        this.loadingMessage = "";
       }
     },
     cancelAction() {
@@ -1589,6 +1778,10 @@ export default {
           container.onclick = null;
         }
       }
+    },
+    generatePDF() {
+      this.currentReportType = "Expert";
+      this.showPatientInfoModal = true;
     },
   },
   watch: {
@@ -3370,5 +3563,32 @@ export default {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.download-print-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.download-print-btn {
+  background: linear-gradient(90deg, #f92672, #ff5e98);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-print-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(249, 38, 114, 0.3);
 }
 </style>
