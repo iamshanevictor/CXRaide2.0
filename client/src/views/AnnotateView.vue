@@ -619,6 +619,9 @@ export default {
       showPatientInfoModal: false,
       currentReportType: "Expert",
       loadingMessage: "",
+      
+      // Add navigation guard flag
+      isNavigating: false,
     };
   },
   created() {
@@ -1752,6 +1755,21 @@ export default {
         }
       }
       
+      // Clean up any remaining blob URLs that might be in use
+      try {
+        const images = document.querySelectorAll('img');
+        images.forEach(img => {
+          if (img.src && img.src.startsWith('blob:')) {
+            URL.revokeObjectURL(img.src);
+            img.src = '';
+            img.onload = null;
+            img.onerror = null;
+          }
+        });
+      } catch (e) {
+        console.error("Error cleaning up image elements:", e);
+      }
+      
       // Remove reference to DOM elements to prevent memory leaks
       if (this.$refs.xrayImage) {
         // Remove any event listeners that might be attached
@@ -1759,6 +1777,7 @@ export default {
         if (xrayImg) {
           xrayImg.onload = null;
           xrayImg.onerror = null;
+          xrayImg.src = '';
         }
       }
       
@@ -1767,6 +1786,7 @@ export default {
         if (aiImg) {
           aiImg.onload = null;
           aiImg.onerror = null;
+          aiImg.src = '';
         }
       }
       
@@ -1776,8 +1796,37 @@ export default {
         if (container) {
           // Vue will handle most event listeners, but clean up any manually added ones
           container.onclick = null;
+          // Clear any child elements if needed to force garbage collection
+          while (container.firstChild) {
+            container.removeChild(container.firstChild);
+          }
         }
       }
+      
+      // Clear any canvas elements created by the annotation tools
+      try {
+        const canvases = document.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+          // Remove any event listeners
+          canvas.onmousedown = null;
+          canvas.onmousemove = null;
+          canvas.onmouseup = null;
+        });
+      } catch (e) {
+        console.error("Error cleaning up canvas elements:", e);
+      }
+      
+      // Force a garbage collection hint
+      setTimeout(() => {
+        this.currentImage = null;
+        this.cleanImage = null;
+        this.annotatedImage = null;
+        console.log("[AnnotateView] Cleanup completed");
+      }, 0);
     },
     generatePDF() {
       this.currentReportType = "Expert";
@@ -1849,6 +1898,25 @@ export default {
     this.boxes = [];
     this.points = [];
     this.isModelLoading = false;
+  },
+  beforeRouteLeave(to, from, next) {
+    // Set navigating flag to true
+    this.isNavigating = true;
+    
+    // Perform thorough cleanup before leaving
+    console.log("[AnnotateView] Running pre-navigation cleanup");
+    
+    // Cancel any pending API requests
+    ModelService.cancelRequests();
+    
+    // Clean up image resources
+    this.cleanupImageReferences();
+    
+    // Reset DOM modifications
+    document.body.style.cursor = 'default';
+    
+    // Allow navigation to proceed
+    next();
   },
 };
 </script>

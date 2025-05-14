@@ -107,6 +107,33 @@ router.beforeEach(async (to, from, next) => {
       // Reset any global CSS that might be affecting other pages
       document.body.style.cursor = 'default';
       
+      // Clear any canvas elements
+      const canvasElements = document.querySelectorAll('canvas');
+      canvasElements.forEach(canvas => {
+        try {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        } catch (e) {
+          console.error("[Router] Error cleaning up canvas:", e);
+        }
+      });
+      
+      // Force major cleanup with timeout
+      setTimeout(() => {
+        console.log("[Router] Forcing additional cleanup");
+        
+        // Clear any detached event listeners
+        if (window.gc) {
+          try {
+            window.gc();
+          } catch (e) {
+            console.warn("[Router] Manual GC not available:", e);
+          }
+        }
+      }, 100);
+      
     } catch (error) {
       console.error("[Router] Error during annotation page cleanup:", error);
     }
@@ -282,6 +309,15 @@ router.afterEach((to, from) => {
   // Free up memory by running garbage collection via setTimeout
   setTimeout(() => {
     navigationAttempts = Math.max(0, navigationAttempts - 1);
+    
+    // Fix for blank content after navigating from AnnotateView
+    if (from.name === 'annotate' && (to.name === 'home' || to.name === 'upload-cxr')) {
+      console.log("[Router] Applying forceful recovery for blank content issue");
+      
+      // Force reload as a last resort - this is a direct fix for the blank content issue
+      // when navigating from AnnotateView to other pages
+      window.location.href = to.path;
+    }
     
     // This helps release memory more quickly
     if (window.gc) {

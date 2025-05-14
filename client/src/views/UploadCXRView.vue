@@ -186,29 +186,43 @@
                 @change="handleFileUpload"
                 class="hidden-file-input"
               />
+            </div>
 
-              <!-- Model Selection Panel -->
-              <div class="abnormality-selection-container" @click.stop>
-                <div class="abnormality-selector">
-                  <div class="selector-label">AI Model Selection:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedModel"
-                      @click.stop
-                    >
-                      <option value="CXR-IT3">SSD300_VGG16-CXR6plus3 v1</option>
-                      <option value="CXR-IT2">SSD300_VGG16-CXR9 v2</option>
-                    </select>
-                  </div>
+            <!-- Abnormality Selection Panel styled to match AnnotateView -->
+            <div class="abnormality-type-container" @click.stop>
+              <div class="abnormality-type-row">
+                <div class="abnormality-label">AI Model Selection:</div>
+                <div class="select-wrapper">
+                  <select
+                    class="abnormality-select custom-select"
+                    v-model="selectedModel"
+                    @click.stop
+                  >
+                    <option value="CXR-IT3">SSD300_VGG16-CXR6plus3 v1</option>
+                    <option value="CXR-IT2">SSD300_VGG16-CXR9 v2</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="abnormality-type-row">
+                <div class="abnormality-label">Display Type:</div>
+                <div class="select-wrapper">
+                  <select
+                    class="abnormality-select custom-select"
+                    v-model="displayType"
+                    @click.stop
+                  >
+                    <option value="annotations">Show Annotations</option>
+                    <option value="heatmap">Show Heatmap</option>
+                  </select>
                 </div>
               </div>
             </div>
 
             <!-- Action buttons -->
-            <div class="action-buttons">
+            <div class="download-print-container">
               <button
-                class="analyze-with-ai-button"
+                class="download-print-btn analyze-btn"
                 :disabled="!currentImage || isAnalyzing"
                 @click="analyzeImage"
               >
@@ -353,6 +367,7 @@ export default {
     return {
       currentImage: null,
       selectedModel: "CXR-IT3", // Default to the combined model
+      displayType: "annotations", // Default display type
       isAnalyzing: false,
       annotatedImage: null,
       aiPredictions: [],
@@ -978,14 +993,28 @@ export default {
 }
 
 .upload-area {
-  flex: 1;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   position: relative;
+  background-color: #0f172a;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.3);
+  min-height: 300px;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.upload-area.has-image {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background-color: #000;
+  border-radius: 0;
 }
 
 .upload-placeholder {
@@ -995,29 +1024,31 @@ export default {
   align-items: center;
   gap: 1rem;
   padding: 2rem;
-  border: 2px dashed rgba(59, 130, 246, 0.3);
-  border-radius: 0.5rem;
-  background: rgba(15, 23, 42, 0.5);
-  transition: all 0.2s ease;
-  width: 80%;
-  max-width: 400px;
+  border: 1px dashed #3b82f6;
+  border-radius: 0;
+  width: 350px;
+  height: 220px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: rgba(15, 23, 42, 0.2);
 }
 
 .upload-placeholder.dragging {
   background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
+  border-color: #60a5fa;
 }
 
 .upload-placeholder i {
-  font-size: 3rem;
+  font-size: 2.5rem;
   color: #3b82f6;
+  margin-bottom: 0.5rem;
 }
 
 .upload-placeholder p {
-  color: #e5e7eb;
+  color: #b4c6ef;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .hidden-file-input {
@@ -1040,6 +1071,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  background-color: #000;
 }
 
 .xray-image-container img {
@@ -1710,5 +1742,140 @@ export default {
   .action-buttons {
     flex-direction: column;
   }
+}
+
+/* Added styles to match AnnotateView */
+.abnormality-type-container {
+  margin-top: 0;
+  padding: 0.75rem 1rem;
+  background: rgba(17, 24, 39, 0.7);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  justify-content: flex-start;
+}
+
+.abnormality-type-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.abnormality-label {
+  font-size: 0.9rem;
+  color: #f9fafb;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.abnormality-select {
+  min-width: 180px;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.25rem;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 35px;
+}
+
+.abnormality-select:hover,
+.abnormality-select:focus {
+  border-color: rgba(59, 130, 246, 0.7);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Custom select styling to ensure proper dropdown appearance */
+.custom-select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 38px;
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  color: #f3f4f6 !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 16px !important;
+  padding-right: 35px !important;
+}
+
+.select-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+/* Style for the analyze button to match download-print-btn but with blue gradient */
+.analyze-btn {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa) !important;
+}
+
+.analyze-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(59, 130, 246, 0.3);
+}
+
+.analyze-btn:disabled {
+  background: linear-gradient(135deg, #64748b, #94a3b8) !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Match file info bar styling */
+.file-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(17, 24, 39, 0.7);
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.75rem 1rem;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Match upload area styling */
+.upload-area {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  position: relative;
+  background-color: #0f172a;
+  overflow: hidden;
+  min-height: 300px;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.upload-area.has-image {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background-color: #000;
+  border-radius: 0;
 }
 </style>

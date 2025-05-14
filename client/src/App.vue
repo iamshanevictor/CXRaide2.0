@@ -62,22 +62,18 @@ export default {
     
     // Setup global navigation guards to show loading state
     this.$router.beforeEach((to, from, next) => {
-      // Use a longer loading time when coming from the annotation page
-      if (from.name === 'annotate') {
-        this.startLoading(true); // Use extended loading for annotation page transitions
-      } else {
-        this.startLoading();
-      }
+      // Show loading screen for all navigations
+      this.startLoading();
       next();
     });
     this.$router.afterEach(() => {
       // Check offline status after each navigation
       this.checkOfflineMode();
       
-      // Use a longer delay for hiding loader after navigation from annotation page
+      // Hide loading after a small delay
       setTimeout(() => {
         this.stopLoading();
-      }, 500); // Increase from 300ms to 500ms
+      }, 500);
     });
   },
   errorCaptured(err, vm, info) {
