@@ -152,6 +152,12 @@ router.beforeEach(async (to, from, next) => {
     return next("/login");
   }
 
+  // Check if token is an offline token (added for network bypass)
+  if (isOfflineToken(token)) {
+    console.log("[Auth] Offline token detected - bypassing server validation");
+    return next(); // Allow navigation with offline token
+  }
+
   try {
     // Use the API utility for session checking
     console.log("[Auth] Checking session validity");
@@ -186,6 +192,23 @@ router.beforeEach(async (to, from, next) => {
         "[Auth] Network error during session check - allowing navigation"
       );
 
+      // Create an offline token if not already using one
+      if (!isOfflineToken(token)) {
+        try {
+          // Extract username from existing token
+          const payload = token.split(".")[1];
+          const decoded = JSON.parse(atob(payload));
+          const username = decoded.username || decoded.sub || "offline_user";
+          
+          // Create and store offline token
+          const offlineToken = createOfflineToken(username);
+          localStorage.setItem("authToken", offlineToken);
+          console.log("[Auth] Created offline token for", username);
+        } catch (e) {
+          console.error("[Auth] Error creating offline token:", e);
+        }
+      }
+
       // For pages that require auth, let the page component handle the error display
       // This prevents a redirect loop when the API is unreachable
       if (to.meta.requiresAuth) {
@@ -203,6 +226,54 @@ router.beforeEach(async (to, from, next) => {
     return next("/login");
   }
 });
+
+// Helper function to check if a token is an offline token
+function isOfflineToken(token) {
+  try {
+    const payload = token.split(".")[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded.offline_mode === true;
+  } catch (e) {
+    console.error("[Router] Error checking offline token:", e);
+    return false;
+  }
+}
+
+// Helper function to create an offline token
+function createOfflineToken(username) {
+  // Create header
+  const header = {
+    alg: "HS256",
+    typ: "JWT"
+  };
+  
+  // Create payload with 24 hour expiration
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    sub: username,
+    name: username,
+    username: username,
+    iat: now,
+    exp: now + 86400, // 24 hours from now
+    offline_mode: true // Flag to indicate this is a bypass token
+  };
+  
+  // For mock token, we'll use base64 encoding (not actual JWT signing)
+  const encodeBase64 = (obj) => {
+    return btoa(JSON.stringify(obj))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  };
+  
+  // Create the token parts
+  const headerEncoded = encodeBase64(header);
+  const payloadEncoded = encodeBase64(payload);
+  const signatureEncoded = encodeBase64({sig: "offline_signature"});
+  
+  // Combine into a JWT token format
+  return `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`;
+}
 
 // Add afterEach navigation hook to perform cleanup
 router.afterEach((to, from) => {
