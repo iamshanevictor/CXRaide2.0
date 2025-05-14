@@ -542,14 +542,14 @@
 </template>
 
 <script>
-import { logout, health, runNetworkTest } from "../utils/api";
+import { logout, runNetworkTest } from "../utils/api";
+import { apiUrl } from "../utils/api";
 import LoadingOverlay from "../components/LoadingOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 import ModelService from "@/services/modelService";
 import PatientInfoModal from "@/components/PatientInfoModal.vue";
 import html2pdf from 'html2pdf.js';
-import html2canvas from 'html2canvas';
 
 export default {
   components: {
@@ -560,7 +560,7 @@ export default {
   },
   data() {
     return {
-      apiUrl: apiUrl,
+      apiUrl,
       username: "User",
       isLoading: false,
       isAuthenticated: false,
