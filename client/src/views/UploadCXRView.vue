@@ -277,15 +277,14 @@
               />
             </transition>
 
-            <!-- AI Detection Results section -->
+            <!-- AI Detection Results section (exactly matching AnnotateView) -->
             <div
               v-if="annotatedImage && aiPredictions.length > 0"
-              class="ai-detection-section"
-              :class="{ expanded: !isResultsCollapsed }"
+              class="ai-detection-results"
             >
-              <div class="detection-header" @click="toggleResults($event)">
+              <div class="summary-header" @click="toggleResults">
                 <h3>AI Detection Results:</h3>
-                <button class="toggle-btn" @click.stop="toggleResults($event)">
+                <button class="toggle-btn">
                   <i
                     :class="
                       isResultsCollapsed
@@ -295,37 +294,35 @@
                   ></i>
                 </button>
               </div>
-
-              <div
-                class="detection-list"
-                :class="{ expanded: !isResultsCollapsed }"
-              >
+              <div v-show="!isResultsCollapsed" class="confidence-list">
                 <div
-                  class="detection-item"
                   v-for="(prediction, index) in aiPredictions"
                   :key="index"
+                  class="confidence-item"
+                  :style="{
+                    borderLeft: `4px solid ${getColorForFinding(prediction.class)}`
+                  }"
                 >
-                  <div
-                    class="detection-color-bar"
-                    :style="{
-                      backgroundColor: getColorForFinding(prediction.class),
-                    }"
-                  ></div>
-                  <div class="detection-name">{{ prediction.class }}:</div>
-                  <div
-                    class="detection-value"
+                  <span class="confidence-label">{{ prediction.class }}:</span>
+                  <span
+                    class="confidence-value"
                     :style="{ color: getColorForFinding(prediction.class) }"
                   >
                     {{ formatConfidence(prediction.score) }}
-                  </div>
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div v-if="annotatedImage" class="action-buttons annotation-actions">
-              <button class="action-button save-button" @click="downloadResult">
-                <i class="bi bi-download"></i> Download
+            <!-- Download button (matching AnnotateView) -->
+            <div class="download-print-container">
+              <button class="download-print-btn" @click="downloadResult">
+                <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
               </button>
+            </div>
+            
+            <!-- New Analysis button -->
+            <div class="action-buttons annotation-actions">
               <button
                 class="action-button expert-button"
                 @click="resetAnalysis"
@@ -344,11 +341,13 @@
 import { logout } from "../utils/api";
 import ModelService from "@/services/modelService";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
+import AIModelLoader from "../components/AIModelLoader.vue";
 
 export default {
   name: "UploadCXRView",
   components: {
     ModelErrorOverlay,
+    AIModelLoader,
   },
   data() {
     return {
@@ -640,30 +639,9 @@ export default {
           "Unable to connect to model service. Please try again later.";
       }
     },
-    toggleResults(event) {
-      // Stop event propagation to prevent interference with image
-      if (event) {
-        event.stopPropagation();
-      }
-
-      // Toggle the collapsed state
+    toggleResults() {
+      // Simply toggle the collapsed state
       this.isResultsCollapsed = !this.isResultsCollapsed;
-
-      // Allow time for the animation to complete
-      if (!this.isResultsCollapsed) {
-        // When expanding, ensure all items are visible
-        setTimeout(() => {
-          const detectionList = document.querySelector(".detection-list");
-          if (detectionList) {
-            detectionList.scrollTop = 0;
-          }
-        }, 300);
-      }
-    },
-    // Error handling methods
-    runDiagnostics() {
-      console.log("[Upload] Running diagnostics");
-      alert("Diagnostic feature coming soon!");
     },
     retryLoading() {
       console.log("[Upload] Retrying connection");
@@ -1370,6 +1348,101 @@ export default {
 .detection-value {
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* AI Detection Results - Matching AnnotateView */
+.ai-detection-results {
+  margin-top: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  cursor: pointer;
+}
+
+.summary-header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  color: #f3f4f6;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #f3f4f6;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confidence-list {
+  padding: 0.5rem 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.confidence-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.confidence-item:last-child {
+  border-bottom: none;
+}
+
+.confidence-label {
+  font-size: 0.85rem;
+  color: #e5e7eb;
+}
+
+.confidence-value {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Download button - matching AnnotateView */
+.download-print-container {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.download-print-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #ec4899;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.download-print-btn:hover {
+  background: #db2777;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
 }
 
 /* Actions buttons */

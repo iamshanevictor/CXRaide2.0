@@ -326,37 +326,41 @@
               <div class="abnormality-type-container" @click.stop>
                 <div class="abnormality-type-row">
                   <div class="abnormality-label">Abnormality Type:</div>
-                  <select
-                    class="abnormality-select"
-                    v-model="selectedAbnormality"
-                    @change="updateSelectedBoxType"
-                    @click.stop
-                  >
-                    <option value="Nodule/Mass">Nodule/Mass</option>
-                    <option value="Pleural Effusion">Pleural Effusion</option>
-                    <option value="Cardiomegaly">Cardiomegaly</option>
-                    <option value="Infiltration">Infiltration</option>
-                    <option value="Pleural Thickening">Pleural Thickening</option>
-                    <option value="Pulmonary Fibrosis">Pulmonary Fibrosis</option>
-                    <option value="Consolidation">Consolidation</option>
-                    <option value="Atelectasis">Atelectasis</option>
-                    <option value="Pneumothorax">Pneumothorax</option>
-                  </select>
+                  <div class="select-wrapper">
+                    <select
+                      class="abnormality-select custom-select"
+                      v-model="selectedAbnormality"
+                      @change="updateSelectedBoxType"
+                      @click.stop
+                    >
+                      <option value="Nodule/Mass">Nodule/Mass</option>
+                      <option value="Pleural Effusion">Pleural Effusion</option>
+                      <option value="Cardiomegaly">Cardiomegaly</option>
+                      <option value="Infiltration">Infiltration</option>
+                      <option value="Pleural Thickening">Pleural Thickening</option>
+                      <option value="Pulmonary Fibrosis">Pulmonary Fibrosis</option>
+                      <option value="Consolidation">Consolidation</option>
+                      <option value="Atelectasis">Atelectasis</option>
+                      <option value="Pneumothorax">Pneumothorax</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div class="abnormality-type-row">
                   <div class="abnormality-label">Subtype:</div>
-                  <select
-                    class="abnormality-select"
-                    v-model="selectedSubtype"
-                    @change="updateSelectedBoxSubtype"
-                    @click.stop
-                  >
-                    <option value="No Subtype-Abnormality">No Subtype-Abnormality</option>
-                    <option value="Subtype 1">Subtype 1</option>
-                    <option value="Subtype 2">Subtype 2</option>
-                    <option value="Subtype 3">Subtype 3</option>
-                  </select>
+                  <div class="select-wrapper">
+                    <select
+                      class="abnormality-select custom-select"
+                      v-model="selectedSubtype"
+                      @change="updateSelectedBoxSubtype"
+                      @click.stop
+                    >
+                      <option value="No Subtype-Abnormality">No Subtype-Abnormality</option>
+                      <option value="Subtype 1">Subtype 1</option>
+                      <option value="Subtype 2">Subtype 2</option>
+                      <option value="Subtype 3">Subtype 3</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               
@@ -536,7 +540,7 @@
 </template>
 
 <script>
-import { logout, runNetworkTest } from "../utils/api";
+import { logout } from "../utils/api";
 import { apiUrl } from "../utils/api";
 // Restored AIModelLoader for professional analyzing effect
 import AIModelLoader from "../components/AIModelLoader.vue";
@@ -655,7 +659,10 @@ export default {
       }
     },
     runDiagnostics() {
-      runNetworkTest();
+      // Simple diagnostics without external function
+      console.log("[Annotate] API URL:", this.apiUrl);
+      console.log("[Annotate] Connection Status:", this.connectionStatus);
+      console.log("[Annotate] Has Token:", localStorage.getItem("authToken") ? "Yes" : "No");
       console.log("[Annotate] Network diagnostics completed");
     },
     retryLoading() {
@@ -3520,9 +3527,37 @@ export default {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
+/* Custom select styling to ensure proper dropdown appearance */
+.custom-select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 38px;
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  color: #f3f4f6 !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 16px !important;
+  padding-right: 35px !important;
+}
+
 .select-dropdown option {
   background-color: #1e293b;
   color: #f3f4f6;
+}
+
+/* Wrapper for select elements to ensure proper styling */
+.select-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  width: 100%;
 }
 
 .abnormality-label {
