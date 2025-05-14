@@ -146,3 +146,17 @@ For deployment to platforms like Render.com:
 3. Render.com will automatically deploy from your GitHub repository
 
 See `RENDER_DEPLOYMENT.md` for detailed deployment instructions.
+
+### Alternative Setup Without Docker
+
+If Docker is not available on your system, you can run the backend and frontend using the following PowerShell scripts:
+
+```powershell
+# Run the backend
+.\run_backend.ps1
+
+# Run the frontend
+.\run_frontend.ps1
+```
+
+Ensure that all prerequisites are installed and configured correctly before running these scripts.
