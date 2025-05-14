@@ -251,43 +251,10 @@
                 alt="X-ray"
               />
 
-              <!-- Loading state with blue filter and indicators -->
-              <div
-                v-if="isAnalyzing && !annotatedImage && !modelError"
-                class="ai-processing-overlay"
-              >
-                <div class="processing-frame">
-                  <div class="processing-scan-line"></div>
-                </div>
-                <div class="processing-status">
-                  <h3>Processing Image</h3>
-                  <p>Analyzing with AI model...</p>
-
-                  <div class="processing-steps">
-                    <div
-                      class="processing-step"
-                      :class="{ active: processingStep === 1 }"
-                    >
-                      <i class="bi bi-image"></i>
-                      <span>Image Processing</span>
-                    </div>
-                    <div
-                      class="processing-step"
-                      :class="{ active: processingStep === 2 }"
-                    >
-                      <i class="bi bi-cpu"></i>
-                      <span>AI Analysis</span>
-                    </div>
-                    <div
-                      class="processing-step"
-                      :class="{ active: processingStep === 3 }"
-                    >
-                      <i class="bi bi-grid"></i>
-                      <span>Generating Results</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <!-- Professional analyzing indicator (matching AnnotateView) -->
+              <transition name="fade">
+                <a-i-model-loader v-if="isAnalyzing && !annotatedImage && !modelError" title="Analyzing Image" message="AI model is processing your chest X-ray..." />
+              </transition>
 
               <!-- Empty state -->
               <div

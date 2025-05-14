@@ -429,9 +429,9 @@
                   ref="aiXrayImage"
                 />
 
-                <!-- Loading state -->
+                <!-- Professional analyzing indicator -->
                 <transition name="fade">
-                  <a-i-model-loader v-if="isModelLoading" />
+                  <a-i-model-loader v-if="isModelLoading" title="Analyzing Image" message="AI model is processing your chest X-ray..." />
                 </transition>
 
                 <!-- Error state - don't show PyTorch errors with warning icon -->
@@ -522,13 +522,7 @@
         </div>
       </div>
 
-      <!-- Loading overlay -->
-      <loading-overlay v-if="isLoading" message="Loading annotation data..." />
-      <!-- Loading overlay -->
-      <div v-if="isModelLoading" class="loader-overlay">
-        <div class="loader"></div>
-        <div>{{ loadingMessage || "Loading..." }}</div>
-      </div>
+      <!-- All loading overlays removed as requested -->
     </div>
   </div>
 
@@ -544,7 +538,7 @@
 <script>
 import { logout, runNetworkTest } from "../utils/api";
 import { apiUrl } from "../utils/api";
-import LoadingOverlay from "../components/LoadingOverlay.vue";
+// Restored AIModelLoader for professional analyzing effect
 import AIModelLoader from "../components/AIModelLoader.vue";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 import ModelService from "@/services/modelService";
@@ -553,7 +547,6 @@ import html2pdf from 'html2pdf.js';
 
 export default {
   components: {
-    LoadingOverlay,
     AIModelLoader,
     ModelErrorOverlay,
     PatientInfoModal
