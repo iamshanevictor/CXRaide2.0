@@ -208,7 +208,7 @@ class ModelService {
 
   async predict(imageFile, options = {}, retryCount = 0) {
     try {
-      console.log(`Starting prediction process for image`);
+      console.log(`Starting prediction process for image:`, imageFile.name);
 
       // Cancel any existing prediction requests
       this.cancelRequests("predict");
@@ -217,29 +217,42 @@ class ModelService {
       const controller = new AbortController();
       this.controllers.set("predict", controller);
 
-      // First resize the image for the model
-      const resizedImage = await this.resizeImageForModel(imageFile);
+      // Create a new image file with a simpler name to avoid encoding issues
+      const simpleFileName = "image.jpg";
+      const newFile = new File([imageFile], simpleFileName, {
+        type: imageFile.type || "image/jpeg",
+        lastModified: imageFile.lastModified,
+      });
+      
+      console.log("Created new file with simple name:", {
+        name: newFile.name,
+        type: newFile.type,
+        size: newFile.size,
+        lastModified: newFile.lastModified
+      });
 
       // Create FormData to send the image
-      let formData;
+      let formData = new FormData();
+      
+      // Add the image file with the key 'image'
+      formData.append("image", newFile);
+      console.log("Added image to FormData with key 'image'");
 
-      // If options is already FormData, use it
-      if (options instanceof FormData) {
-        formData = options;
-
-        // Make sure image is added
-        if (!formData.has("image")) {
-          formData.append("image", resizedImage.file);
-        }
+      // Add model_type if specified
+      if (options.model_type) {
+        formData.append("model_type", options.model_type);
+        console.log(`Added model_type to FormData: ${options.model_type}`);
+      }
+      
+      // Log all keys in FormData for debugging
+      console.log("FormData contains these keys:", [...formData.keys()]);
+      
+      // Check if the image is actually in the FormData
+      if (formData.has("image")) {
+        console.log("Confirmed 'image' key exists in FormData");
       } else {
-        formData = new FormData();
-        formData.append("image", resizedImage.file);
-
-        // Add model_type if specified
-        if (options.model_type) {
-          formData.append("model_type", options.model_type);
-          console.log(`Using model type: ${options.model_type}`);
-        }
+        console.error("'image' key is missing from FormData!");
+        throw new Error("Failed to add image to FormData");
       }
 
       // Get the color mapping from the getBoxColor function
@@ -286,79 +299,100 @@ class ModelService {
         })`
       );
 
-      const response = await fetch(`${apiUrl}/api/predict`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        headers: headers,
-        mode: "cors", // Explicitly set CORS mode
-        signal: controller.signal,
-      });
+      // Log the URL we're sending to
+      console.log(`Sending request to: ${apiUrl}/api/predict`);
+      
+      // Important: Do NOT set Content-Type header when sending FormData
+      // The browser will automatically set it with the correct boundary
+      delete headers['Content-Type'];
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/predict`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          headers: headers,
+          mode: "cors", // Explicitly set CORS mode
+          signal: controller.signal,
+        });
+        
+        console.log(`Response status: ${response.status} ${response.statusText}`);
+        
+        // Log response headers for debugging
+        const responseHeaders = {};
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
+        console.log("Response headers:", responseHeaders);
 
-      // Handle service unavailable - model still loading
-      if (response.status === 503) {
-        const errorData = await response.json();
-        console.log("Model is still loading:", errorData.error);
+        // Handle service unavailable - model still loading
+        if (response.status === 503) {
+          const errorData = await response.json();
+          console.log("Model is still loading:", errorData.error);
 
-        // Retry logic for 503 errors (model loading)
-        if (retryCount < this.maxRetries) {
-          console.log(
-            `Retrying in 2 seconds... (${retryCount + 1}/${this.maxRetries})`
+          // Retry logic for 503 errors (model loading)
+          if (retryCount < this.maxRetries) {
+            console.log(
+              `Retrying in 2 seconds... (${retryCount + 1}/${this.maxRetries})`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            return this.predict(imageFile, options, retryCount + 1);
+          }
+        }
+
+        if (!response.ok) {
+          console.error(
+            "Prediction error:",
+            response.status,
+            response.statusText
           );
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          return this.predict(imageFile, options, retryCount + 1);
-        }
-      }
 
-      if (!response.ok) {
-        console.error(
-          "Prediction error:",
-          response.status,
-          response.statusText
-        );
+          // Try to get the error details
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { error: `HTTP error: ${response.status}` };
+          }
 
-        // Try to get the error details
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { error: `HTTP error: ${response.status}` };
-        }
+          // Check for PyTorch not installed error
+          if (
+            errorData.error &&
+            errorData.error.includes("PyTorch is not installed")
+          ) {
+            console.warn(
+              "PyTorch not installed on server, using client-side mock predictions"
+            );
+            return this.generateMockPredictions(imageFile);
+          }
 
-        // Check for PyTorch not installed error
-        if (
-          errorData.error &&
-          errorData.error.includes("PyTorch is not installed")
-        ) {
-          console.warn(
-            "PyTorch not installed on server, using client-side mock predictions"
+          throw new Error(
+            errorData.error || `Failed to get predictions: ${response.status}`
           );
-          return this.generateMockPredictions(imageFile);
         }
 
-        throw new Error(
-          errorData.error || `Failed to get predictions: ${response.status}`
-        );
+        const data = await response.json();
+        console.log("Received response from server:", data);
+
+        // Process the results to match our component's expected format
+        const processedPredictions = data.predictions.map((pred) => ({
+          box: pred.boxes, // Use the raw boxes (already in 512x512 coordinates)
+          class: pred.label,
+          score: pred.score,
+        }));
+
+        // The server is already sending properly formatted data URLs with base64 encoding
+        // We just need to pass them through directly
+        return {
+          predictions: processedPredictions,
+          cleanImage: data.clean_image,
+          annotatedImage: data.annotated_image,
+          imageSize: data.image_size || { width: 512, height: 512 },
+        };
+      } catch (fetchError) {
+        console.error("Error during fetch operation:", fetchError);
+        throw fetchError;
       }
-
-      const data = await response.json();
-      console.log("Received response from server:", data);
-
-      // Process the results to match our component's expected format
-      const processedPredictions = data.predictions.map((pred) => ({
-        box: pred.boxes, // Use the raw boxes (already in 512x512 coordinates)
-        class: pred.label,
-        score: pred.score,
-      }));
-
-      // The server is already sending properly formatted data URLs with base64 encoding
-      // We just need to pass them through directly
-      return {
-        predictions: processedPredictions,
-        cleanImage: data.clean_image,
-        annotatedImage: data.annotated_image,
-        imageSize: data.image_size || { width: 512, height: 512 },
-      };
     } catch (error) {
       if (error.name === "AbortError") {
         console.log("Prediction request was cancelled");

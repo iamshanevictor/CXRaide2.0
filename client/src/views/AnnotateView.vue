@@ -57,67 +57,80 @@
         <div class="annotation-container">
           <!-- Left sidebar with annotation tools -->
           <div class="annotation-tools">
-            <div
-              class="tool-button"
-              :class="{ active: activeTool === 'box' }"
-              @click="setActiveTool('box')"
-            >
-              <i class="bi bi-grid"></i>
-              <span>BOX</span>
+            <h3 class="tools-header">Annotation Tools</h3>
+            <div class="tools-section">
+              <div
+                class="tool-button"
+                :class="{ active: activeTool === 'box' }"
+                @click="setActiveTool('box')"
+                title="Draw bounding box"
+              >
+                <i class="bi bi-grid"></i>
+                <span>Box</span>
+              </div>
+              <div
+                class="tool-button"
+                :class="{ active: activeTool === 'point' }"
+                @click="setActiveTool('point')"
+                title="Place point marker"
+              >
+                <i class="bi bi-plus-circle"></i>
+                <span>Point</span>
+              </div>
             </div>
-            <div
-              class="tool-button"
-              :class="{ active: activeTool === 'point' }"
-              @click="setActiveTool('point')"
-            >
-              <i class="bi bi-plus-circle"></i>
-              <span>POINT</span>
-            </div>
-            <div class="tool-group">
+            
+            <h3 class="tools-header">View Controls</h3>
+            <div class="tools-section">
               <div
                 class="tool-button"
                 :class="{ active: activeTool === 'zoom' }"
                 @click="setActiveTool('zoom')"
+                title="Zoom image"
               >
                 <i class="bi bi-search"></i>
-                <span>ZOOM</span>
+                <span>Zoom</span>
               </div>
-              <div class="zoom-controls">
-                <button class="zoom-btn" @click="zoomIn">IN</button>
-                <button class="zoom-btn" @click="zoomOut">OUT</button>
+              <div class="zoom-controls" v-if="activeTool === 'zoom'">
+                <button class="zoom-btn" @click="zoomIn" title="Zoom in"><i class="bi bi-plus"></i></button>
+                <button class="zoom-btn" @click="zoomOut" title="Zoom out"><i class="bi bi-dash"></i></button>
+              </div>
+              
+              <div
+                class="tool-button"
+                :class="{ active: activeTool === 'light' }"
+                @click="setActiveTool('light')"
+                title="Adjust brightness"
+              >
+                <i class="bi bi-brightness-high"></i>
+                <span>Brightness</span>
+              </div>
+              <div class="brightness-slider" v-if="activeTool === 'light'">
+                <input
+                  type="range"
+                  min="50"
+                  max="150"
+                  v-model="brightness"
+                  @input="adjustBrightness(brightness)"
+                  class="slider"
+                />
+                <div class="slider-labels">
+                  <span>50%</span>
+                  <span>150%</span>
+                </div>
               </div>
             </div>
-            <div
-              class="tool-button"
-              :class="{ active: activeTool === 'light' }"
-              @click="setActiveTool('light')"
-            >
-              <i class="bi bi-brightness-high"></i>
-              <span>LIGHT</span>
-            </div>
-
-            <div class="brightness-slider" v-if="activeTool === 'light'">
-              <input
-                type="range"
-                min="50"
-                max="150"
-                v-model="brightness"
-                @input="adjustBrightness(brightness)"
-                class="slider"
-              />
-              <div class="slider-labels">
-                <span>50%</span>
-                <span>150%</span>
-              </div>
-            </div>
-            <div class="tool-group">
-              <div class="tool-button">
-                <i class="bi bi-arrow-counterclockwise"></i>
-                <span>UNDO and REDO</span>
-              </div>
+            
+            <h3 class="tools-header">History</h3>
+            <div class="tools-section">
               <div class="undo-redo-controls">
-                <button class="undo-redo-btn" @click="undoAction">UNDO</button>
-                <button class="undo-redo-btn" @click="redoAction">REDO</button>
+                <button class="action-btn" @click="undoAction" title="Undo last action">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span>Undo</span>
+                </button>
+                <button class="action-btn" @click="redoAction" title="Redo last action">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Redo</span>
+                </button>
               </div>
             </div>
           </div>
@@ -127,10 +140,10 @@
             <!-- Left side - Original image display area -->
             <div class="image-container">
               <div class="file-info-bar">
-                <span
-                  >Raw CXRay Name:
-                  {{ currentImageName || "No file selected" }}</span
-                >
+                <div class="file-info">
+                  <i class="bi bi-file-medical"></i>
+                  <span class="file-name">{{ currentImageName || "No image loaded" }}</span>
+                </div>
                 <button
                   class="upload-btn"
                   @click="triggerFileUpload"
@@ -154,10 +167,11 @@
                   :class="{ dragging: isDragging }"
                 >
                   <i class="bi bi-cloud-arrow-up"></i>
-                  <p>
-                    Click to upload or drag & drop<br />Supported formats: JPEG,
-                    PNG
-                  </p>
+                  <div class="upload-text">
+                    <h3>Upload X-ray Image</h3>
+                    <p>Click to browse or drag & drop</p>
+                    <span class="file-formats">Supported formats: JPEG, PNG</span>
+                  </div>
                 </div>
                 <div
                   v-else
@@ -165,87 +179,130 @@
                   ref="imageContainer"
                   @click="handleClick"
                 >
-                <img
-                  :src="currentImage"
-                  alt="X-ray"
-                  class="xray-image"
-                      :style="{
-                    transform: `scale(${zoomLevel})`,
-                    filter: `brightness(${brightness}%)`,
-                  }"
-                />
-                <canvas
-                  ref="annotationCanvas"
-                  class="annotation-canvas"
-                        :style="{
-                    transform: `scale(${zoomLevel})`,
-                        }"
-                ></canvas>
-                      </div>
+                  <div class="image-controls">
+                    <div class="zoom-indicator" v-if="zoomLevel !== 1">
+                      <i class="bi bi-zoom-in"></i> {{ Math.round(zoomLevel * 100) }}%
+                    </div>
+                  </div>
+                  <img
+                    :src="currentImage"
+                    alt="X-ray"
+                    class="xray-image"
+                    :style="{
+                      transform: `scale(${zoomLevel})`,
+                      filter: `brightness(${brightness}%)`,
+                    }"
+                  />
+                  <canvas
+                    ref="annotationCanvas"
+                    class="annotation-canvas"
+                    :style="{
+                      transform: `scale(${zoomLevel})`,
+                    }"
+                  ></canvas>
                 </div>
               </div>
+            </div>
 
           <!-- Right side - AI annotations display area -->
           <div class="ai-annotations">
             <div class="annotations-header">
-              <h2>AI Annotations</h2>
+              <div class="header-title">
+                <i class="bi bi-robot"></i>
+                <h2>AI Annotations</h2>
+              </div>
               <div class="annotations-actions">
                 <button
                   class="action-btn"
                   @click="toggleAnnotations"
                   :disabled="!currentImage"
+                  :title="showAnnotations ? 'Hide annotations' : 'Show annotations'"
                 >
                   <i class="bi" :class="showAnnotations ? 'bi-eye-slash' : 'bi-eye'"></i>
-                  {{ showAnnotations ? "Hide" : "Show" }} Annotations
+                  <span>{{ showAnnotations ? "Hide" : "Show" }}</span>
                 </button>
                 <button
                   class="action-btn"
                   @click="clearAnnotations"
-                  :disabled="!currentImage"
+                  :disabled="!currentImage || !showAnnotations"
+                  title="Clear all annotations"
                 >
                   <i class="bi bi-trash"></i>
-                  Clear
+                  <span>Clear</span>
                 </button>
               </div>
             </div>
 
             <div class="annotations-content">
-              <div v-if="!currentImage" class="no-image-message">
-                <i class="bi bi-image"></i>
-                <p>Upload an X-ray to see AI annotations</p>
-              </div>
-              <div v-else-if="isModelLoading" class="loading-state">
+              <!-- Loading state -->
+              <div v-if="isModelLoading" class="loading-state">
                 <div class="loading-spinner"></div>
-                <p>Analyzing X-ray...</p>
+                <p>Processing image...</p>
+                <span class="loading-info">AI model analyzing X-ray</span>
               </div>
+
+              <!-- No image state -->
+              <div v-else-if="!currentImage" class="no-image-message">
+                <i class="bi bi-image"></i>
+                <p>No X-ray image loaded</p>
+                <span class="help-text">Upload an X-ray to view AI annotations</span>
+              </div>
+
+              <!-- Annotations hidden state -->
               <div v-else-if="!showAnnotations" class="annotations-hidden">
                 <i class="bi bi-eye-slash"></i>
                 <p>Annotations are hidden</p>
+                <button class="action-btn show-annotations-btn" @click="toggleAnnotations">
+                  <i class="bi bi-eye"></i> Show Annotations
+                </button>
               </div>
+
+              <!-- Annotations list -->
+              <div v-else-if="annotations.length === 0" class="no-annotations">
+                <i class="bi bi-search"></i>
+                <p>No abnormalities detected</p>
+                <span class="help-text">The AI model did not detect any abnormalities in this X-ray</span>
+              </div>
+              
+              <!-- Annotations list -->
               <div v-else class="annotations-list">
                 <div
                   v-for="(annotation, index) in annotations"
                   :key="index"
                   class="annotation-item"
-                  :class="{ active: selectedAnnotation === index }"
+                  :class="{ active: selectedAnnotationIndex === index }"
                   @click="selectAnnotation(index)"
                 >
                   <div class="annotation-header">
-                    <span class="annotation-type">{{ annotation.type }}</span>
-                    <span class="annotation-confidence"
-                      >{{ (annotation.confidence * 100).toFixed(1) }}%</span
+                    <div class="annotation-type">
+                      <i class="bi" :class="annotation.type === 'Abnormality' ? 'bi-exclamation-triangle' : 'bi-info-circle'"></i>
+                      {{ annotation.type }}
+                    </div>
+                    <div
+                      class="annotation-confidence"
+                      :style="{ color: getConfidenceColor(annotation.confidence) }"
                     >
-                </div>
+                      <span class="confidence-label">Confidence:</span> {{ formatConfidence(annotation.confidence) }}
+                    </div>
+                  </div>
                   <div class="annotation-details">
                     <p>{{ annotation.description }}</p>
-              </div>
-                </div>
+                  </div>
+                  <div class="annotation-actions" v-if="selectedAnnotationIndex === index">
+                    <button class="annotation-action-btn" title="Edit annotation">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="annotation-action-btn" title="Delete annotation">
+                      <i class="bi bi-trash"></i>
+                    </button>
                   </div>
                 </div>
               </div>
-              </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
   </app-layout>
 </template>
 
@@ -1126,26 +1183,46 @@ export default {
 .annotate-wrapper {
   padding: 1.5rem;
   height: 100%;
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.05));
 }
 
 .annotation-container {
   display: flex;
   gap: 1.5rem;
   height: calc(100vh - 120px);
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0.75rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .annotation-tools {
-  width: 200px;
-  background: rgba(15, 23, 42, 0.8);
+  width: 240px;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.tools-header {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.tools-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .tool-button {
@@ -1153,19 +1230,31 @@ export default {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 0.375rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: #1e293b;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .tool-button:hover {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(243, 244, 246, 1);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .tool-button.active {
-  background: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.tool-button i {
+  font-size: 1.1rem;
+  color: #3b82f6;
 }
 
 .tool-group {
@@ -1235,9 +1324,28 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background: rgba(15, 23, 42, 0.8);
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 0.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1e293b;
+}
+
+.file-info i {
+  color: #3b82f6;
+  font-size: 1.1rem;
+}
+
+.file-name {
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .upload-btn {
@@ -1260,32 +1368,79 @@ export default {
 
 .upload-area {
   flex: 1;
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 0.75rem;
   border: 2px dashed rgba(59, 130, 246, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .upload-area:hover {
   border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(243, 244, 246, 0.8);
 }
 
 .upload-placeholder {
   text-align: center;
-  color: #9ca3af;
+  color: #64748b;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .upload-placeholder i {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #3b82f6;
+  opacity: 0.8;
 }
 
 .upload-placeholder.dragging {
   color: #3b82f6;
+}
+
+.upload-text h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.upload-text p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.file-formats {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.5rem;
+}
+
+.image-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+.zoom-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .xray-image-container {
@@ -1316,9 +1471,11 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 0.5rem;
-  padding: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .annotations-header {

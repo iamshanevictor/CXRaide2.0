@@ -859,36 +859,133 @@ def predict_image():
             }), 500
 
         # Get the uploaded image
-        if 'image' not in request.files:
-            logger.warning("No image file in request")
-            return jsonify({'error': 'No image file provided'}), 400
+        logger.info(f"Request files: {list(request.files.keys()) if request.files else 'None'}")
+        logger.info(f"Request form data: {list(request.form.keys()) if request.form else 'None'}")        
+        
+        # Detailed logging of the request
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request content type: {request.content_type}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
+        # Log raw request data for debugging
+        try:
+            request_data = request.get_data()
+            logger.info(f"Request data length: {len(request_data)} bytes")
+            # Log first 100 bytes to see what's in the request
+            logger.info(f"Request data preview: {request_data[:100]}")
+        except Exception as e:
+            logger.error(f"Error getting request data: {str(e)}")
+        
+        # Check for the image in the request files
+        if not request.files:
+            logger.warning("No files in request at all")
             
-        file = request.files['image']
+            # Try to parse the request body directly
+            try:
+                # Create a temporary file from the request data
+                temp_path = os.path.join(os.path.dirname(__file__), 'temp_upload_raw.jpg')
+                with open(temp_path, 'wb') as f:
+                    f.write(request_data)
+                logger.info(f"Saved raw request data to {temp_path}")
+                
+                # Try to use this file directly
+                logger.info("Attempting to use raw request data as image")
+                return process_image_file(temp_path, model_type)
+            except Exception as raw_error:
+                logger.error(f"Error processing raw request data: {str(raw_error)}")
+                return jsonify({'error': 'No files in request and could not parse raw data'}), 400
+        
+        # Try to find the image file with any key if 'image' is not present
+        if 'image' not in request.files:
+            logger.warning("No 'image' key in request.files")
+            # Try to use the first file in the request if there is one
+            if len(request.files) > 0:
+                file_key = list(request.files.keys())[0]
+                logger.info(f"Using alternative file key: {file_key}")
+                file = request.files[file_key]
+            else:
+                return jsonify({'error': 'No image file provided'}), 400
+        else:
+            file = request.files['image']
+        
+        # Log file details
+        logger.info(f"File details - Filename: {file.filename}, Content-Type: {file.content_type if hasattr(file, 'content_type') else 'unknown'}")
+        
         if file.filename == '':
             logger.warning("Empty filename in request")
             return jsonify({'error': 'No selected file'}), 400
         
-        # Check if specific model type is requested
+        # Save the file to a temporary location
+        temp_path = os.path.join(os.path.dirname(__file__), 'temp_upload.jpg')
+        file.save(temp_path)
+        logger.info(f"Saved uploaded file to {temp_path}")
+        
+        # Get model type from form data if available
         model_type = request.form.get('model_type', 'combined').lower()
         logger.info(f"Requested model type: {model_type}")
+        
+        # Process the saved image file
+        return process_image_file(temp_path, model_type)
+
+def process_image_file(file_path, model_type='combined'):
+    """Process an image file for prediction"""
+    try:
+        logger.info(f"Processing image file: {file_path}")
+        start_time = time.time()
+        
+        # Verify the file exists
+        if not os.path.exists(file_path):
+            logger.error(f"File does not exist: {file_path}")
+            return jsonify({'error': 'Image file not found'}), 404
             
+        # Check file size
+        file_size = os.path.getsize(file_path)
+        logger.info(f"File size: {file_size} bytes")
+        if file_size == 0:
+            logger.error("File is empty")
+            return jsonify({'error': 'Empty image file'}), 400
+            
+        # Read the file
+        with open(file_path, 'rb') as f:
+            image_data = f.read()
+            
+        # Open the image
         try:
-            # Read and process the image
-            image_data = file.read()
             image = Image.open(io.BytesIO(image_data))
+            logger.info(f"Successfully opened image: {image.format}, size: {image.size}, mode: {image.mode}")
+        except Exception as img_error:
+            logger.error(f"Error opening image: {str(img_error)}", exc_info=True)
+            return jsonify({'error': f'Invalid image format: {str(img_error)}'}), 400
             
-            # Convert to RGB if needed
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-                
-            # Create a clean copy for display
-            clean_display_image = image.copy()
+        # Convert to RGB if needed
+        if image.mode != 'RGB':
+            logger.info(f"Converting image from {image.mode} to RGB")
+            image = image.convert('RGB')
             
-            # Transform image for models
-            image_tensor = transform(image).unsqueeze(0) if torch_available else transform(image)
-            logger.info(f"Image transformed to tensor")
+        # Create a clean copy for display
+        clean_display_image = image.copy()
+        
+        # Transform image for models
+        logger.info("Transforming image for model input")
+        image_tensor = transform(image).unsqueeze(0) if torch_available else transform(image)
+        logger.info(f"Image transformed to tensor: {type(image_tensor)}")
+        
+        # Log tensor shape for debugging
+        if hasattr(image_tensor, 'shape'):
+            logger.info(f"Tensor shape: {image_tensor.shape}")
+        else:
+            logger.info(f"Tensor does not have shape attribute, type: {type(image_tensor)}")
             
-            # Get predictions using the specified model(s)
+        # Verify tensor is valid
+        if torch_available and not torch.isfinite(image_tensor).all():
+            logger.error("Tensor contains non-finite values (NaN or Inf)")
+            return jsonify({'error': 'Invalid image tensor contains NaN or Inf values'}), 400
+            
+        # Get predictions using the specified model(s)
+        try:
+            logger.info(f"Getting predictions using model type: {model_type}")
+            predictions = []
+            
             if model_type == 'it2':
                 # Use only IT2 model
                 logger.info("Using only IT2 model for prediction as requested")
@@ -901,7 +998,6 @@ def predict_image():
                     raw_predictions = model_it2(image_tensor)
                 
                 filtered_predictions = apply_nms(raw_predictions, iou_threshold=0.5)
-                predictions = []
                 
                 # Format predictions from IT2 model
                 for i in range(len(filtered_predictions['boxes'])):
@@ -913,7 +1009,7 @@ def predict_image():
                     if score < 0.3:
                         continue
                         
-                    label = classes_it2[label_idx] if label_idx < len(classes_it2) else f"Unknown({label_idx})"
+                    label = classes_it2_reverse.get(label_idx, f"Unknown({label_idx})")
                     
                     predictions.append({
                         'boxes': box,
@@ -923,7 +1019,7 @@ def predict_image():
             else:
                 # Use combined IT2+IT3 model (default)
                 logger.info("Using combined IT2+IT3 models for prediction")
-            predictions = predict(image_tensor)
+                predictions = predict(image_tensor)
             
             logger.info(f"Processed predictions: {predictions}")
             
@@ -966,10 +1062,15 @@ def predict_image():
                 "model_used": model_type
             }
             return jsonify(response_data)
-            
         except Exception as e:
-            logger.error(f"Error processing image: {str(e)}", exc_info=True)
-            return jsonify({'error': f"Error processing image: {str(e)}"}), 500
+            logger.error(f"Error processing predictions: {str(e)}", exc_info=True)
+            return jsonify({'error': f'Error processing predictions: {str(e)}'}), 500
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {str(e)}")
+        return jsonify({'error': f'File not found: {str(e)}'}), 404
+    except Exception as e:
+        logger.error(f"Error in process_image_file: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
         
     except FileNotFoundError as e:
         logger.error(f"Model file not found: {str(e)}")

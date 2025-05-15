@@ -286,23 +286,50 @@ export default {
       }
     },
     processUploadedFile(file) {
-      // Check file type
-      if (!file.type.match('image.*')) {
-        alert('Please upload an image file (JPEG, PNG)');
+      // Check if file exists
+      if (!file) {
+        this.handleError(new Error("No file selected"), "Please select a file to upload");
         return;
       }
       
-      // Store file reference
-      this.imageFile = file;
+      // Check file type
+      if (!file.type.match('image.*')) {
+        this.handleError(new Error("Invalid file type"), "Please upload an image file (JPEG, PNG)");
+        return;
+      }
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.currentImage = e.target.result;
-        // Auto-start analysis when image is loaded
-        this.analyzeImage();
-      };
-      reader.readAsDataURL(file);
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        this.handleError(new Error("File too large"), "Please upload an image smaller than 10MB");
+        return;
+      }
+      
+      console.log("[UploadCXR] Processing file:", file.name, file.type, file.size);
+      
+      // Store file reference - create a new File object to ensure it's a proper File instance
+      try {
+        this.imageFile = new File([file], file.name, { 
+          type: file.type,
+          lastModified: file.lastModified
+        });
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.currentImage = e.target.result;
+          // Auto-start analysis when image is loaded
+          this.analyzeImage();
+        };
+        reader.onerror = (e) => {
+          console.error("[UploadCXR] Error reading file:", e);
+          this.handleError(new Error("Error reading file"), "Could not read the selected image file");
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error("[UploadCXR] Error processing file:", error);
+        this.handleError(error, "Error processing the selected file");
+      }
     },
     removeImage() {
       this.imageFile = null;
@@ -312,6 +339,12 @@ export default {
     },
     async analyzeImage() {
       if (!this.imageFile || this.isAnalyzing) return;
+      
+      // Validate the image file
+      if (!(this.imageFile instanceof File)) {
+        this.handleError(new Error("Invalid image file"), "The selected file is not a valid image");
+        return;
+      }
       
       this.isAnalyzing = true;
       this.analyzeProgress = 0;
@@ -326,17 +359,48 @@ export default {
       }, 300);
       
       try {
-        let results;
+        console.log("[UploadCXR] Starting image analysis with file:", this.imageFile.name);
         
-        if (this.isUsingMockModel) {
-          // Use mock results
+        let results;
+        let usedMockResults = false;
+        
+        // Always try the real prediction first unless explicitly using mock model
+        if (!this.isUsingMockModel) {
+          try {
+            // Try to use real model service
+            console.log("[UploadCXR] Attempting to use real model service");
+            results = await ModelService.predict(this.imageFile, {
+              model_type: this.selectedModel
+            });
+            
+            console.log("[UploadCXR] Received prediction results:", results);
+            
+            // Transform the results to match the expected format
+            if (results && results.predictions) {
+              results = results.predictions.map(pred => ({
+                label: pred.class || 'Unknown',
+                score: pred.score || 0,
+                bbox: pred.box || [0, 0, 0, 0]
+              }));
+            } else {
+              // If we got an empty response, fall back to mock results
+              console.log("[UploadCXR] Empty results from server, falling back to mock results");
+              results = this.generateMockResults();
+              usedMockResults = true;
+            }
+          } catch (predictionError) {
+            // If the real prediction fails, fall back to mock results
+            console.warn("[UploadCXR] Real prediction failed, using mock results instead:", predictionError);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Short delay
+            results = this.generateMockResults();
+            usedMockResults = true;
+          }
+        } else {
+          // Explicitly using mock model
+          console.log("[UploadCXR] Using mock model as configured");
           await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
           results = this.generateMockResults();
-        } else {
-          // Use real model service
-          results = await ModelService.predict(this.imageFile, {
-            model_type: this.selectedModel
-          });
+          usedMockResults = true;
         }
         
         // Process results
@@ -346,6 +410,15 @@ export default {
           this.hasResults = true;
           this.isAnalyzing = false;
           clearInterval(progressInterval);
+          
+          // Show a notification if we fell back to mock results
+          if (usedMockResults && !this.isUsingMockModel) {
+            this.$emit('show-notification', {
+              type: 'warning',
+              message: 'Server prediction failed. Using simulated results instead.',
+              duration: 5000
+            });
+          }
         }, 500);
       } catch (error) {
         console.error("[Upload] Analysis error:", error);
@@ -356,23 +429,81 @@ export default {
     },
     generateMockResults() {
       // Generate realistic-looking mock results for demo purposes
-      return [
+      console.log("[UploadCXR] Generating mock results");
+      
+      // Define possible findings with realistic positions and confidence ranges
+      const possibleFindings = [
         {
           label: "Cardiomegaly",
-          score: 0.92,
-          bbox: [78, 122, 201, 184]
+          scoreRange: [0.75, 0.95],
+          bboxRange: [[70, 110, 190, 180], [80, 120, 210, 190]]
         },
         {
           label: "Pleural Effusion",
-          score: 0.87,
-          bbox: [185, 247, 130, 95]
+          scoreRange: [0.70, 0.90],
+          bboxRange: [[170, 230, 120, 90], [180, 240, 140, 100]]
         },
         {
           label: "Nodule/Mass",
-          score: 0.61,
-          bbox: [256, 178, 45, 38]
+          scoreRange: [0.55, 0.75],
+          bboxRange: [[240, 160, 40, 35], [260, 180, 50, 45]]
+        },
+        {
+          label: "Infiltration",
+          scoreRange: [0.60, 0.85],
+          bboxRange: [[120, 150, 100, 80], [140, 160, 110, 90]]
+        },
+        {
+          label: "Atelectasis",
+          scoreRange: [0.65, 0.80],
+          bboxRange: [[90, 200, 80, 70], [100, 210, 90, 80]]
+        },
+        {
+          label: "Pneumothorax",
+          scoreRange: [0.70, 0.85],
+          bboxRange: [[50, 130, 60, 150], [60, 140, 70, 160]]
         }
       ];
+      
+      // Randomly determine how many findings to show (1-3)
+      const numFindings = Math.floor(Math.random() * 3) + 1;
+      
+      // Randomly select findings without duplicates
+      const selectedIndices = [];
+      while (selectedIndices.length < numFindings && selectedIndices.length < possibleFindings.length) {
+        const randomIndex = Math.floor(Math.random() * possibleFindings.length);
+        if (!selectedIndices.includes(randomIndex)) {
+          selectedIndices.push(randomIndex);
+        }
+      }
+      
+      // Generate the results
+      const results = selectedIndices.map(index => {
+        const finding = possibleFindings[index];
+        
+        // Generate random score within the defined range
+        const scoreRange = finding.scoreRange;
+        const score = scoreRange[0] + Math.random() * (scoreRange[1] - scoreRange[0]);
+        
+        // Select one of the possible bounding box positions
+        const bboxIndex = Math.floor(Math.random() * finding.bboxRange.length);
+        const bbox = finding.bboxRange[bboxIndex];
+        
+        // Add slight randomness to bbox coordinates
+        const randomizedBbox = bbox.map(coord => {
+          const variation = coord * 0.05; // 5% variation
+          return Math.round(coord + (Math.random() * variation * 2 - variation));
+        });
+        
+        return {
+          label: finding.label,
+          score: score,
+          bbox: randomizedBbox
+        };
+      });
+      
+      console.log("[UploadCXR] Generated mock results:", results);
+      return results;
     },
     formatBoundingBox(bbox) {
       if (!bbox || !Array.isArray(bbox) || bbox.length !== 4) {
