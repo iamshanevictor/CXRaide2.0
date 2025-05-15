@@ -123,11 +123,13 @@ export default {
   },
   async created() {
     // Check server health on component creation
+    this.debugInfo = true; // Show API URL for debugging
     await this.checkServerHealth();
   },
   methods: {
     async checkServerHealth() {
       try {
+        console.log("[Login] Checking server health...");
         const response = await health();
         this.connectionStatus =
           response.data.status === "healthy" ? "Connected" : "Server Error";
@@ -135,19 +137,16 @@ export default {
       } catch (error) {
         this.connectionStatus = "Connection Failed";
         console.error("[Login] Health check failed:", error);
-        // Log detailed error information
-        console.error("[Login] Error details:", {
-          message: error.message,
-          code: error.code,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
+        
+        // Enable offline mode automatically if health check fails
+        if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
+          this.error = "Server connection failed. You can still login to use offline features.";
+        }
       }
     },
     async handleLogin() {
       this.error = null;
       this.isLoading = true;
-      this.debugInfo = true;
 
       try {
         console.log("[Login] Attempting login to:", `${this.apiUrl}/login`);
@@ -159,38 +158,35 @@ export default {
           localStorage.setItem("authToken", response.data.token);
           console.log("[Login] Login successful, redirecting to home page");
 
-          // Force a page reload to clear any stale state
-          setTimeout(() => {
-            this.$router.push("/home");
-          }, 500);
+          // Navigate to home page
+          this.$router.push("/home");
         } else {
           console.error("[Login] No token received in response");
           throw new Error("No token received from server");
         }
       } catch (error) {
-        console.error("[Login] Detailed login error:", {
-          message: error.message,
-          code: error.code,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
+        console.error("[Login] Login error:", error.message);
 
         // Network error or connection issue detected - bypass login
         if (error.code === "ECONNABORTED" || error.code === "ERR_NETWORK" || !error.response) {
-          console.log("[Login] Network error detected - bypassing authentication");
+          console.log("[Login] Network error detected - enabling offline mode");
           
-          // Create a mock token (with appropriate expiration)
-          const mockToken = this.createMockToken(this.username || "guest_user");
-          localStorage.setItem("authToken", mockToken);
-          
-          // Show a warning to the user
-          this.error = "Connection to server failed. Proceeding in offline mode with limited functionality.";
-          
-          // Delay for 1.5 seconds so user can see the message
-          setTimeout(() => {
-            this.$router.push("/home");
-          }, 1500);
-          
+          if (this.username) {
+            // Create a mock token (with appropriate expiration)
+            const mockToken = this.createMockToken(this.username);
+            localStorage.setItem("authToken", mockToken);
+            
+            // Show a warning to the user
+            this.error = "Connection to server failed. Proceeding in offline mode with limited functionality.";
+            
+            // Navigate to home after showing message
+            setTimeout(() => {
+              this.$router.push("/home");
+            }, 1500);
+          } else {
+            this.error = "Please enter a username to continue in offline mode.";
+            this.isLoading = false;
+          }
           return;
         }
         
@@ -200,10 +196,8 @@ export default {
         } else if (error.response && error.response.status === 401) {
           this.error = "Invalid credentials. Please try again.";
         } else {
-          this.error =
-            error.response?.data?.message || error.message || "Login failed";
+          this.error = error.response?.data?.message || error.message || "Login failed";
         }
-      } finally {
         this.isLoading = false;
       }
     },

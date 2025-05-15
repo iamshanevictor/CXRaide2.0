@@ -427,8 +427,10 @@
       </div>
 
       <div v-if="isLoading" class="loader-overlay">
-        <div class="loader"></div>
-        <p>Loading dashboard data...</p>
+        <div class="spinner-container">
+          <i class="bi bi-arrow-repeat spin"></i>
+          <p>Loading dashboard data...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -471,31 +473,41 @@ export default {
     };
   },
   created() {
-    // Check if token exists - safely access localStorage
-    try {
-      this.hasToken = !!localStorage.getItem("authToken");
-    } catch (e) {
-      console.error("[Home] Error accessing localStorage:", e);
-      this.hasToken = false;
-    }
-
-    // Check server health first
-    this.checkServerHealth();
-  },
-  mounted() {
-    // Handle server health check
-    this.checkServerHealth();
-
-    // Load user info
-    const userData = localStorage.getItem("user");
-    if (userData) {
+    // Always emit start/end loading events to parent for SPA loading indication
+    this.$emit("loading-start");
+    
+    // Check for offline mode first
+    const token = localStorage.getItem("authToken");
+    let isOffline = false;
+    
+    if (token) {
       try {
-        const parsedUser = JSON.parse(userData);
-        this.username = parsedUser.username || "User";
+        const payload = token.split(".")[1];
+        const decoded = JSON.parse(atob(payload));
+        isOffline = decoded.offline_mode === true;
+        
+        if (isOffline) {
+          console.log("[Home] Offline mode detected from token");
+          this.setupMockData();
+          return;
+        }
       } catch (e) {
-        console.error("Error parsing user data:", e);
+        console.error("[Home] Error checking offline mode:", e);
       }
     }
+    
+    // If not offline, load user data and dashboard data normally
+    this.loadUserData();
+    this.loadDashboardData();
+  },
+  mounted() {
+    // Check if we've already set up offline mode in created()
+    if (!this.hasError && !this.isLoading) {
+      return;
+    }
+    
+    // Handle server health check
+    this.checkServerHealth();
 
     // Check token
     this.hasToken = !!localStorage.getItem("authToken");
@@ -511,6 +523,21 @@ export default {
     document.removeEventListener("click", this.closeUserMenu);
   },
   methods: {
+    loadUserData() {
+      // Get user info from token
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          const payload = token.split(".")[1];
+          const decoded = JSON.parse(atob(payload));
+          this.username = decoded.username || "User";
+          console.log("[Home] User from token:", this.username);
+        } catch (e) {
+          console.error("[Home] Error parsing token:", e);
+          this.username = "User";
+        }
+      }
+    },
     async checkServerHealth() {
       try {
         // First check if the server is online
@@ -530,6 +557,9 @@ export default {
           error,
           "Unable to connect to the server. Please check your connection."
         );
+        
+        // Try to use offline mode as fallback
+        this.setupMockData();
       }
     },
     async loadHomeData() {
@@ -573,6 +603,7 @@ export default {
         this.handleError(error);
       } finally {
         this.isLoading = false;
+        this.$emit("loading-end");
       }
     },
     handleError(error, customMessage = null) {
@@ -690,6 +721,71 @@ export default {
       if (this.processingQueue < 5) return "Processing on schedule";
       if (this.processingQueue < 15) return "Slight delay expected";
       return "Heavy load, delays possible";
+    },
+    loadDashboardData() {
+      console.log("[Home] Loading dashboard data");
+      this.isLoading = true;
+      this.hasError = false;
+      
+      // Check if we're in offline mode
+      try {
+        const token = localStorage.getItem("authToken");
+        if (token) {
+          const payload = token.split(".")[1];
+          const decoded = JSON.parse(atob(payload));
+          if (decoded.offline_mode === true) {
+            console.log("[Home] Offline mode detected - using mock data");
+            // In offline mode, use mock data
+            this.setupMockData();
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("[Home] Error checking offline mode:", e);
+      }
+      
+      // Online mode - make API calls
+      this.checkServerHealth();
+    },
+    setupMockData() {
+      // Setup mock data for offline mode
+      console.log("[Home] Setting up mock data");
+      this.hasError = false;
+      this.connectionStatus = "Offline Mode";
+      this.isAuthenticated = true;
+      
+      // Setup mock model information
+      this.modelInfo = {
+        using_mock_models: true,
+        explanation: "Using offline mock data. Some features are limited.",
+        version: "SSD300_VGG16",
+        features: ["object_detection", "classification"],
+        performance: {
+          precision: 0.78,
+          recall: 0.83,
+          f1: 0.80
+        }
+      };
+      
+      // Setup mock system status
+      this.serverLoad = 0;
+      this.processingQueue = 0;
+      this.systemUptime = "Offline";
+      
+      // Get username from token
+      this.loadUserData();
+      
+      // Complete loading
+      this.isLoading = false;
+      this.$emit("loading-end");
+    },
+    fetchStatsAndData() {
+      console.log("[Home] Fetching data in online mode");
+      this.$emit("loading-start");
+      
+      // In a real implementation, you would make API calls here
+      // For now, let's just set it up with mock data
+      this.setupMockData();
     },
   },
 };
@@ -1488,31 +1584,46 @@ export default {
 }
 
 .loader-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.8);
+  background-color: rgba(9, 12, 20, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.spinner-container {
+  background-color: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
+  gap: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-.loader {
-  width: 3rem;
-  height: 3rem;
-  border: 3px solid rgba(59, 130, 246, 0.3);
-  border-radius: 50%;
-  border-top-color: #3b82f6;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+.spinner-container i {
+  font-size: 2.5rem;
+  color: #3b82f6;
+  animation: spin 1s infinite linear;
+}
+
+.spinner-container p {
+  color: #e5e7eb;
+  font-size: 1rem;
+  margin: 0;
 }
 
 @keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
   to {
     transform: rotate(360deg);
   }

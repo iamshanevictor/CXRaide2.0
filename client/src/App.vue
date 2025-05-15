@@ -6,26 +6,14 @@
       <span>Offline Mode - Limited Functionality</span>
     </div>
     
+    <!-- Top navigation progress bar (visible only during navigation) -->
+    <div v-if="isNavigating" class="navigation-progress"></div>
+    
     <transition name="fade" mode="out-in">
-      <div v-if="isLoading" class="loading-screen">
-        <div class="loading-container">
-          <div class="loader-ring">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <div class="loading-text">Loading CXRaide</div>
-          <div class="loading-dots">
-            <span></span><span></span><span></span>
-          </div>
-        </div>
-      </div>
       <router-view
-        v-else-if="!errorOccurred"
-        :key="$route.fullPath"
-        @loading-start="startLoading"
-        @loading-end="stopLoading"
+        v-if="!errorOccurred"
+        @loading-start="startContentLoading"
+        @loading-end="stopContentLoading"
       />
       <div v-else class="error-screen">
         <div class="error-container">
@@ -40,6 +28,13 @@
         </div>
       </div>
     </transition>
+    
+    <!-- Content loading overlay (visible only when specific content is loading) -->
+    <div v-if="isContentLoading" class="content-loading-overlay">
+      <div class="spinner">
+        <i class="bi bi-arrow-repeat"></i>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -48,8 +43,10 @@ export default {
   data() {
     return {
       errorOccurred: false,
-      isLoading: false,
-      loadingTimeout: null,
+      isNavigating: false, // For navigation between pages
+      isContentLoading: false, // For loading content within pages
+      navigationTimeout: null,
+      contentLoadingTimeout: null,
       isOfflineMode: false,
     };
   },
@@ -60,20 +57,18 @@ export default {
     // Setup interval to check offline mode every minute
     setInterval(this.checkOfflineMode, 60000);
     
-    // Setup global navigation guards to show loading state
-    this.$router.beforeEach((to, from, next) => {
-      // Show loading screen for all navigations
-      this.startLoading();
-      next();
+    // Setup global navigation guards with subtle indicators
+    this.$router.beforeEach(() => {
+      // Show navigation progress bar
+      this.startNavigation();
     });
+    
     this.$router.afterEach(() => {
-      // Check offline status after each navigation
       this.checkOfflineMode();
-      
-      // Hide loading after a small delay
+      // Hide navigation progress bar after a short delay
       setTimeout(() => {
-        this.stopLoading();
-      }, 500);
+        this.stopNavigation();
+      }, 200);
     });
   },
   errorCaptured(err, vm, info) {
@@ -85,41 +80,35 @@ export default {
     reloadApp() {
       window.location.reload();
     },
-    startLoading(extended = false) {
-      clearTimeout(this.loadingTimeout);
-      this.isLoading = true;
-
-      // If coming from annotation page, force a small delay to ensure proper cleanup
-      if (extended) {
-        console.log("[App] Using extended loading sequence");
-        // Force component cleanup during loading
-        setTimeout(() => {
-          // Clear any hanging DOM references
-          Array.from(document.querySelectorAll('canvas')).forEach(canvas => {
-            const context = canvas.getContext('2d');
-            if (context) {
-              context.clearRect(0, 0, canvas.width, canvas.height);
-            }
-          });
-        }, 100);
-      }
+    startNavigation() {
+      clearTimeout(this.navigationTimeout);
+      this.isNavigating = true;
     },
-    stopLoading() {
-      // Use timeout to prevent quick flashes of loading screen
-      this.loadingTimeout = setTimeout(() => {
-        this.isLoading = false;
+    stopNavigation() {
+      this.navigationTimeout = setTimeout(() => {
+        this.isNavigating = false;
+      }, 200);
+    },
+    startContentLoading() {
+      clearTimeout(this.contentLoadingTimeout);
+      // Add a slight delay before showing the loading indicator
+      // to prevent flashing for quick operations
+      this.contentLoadingTimeout = setTimeout(() => {
+        this.isContentLoading = true;
       }, 300);
+    },
+    stopContentLoading() {
+      clearTimeout(this.contentLoadingTimeout);
+      this.isContentLoading = false;
     },
     checkOfflineMode() {
       try {
-        // Check if token exists
         const token = localStorage.getItem('authToken');
         if (!token) {
           this.isOfflineMode = false;
           return;
         }
         
-        // Check if it's an offline token
         const payload = token.split('.')[1];
         const decoded = JSON.parse(atob(payload));
         this.isOfflineMode = decoded.offline_mode === true;
@@ -200,54 +189,85 @@ select option {
   padding: 10px;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Navigation progress bar - thin line at the top of the page */
+.navigation-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(to right, #3b82f6, #60a5fa);
+  z-index: 1030;
+  animation: loadingBar 2s infinite ease-in-out;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+@keyframes loadingBar {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.6);
-  border-radius: 4px;
+/* Content loading overlay - for API calls within pages */
+.content-loading-overlay {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1020;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.8);
+.spinner {
+  font-size: 24px;
+  color: #3b82f6;
+  animation: spin 1s infinite linear;
 }
 
-/* Glow selection */
-::selection {
-  background: rgba(59, 130, 246, 0.3);
-  color: #ffffff;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error screen */
 .error-screen {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(9, 12, 20, 0.95);
+  z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(9, 12, 20, 0.95);
-  z-index: 9999;
 }
 
 .error-container {
-  background: rgba(15, 23, 42, 0.8);
-  border-radius: 12px;
-  padding: 2.5rem;
+  background-color: #1e293b;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  max-width: 90%;
+  width: 400px;
   text-align: center;
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .error-icon {
@@ -258,175 +278,74 @@ select option {
 
 .error-container h2 {
   font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
   color: #f3f4f6;
 }
 
 .error-container p {
-  color: #94a3b8;
+  font-size: 1rem;
   margin-bottom: 1.5rem;
+  color: #cbd5e1;
 }
 
 .reload-button {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background-color: #3b82f6;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.375rem;
   padding: 0.75rem 1.5rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  margin: 0 auto;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s;
 }
 
 .reload-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background-color: #2563eb;
 }
 
-/* Loading screen */
-.loading-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(9, 12, 20, 0.95) 0%,
-    rgba(16, 23, 42, 0.95) 100%
-  );
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  backdrop-filter: blur(5px);
+.reload-button i {
+  font-size: 1.25rem;
 }
 
-.loading-container {
-  text-align: center;
+/* Transition animations for route changes */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.15s ease;
 }
 
-.loader-ring {
-  display: inline-block;
-  position: relative;
-  width: 80px;
-  height: 80px;
-}
-
-.loader-ring div {
-  box-sizing: border-box;
-  display: block;
-  position: absolute;
-  width: 64px;
-  height: 64px;
-  margin: 8px;
-  border: 6px solid #3b82f6;
-  border-radius: 50%;
-  animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: #3b82f6 transparent transparent transparent;
-}
-
-.loader-ring div:nth-child(1) {
-  animation-delay: -0.45s;
-}
-
-.loader-ring div:nth-child(2) {
-  animation-delay: -0.3s;
-}
-
-.loader-ring div:nth-child(3) {
-  animation-delay: -0.15s;
-}
-
-@keyframes loader-ring {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
-  margin-top: 1.5rem;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #e5e7eb;
-  letter-spacing: 0.5px;
-}
-
-.loading-dots {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.75rem;
-}
-
-.loading-dots span {
-  width: 8px;
-  height: 8px;
-  margin: 0 4px;
-  background-color: #3b82f6;
-  border-radius: 50%;
-  display: inline-block;
-  animation: dots 1.4s infinite ease-in-out both;
-}
-
-.loading-dots span:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.loading-dots span:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-@keyframes dots {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-    opacity: 0.2;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Page transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+.fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
 
-/* Offline mode notification */
+/* Offline notification */
 .offline-notification {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background-color: rgba(244, 63, 94, 0.9);
+  background-color: #f97316;
   color: white;
   padding: 0.5rem;
   text-align: center;
+  z-index: 1010;
   font-size: 0.9rem;
-  z-index: 9999;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .offline-notification i {
-  font-size: 1rem;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .offline-notification {
+    font-size: 0.8rem;
+  }
 }
 </style>

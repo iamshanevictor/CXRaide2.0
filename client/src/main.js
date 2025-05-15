@@ -3,6 +3,13 @@ import App from "./App.vue";
 import router from "./router";
 import axios from "axios";
 
+// Configure axios defaults for better compatibility
+axios.defaults.timeout = 30000; // 30 seconds timeout
+axios.defaults.headers.common['Accept'] = 'application/json';
+
+// Remove problematic headers that can cause CORS issues
+delete axios.defaults.headers.common['X-Requested-With'];
+
 const app = createApp(App);
 
 // Configure axios globally
@@ -15,7 +22,7 @@ app.config.errorHandler = (err, vm, info) => {
   console.error("Info:", info);
 };
 
-// Mount with error boundary
+// Mount with router
 app.use(router).mount("#app");
 
 // Global error catcher

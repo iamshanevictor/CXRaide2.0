@@ -10,13 +10,13 @@ const routes = [
   {
     path: "/home",
     name: "home",
-    component: () => import("../views/HomeView.vue"), // Dynamic import
+    component: () => import(/* webpackChunkName: "home" */ "../views/HomeView.vue"), // Dynamic import
     meta: { requiresAuth: true },
   },
   {
     path: "/annotate",
     name: "annotate",
-    component: () => import("../views/AnnotateView.vue"), // Dynamic import
+    component: () => import(/* webpackChunkName: "annotate" */ "../views/AnnotateView.vue"), // Dynamic import
     meta: { 
       requiresAuth: true,
       // Add a leave guard to ensure component cleanup
@@ -26,12 +26,12 @@ const routes = [
   {
     path: "/login",
     name: "login",
-    component: () => import("../views/LoginView.vue"), // Dynamic import
+    component: () => import(/* webpackChunkName: "login" */ "../views/LoginView.vue"), // Dynamic import
   },
   {
     path: "/upload-cxr",
     name: "upload-cxr",
-    component: () => import("../views/UploadCXRView.vue"), // Dynamic import
+    component: () => import(/* webpackChunkName: "upload" */ "../views/UploadCXRView.vue"), // Dynamic import
     meta: { requiresAuth: true },
   },
   // Add a catch-all 404 route
@@ -50,122 +50,32 @@ const router = createRouter({
   routes,
 });
 
-// Track navigation attempts to prevent infinite loops
-let navigationAttempts = 0;
-const MAX_NAVIGATION_ATTEMPTS = 5;
-
-// Reset navigation counter after a delay
-setInterval(() => {
-  if (navigationAttempts > 0) {
-    console.log("[Router] Resetting navigation attempts counter");
-    navigationAttempts = 0;
-  }
-}, 10000);
-
-// Define a debounce function to prevent rapid navigation
-// This function is defined but currently not used - removed or commented to fix ESLint error
-/* 
-const debounce = (fn, delay) => {
-  let timeoutId;
-  return function (...args) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    timeoutId = setTimeout(() => {
-      fn.apply(this, args);
-      timeoutId = null;
-    }, delay);
-  };
-};
-*/
-
+// Navigation guard to check authentication
 router.beforeEach(async (to, from, next) => {
-  console.log("[Router] Navigation started to:", to.path, "from:", from.path);
+  console.log("[Router] Navigation to:", to.path);
+  
+  // Cancel any pending API requests
+  modelService.cancelRequests();
 
   // Special handling for leaving AnnotateView page
   if (from.name === 'annotate') {
-    console.log("[Router] Leaving Annotation page - performing additional cleanup");
-    // Force cleanup of any potentially problematic resources
-    try {
-      // Cancel any pending requests
-      modelService.cancelRequests();
-      
-      // Clear any cached images that might be causing issues
-      const imageElements = document.querySelectorAll('img');
-      imageElements.forEach(img => {
-        // Clear image src to help with memory cleanup
-        if (img.src && img.src.startsWith('blob:')) {
-          try {
-            URL.revokeObjectURL(img.src);
-            img.src = '';
-          } catch (e) {
-            console.error("[Router] Error cleaning up image:", e);
-          }
-        }
-      });
-      
-      // Reset any global CSS that might be affecting other pages
-      document.body.style.cursor = 'default';
-      
-      // Clear any canvas elements
-      const canvasElements = document.querySelectorAll('canvas');
-      canvasElements.forEach(canvas => {
-        try {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-        } catch (e) {
-          console.error("[Router] Error cleaning up canvas:", e);
-        }
-      });
-      
-      // Force major cleanup with timeout
-      setTimeout(() => {
-        console.log("[Router] Forcing additional cleanup");
-        
-        // Clear any detached event listeners
-        if (window.gc) {
-          try {
-            window.gc();
-          } catch (e) {
-            console.warn("[Router] Manual GC not available:", e);
-          }
-        }
-      }, 100);
-      
-    } catch (error) {
-      console.error("[Router] Error during annotation page cleanup:", error);
-    }
-  }
-
-  // Cancel any pending API requests to prevent errors
-  modelService.cancelRequests();
-
-  // Increment navigation attempts
-  navigationAttempts++;
-
-  // Prevent potential navigation loops
-  if (navigationAttempts > MAX_NAVIGATION_ATTEMPTS) {
-    console.error(
-      "[Router] Too many navigation attempts detected, possible loop"
-    );
-    navigationAttempts = 0;
-
-    // Force navigation to login and clear any auth state
-    localStorage.removeItem("authToken");
-    if (to.path !== "/login") {
-      return next("/login");
-    }
-    return next();
+    console.log("[Router] Leaving Annotation page - cleanup resources");
+    // Perform basic cleanup
+    const canvasElements = document.querySelectorAll('canvas');
+    canvasElements.forEach(canvas => {
+      try {
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } catch (e) {
+        console.warn("[Router] Error cleaning canvas:", e.message);
+      }
+    });
   }
 
   // Bypass auth check for login page
-  if (to.path === "/login" || to.name === "login") {
-    // If user is already logged in and trying to access login page, redirect to home
+  if (to.path === "/login") {
     const token = localStorage.getItem("authToken");
     if (token) {
-      console.log("[Auth] User already has token, redirecting to home");
       return next("/home");
     }
     return next();
@@ -175,51 +85,30 @@ router.beforeEach(async (to, from, next) => {
 
   // No token - redirect to login
   if (!token) {
-    console.log("[Auth] No token found");
     return next("/login");
   }
 
-  // Check if token is an offline token (added for network bypass)
+  // Check if token is an offline token
   if (isOfflineToken(token)) {
-    console.log("[Auth] Offline token detected - bypassing server validation");
+    console.log("[Router] Using offline mode");
     return next(); // Allow navigation with offline token
   }
 
   try {
-    // Use the API utility for session checking
-    console.log("[Auth] Checking session validity");
     const response = await checkSession();
-
-    if (response && response.data && response.data.valid) {
-      console.log(
-        "[Auth] Session is valid, user:",
-        response.data.user?.username
-      );
-      // Successful navigation decreases the counter
-      navigationAttempts = Math.max(0, navigationAttempts - 1);
+    if (response?.data?.valid) {
       return next();
     } else {
-      console.log("[Auth] Session is invalid");
       localStorage.removeItem("authToken");
       return next("/login");
     }
   } catch (error) {
-    console.error("[Auth] Session check failed:", error);
-
-    // Only clear token if it's an authentication error (401)
-    // For network errors, we'll still allow navigation to proceed
-    if (error.response && error.response.status === 401) {
-      console.log("[Auth] Unauthorized, clearing token");
-      localStorage.removeItem("authToken");
-      return next("/login");
-    }
-
-    if (error.code === "ERR_NETWORK") {
-      console.warn(
-        "[Auth] Network error during session check - allowing navigation"
-      );
-
-      // Create an offline token if not already using one
+    console.error("[Router] Session check error:", error.message);
+    
+    // For network errors, create offline token
+    if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
+      console.log("[Router] Network error - enabling offline mode");
+      
       if (!isOfflineToken(token)) {
         try {
           // Extract username from existing token
@@ -227,108 +116,64 @@ router.beforeEach(async (to, from, next) => {
           const decoded = JSON.parse(atob(payload));
           const username = decoded.username || decoded.sub || "offline_user";
           
-          // Create and store offline token
+          // Create offline token
           const offlineToken = createOfflineToken(username);
           localStorage.setItem("authToken", offlineToken);
-          console.log("[Auth] Created offline token for", username);
+          console.log("[Router] Created offline token for:", username);
         } catch (e) {
-          console.error("[Auth] Error creating offline token:", e);
+          console.error("[Router] Error creating offline token:", e);
         }
       }
-
-      // For pages that require auth, let the page component handle the error display
-      // This prevents a redirect loop when the API is unreachable
-      if (to.meta.requiresAuth) {
-        console.log(
-          "[Auth] Page requires auth but API is unreachable - proceeding with caution"
-        );
-      }
-
-      // Allow navigation to proceed despite network error
       return next();
     }
-
-    // For other errors, clear token and redirect to login
-    localStorage.removeItem("authToken");
-    return next("/login");
+    
+    // For auth errors, redirect to login
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("authToken");
+      return next("/login");
+    }
+    
+    // For other errors, continue navigation
+    return next();
   }
 });
 
-// Helper function to check if a token is an offline token
+// Helper functions for offline tokens
 function isOfflineToken(token) {
   try {
     const payload = token.split(".")[1];
     const decoded = JSON.parse(atob(payload));
     return decoded.offline_mode === true;
   } catch (e) {
-    console.error("[Router] Error checking offline token:", e);
     return false;
   }
 }
 
-// Helper function to create an offline token
 function createOfflineToken(username) {
-  // Create header
-  const header = {
-    alg: "HS256",
-    typ: "JWT"
-  };
-  
-  // Create payload with 24 hour expiration
+  const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
+  const expiry = now + 86400; // 24 hours
   const payload = {
     sub: username,
-    name: username,
     username: username,
+    offline_mode: true,
     iat: now,
-    exp: now + 86400, // 24 hours from now
-    offline_mode: true // Flag to indicate this is a bypass token
+    exp: expiry
   };
-  
-  // For mock token, we'll use base64 encoding (not actual JWT signing)
+
   const encodeBase64 = (obj) => {
     return btoa(JSON.stringify(obj))
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
   };
-  
-  // Create the token parts
-  const headerEncoded = encodeBase64(header);
-  const payloadEncoded = encodeBase64(payload);
-  const signatureEncoded = encodeBase64({sig: "offline_signature"});
-  
-  // Combine into a JWT token format
-  return `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`;
+
+  const encodedHeader = encodeBase64(header);
+  const encodedPayload = encodeBase64(payload);
+  const signature = "OFFLINE"; // Simplified signature for offline mode
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
 
-// Add afterEach navigation hook to perform cleanup
-router.afterEach((to, from) => {
-  console.log("[Router] Navigation completed to:", to.path, "from:", from.path);
-  
-  // Free up memory by running garbage collection via setTimeout
-  setTimeout(() => {
-    navigationAttempts = Math.max(0, navigationAttempts - 1);
-    
-    // Fix for blank content after navigating from AnnotateView
-    if (from.name === 'annotate' && (to.name === 'home' || to.name === 'upload-cxr')) {
-      console.log("[Router] Applying forceful recovery for blank content issue");
-      
-      // Force reload as a last resort - this is a direct fix for the blank content issue
-      // when navigating from AnnotateView to other pages
-      window.location.href = to.path;
-    }
-    
-    // This helps release memory more quickly
-    if (window.gc) {
-      try {
-        window.gc();
-        console.log("[Router] Manual garbage collection triggered");
-      } catch (e) {
-        console.warn("[Router] Manual garbage collection not available");
-      }
-    }
-  }, 100);
-});
-
 export default router;
+

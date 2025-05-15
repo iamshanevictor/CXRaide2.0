@@ -11,10 +11,10 @@ console.log("[API] Using API URL:", apiUrl);
 // Create an axios instance with default configuration
 const api = axios.create({
   baseURL: apiUrl,
-  timeout: 15000, // Increased timeout for slower connections
+  timeout: 30000, // Increased timeout for slower connections
   headers: {
     "Content-Type": "application/json",
-    Accept: "application/json",
+    "Accept": "application/json",
   },
   withCredentials: true,
 });
@@ -22,17 +22,6 @@ const api = axios.create({
 // Track failed requests to prevent redirect loops
 let failedRequests = 0;
 const MAX_FAILED_REQUESTS = 3;
-
-// Setup reset timer and store it to clear on component unmount if needed
-// Using an IIFE to avoid the eslint no-unused-vars error
-(function setupFailedRequestsReset() {
-  setTimeout(() => {
-    if (failedRequests > 0) {
-      console.log("[API] Resetting failed requests counter");
-      failedRequests = 0;
-    }
-  }, 30000); // Reset counter after 30 seconds
-})();
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
@@ -44,9 +33,6 @@ api.interceptors.request.use(
         ? token
         : `Bearer ${token}`;
     }
-    console.log(
-      `[API] ${config.method?.toUpperCase() || "REQUEST"} ${config.url}`
-    );
     return config;
   },
   (error) => {
@@ -60,27 +46,15 @@ api.interceptors.response.use(
   (response) => {
     // Reset failed requests counter on successful response
     failedRequests = 0;
-
-    console.log(
-      `[API] Response from ${response.config.url}: Status ${response.status}`
-    );
     return response;
   },
   (error) => {
-    console.error("API Error:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
-
     // Track failed requests to prevent redirect loops
     failedRequests++;
 
     // Handle network errors without redirecting immediately
-    if (error.code === "ERR_NETWORK") {
-      console.warn("[API] Network error detected");
+    if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
+      console.warn("[API] Network error detected:", error.message);
       return Promise.reject(error);
     }
 
@@ -90,17 +64,9 @@ api.interceptors.response.use(
       error.config.url !== "/login" &&
       failedRequests < MAX_FAILED_REQUESTS
     ) {
-      console.log(
-        "[API] Session expired or unauthorized. Redirecting to login."
-      );
       localStorage.removeItem("authToken");
-
       // If not already on login page, redirect
-      if (
-        window.location.pathname !== "/login" &&
-        !window.location.pathname.includes("login")
-      ) {
-        // Use history API for a smoother experience
+      if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
     }
@@ -109,20 +75,40 @@ api.interceptors.response.use(
   }
 );
 
+// Reset the failed requests counter periodically
+setInterval(() => {
+  if (failedRequests > 0) {
+    console.log("[API] Resetting failed requests counter");
+    failedRequests = 0;
+  }
+}, 30000);
+
 // API endpoints
 export const login = (username, password) => {
   console.log("[API] Attempting login for user:", username);
-  return api.post("/login", { username, password });
+  return api.post("/login", { username, password })
+    .catch(error => {
+      console.error("[API] Login failed:", error.message);
+      throw error;
+    });
 };
 
 export const checkSession = () => {
   console.log("[API] Checking session validity");
-  return api.get("/check-session");
+  return api.get("/check-session")
+    .catch(error => {
+      console.error("[API] Session check failed:", error.message);
+      throw error;
+    });
 };
 
 export const health = () => {
   console.log("[API] Checking API health");
-  return api.get("/health");
+  return api.get("/health")
+    .catch(error => {
+      console.error("[API] Health check failed:", error.message);
+      throw error;
+    });
 };
 
 export const logout = () => {
