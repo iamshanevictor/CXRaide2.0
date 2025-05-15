@@ -9,25 +9,36 @@
     <!-- Top navigation progress bar (visible only during navigation) -->
     <div v-if="isNavigating" class="navigation-progress"></div>
     
-    <transition name="fade" mode="out-in">
-      <router-view
-        v-if="!errorOccurred"
-        @loading-start="startContentLoading"
-        @loading-end="stopContentLoading"
-      />
-      <div v-else class="error-screen">
-        <div class="error-container">
-          <div class="error-icon">
-            <i class="bi bi-exclamation-triangle-fill"></i>
+    <!-- Login page has its own layout -->
+    <template v-if="$route.path === '/login'">
+      <transition name="fade" mode="out-in">
+        <router-view />
+      </transition>
+    </template>
+    
+    <!-- All other routes use the app layout -->
+    <template v-else>
+      <transition name="fade" mode="out-in">
+        <div v-if="errorOccurred" class="error-screen">
+          <div class="error-container">
+            <div class="error-icon">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2>Application Error</h2>
+            <p>We encountered an unexpected issue. Please try again.</p>
+            <button @click="reloadApp" class="reload-button">
+              <i class="bi bi-arrow-clockwise"></i> Reload Application
+            </button>
           </div>
-          <h2>Application Error</h2>
-          <p>We encountered an unexpected issue. Please try again.</p>
-          <button @click="reloadApp" class="reload-button">
-            <i class="bi bi-arrow-clockwise"></i> Reload Application
-          </button>
         </div>
-      </div>
-    </transition>
+        <router-view 
+          v-else 
+          :key="$route.fullPath" 
+          @loading-start="startContentLoading"
+          @loading-end="stopContentLoading"
+        />
+      </transition>
+    </template>
     
     <!-- Content loading overlay (visible only when specific content is loading) -->
     <div v-if="isContentLoading" class="content-loading-overlay">
@@ -189,6 +200,31 @@ select option {
   padding: 10px;
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.8);
+}
+
+/* Glow selection */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+}
+
 /* Navigation progress bar - thin line at the top of the page */
 .navigation-progress {
   position: fixed;
@@ -246,93 +282,98 @@ select option {
 
 /* Error screen */
 .error-screen {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(9, 12, 20, 0.95);
-  z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(9, 12, 20, 0.95);
+  z-index: 9999;
 }
 
 .error-container {
-  background-color: #1e293b;
-  border-radius: 0.75rem;
-  padding: 2rem;
-  max-width: 90%;
-  width: 400px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 12px;
+  padding: 2.5rem;
   text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2), 0 0 10px rgba(59, 130, 246, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  animation: error-appear 0.3s ease forwards;
+}
+
+@keyframes error-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .error-icon {
-  font-size: 3rem;
+  font-size: 4rem;
   color: #ef4444;
   margin-bottom: 1rem;
+  opacity: 0.9;
 }
 
 .error-container h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  color: #ef4444;
+  font-size: 1.75rem;
   margin-bottom: 1rem;
-  color: #f3f4f6;
 }
 
 .error-container p {
-  font-size: 1rem;
-  margin-bottom: 1.5rem;
-  color: #cbd5e1;
+  color: #e5e7eb;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
 }
 
 .reload-button {
-  background-color: #3b82f6;
-  color: white;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
   border: none;
-  border-radius: 0.375rem;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
+  color: white;
+  border-radius: 0.5rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .reload-button:hover {
-  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
 }
 
 .reload-button i {
   font-size: 1.25rem;
 }
 
-/* Transition animations for route changes */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-/* Offline notification */
+/* Offline mode notification */
 .offline-notification {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background-color: #f97316;
+  background-color: rgba(234, 88, 12, 0.95);
   color: white;
-  padding: 0.5rem;
   text-align: center;
-  z-index: 1010;
-  font-size: 0.9rem;
+  padding: 0.5rem;
+  z-index: 9999;
+  font-weight: 500;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -343,9 +384,15 @@ select option {
   font-size: 1.1rem;
 }
 
-@media (max-width: 768px) {
-  .offline-notification {
-    font-size: 0.8rem;
-  }
+/* Page transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease-in-out, transform 0.15s ease-out;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(5px);
 }
 </style>
