@@ -25,10 +25,7 @@ try {
     Write-Host "Local MongoDB is running. Using local database." -ForegroundColor Green
     $mongoUri = "mongodb://localhost:27017"
 }
-catch {
-    Write-Host "Local MongoDB is not running. Using MongoDB Atlas instead." -ForegroundColor Yellow
-    # Use the MongoDB Atlas connection string from the Docker configuration
-    $mongoUri = "mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide"
+catch {    Write-Host "Local MongoDB is not running. Please set MONGO_URI environment variable for MongoDB Atlas." -ForegroundColor Yellow    # Use environment variable or prompt user to enter MongoDB URI securely    if ($env:MONGO_URI) {        $mongoUri = $env:MONGO_URI        Write-Host "Using MongoDB URI from environment variable." -ForegroundColor Green    } else {        Write-Host "Please set the MONGO_URI environment variable before running this script." -ForegroundColor Red        Write-Host "Example: $env:MONGO_URI = 'mongodb+srv://username:password@cluster.mongodb.net/...' " -ForegroundColor Yellow        exit 1    }
 }
 
 # Set environment variables

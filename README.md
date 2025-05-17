@@ -20,6 +20,25 @@ A web application for chest X-ray annotation and AI-assisted analysis, featuring
 - Node.js 16+ (for local development)
 - MongoDB (optional, for local development)
 
+### Configuring MongoDB Credentials
+
+**IMPORTANT: Security Notice**
+
+For security reasons, MongoDB credentials should never be hard-coded or committed to Git. Instead:
+
+1. Create a `.env` file in the server directory with your MongoDB connection string:
+   ```
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/...
+   DB_NAME=cxraide
+   SECRET_KEY=your_secure_random_key
+   ```
+
+2. The `.env` file is already in the `.gitignore` to prevent accidental commits
+
+3. For Docker deployments, set these environment variables in your deployment platform's dashboard or pass them at runtime
+
+4. For local development without Docker, the `run_backend.ps1` script will check for the MONGO_URI environment variable
+
 ### Quick Start with Docker
 
 This project uses Docker for both development and production. The development environment is set up with hot-reloading for faster development iterations.
@@ -71,21 +90,7 @@ chmod +x dev.sh
 ./dev.sh clean
 ```
 
-### Local Development Setup
-
-1. Clone the repository
-2. Set up environment variables in `.env` file
-3. Install dependencies:
-   ```bash
-   # Backend dependencies
-   cd server
-   pip install -r requirements.txt
-   pip install -r requirements.local.txt
-
-   # Frontend dependencies
-   cd ../client
-   npm install
-   ```
+### Local Development Setup1. Clone the repository2. Set up environment variables in `.env` file:   - Create a `.env` file in the server directory   - Add the following with your actual MongoDB connection:     ```     MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/...     DB_NAME=cxraide     SECRET_KEY=your_secure_random_key     ```   - **IMPORTANT:** Never commit your `.env` file to git! The `.gitignore` is already set up to exclude it.3. Install dependencies:   ```bash   # Backend dependencies   cd server   pip install -r requirements.txt   pip install -r requirements.local.txt   # Frontend dependencies   cd ../client   npm install   ```
 4. Start MongoDB locally or use Docker container
 5. Initialize the database:
    ```bash

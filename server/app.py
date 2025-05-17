@@ -147,7 +147,7 @@ ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
 logger.info(f"Running in {ENVIRONMENT} environment")
 
 # MongoDB Configuration - Direct configuration
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://cxraide-admin:OhbYaa4VRXmEolR9@cxraide.av2tc7q.mongodb.net/?retryWrites=true&w=majority&appName=CXRaide')
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
 LOCAL_MONGO_URI = 'mongodb://localhost:27017'
 DB_NAME = os.getenv('DB_NAME', 'cxraide')
 

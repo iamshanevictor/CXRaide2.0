@@ -4,6 +4,13 @@
 bfg.jar
 "h -f origin HEAD*"
 
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.*
+
 # Python specific
 __pycache__/
 *.py[cod]
