@@ -52,284 +52,211 @@
     </div>
 
     <!-- Main content -->
-    <div v-else class="app-layout">
-      <!-- Left Navigation Bar (reused from AnnotateView) -->
-      <div class="nav-sidebar">
-        <div class="logo-container">
-          <img
-            src="@/assets/LOGO1.png"
-            alt="CXRaide Logo"
-            class="sidebar-logo"
-          />
-        </div>
-        <div class="nav-items">
-          <div class="nav-item" @click="$router.push('/home')">
-            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
-            <div class="nav-label">Dashboard</div>
-          </div>
-          <div class="nav-item active">
-            <div class="nav-icon"><i class="bi bi-cloud-upload"></i></div>
-            <div class="nav-label">Upload CXR</div>
-          </div>
-          <div class="nav-item" @click="$router.push('/annotate')">
-            <div class="nav-icon"><i class="bi bi-pen"></i></div>
-            <div class="nav-label">Annotate</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-            <div class="nav-label">Reports</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-database"></i></div>
-            <div class="nav-label">Datasets</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-gear"></i></div>
-            <div class="nav-label">Settings</div>
-          </div>
-        </div>
-        <div class="nav-footer">
-          <div class="nav-item" @click="logout">
-            <div class="nav-icon"><i class="bi bi-box-arrow-right"></i></div>
-            <div class="nav-label">Logout</div>
-          </div>
-        </div>
-      </div>
+    <div v-else class="annotate-wrapper">
+      <!-- Header -->
+      <HeaderBar :username="username">
+        <template #title>
+          Upload CXR :
+          <span class="highlight">Analyze with AI</span>
+        </template>
+      </HeaderBar>
 
-      <div class="annotate-wrapper">
-        <!-- Header -->
-        <div class="annotate-header">
-          <h1>
-            Upload CXR :
-            <span class="highlight">Analyze with AI</span>
-          </h1>
+      <!-- Main annotation area -->
+      <div class="annotation-container">
+        <!-- Main image display area -->
+        <div class="image-container">
+          <div class="file-info-bar">
+            <span
+              >Raw CXRay Name:
+              {{ imageFile ? imageFile.name : "No file selected" }}</span
+            >
+            <button
+              class="upload-btn"
+              @click="triggerFileUpload"
+              :disabled="isAnalyzing"
+            >
+              <i class="bi bi-cloud-arrow-up"></i> Upload X-ray
+            </button>
+          </div>
 
-          <div class="header-actions">
-            <button class="icon-button dark-mode-toggle">
-              <span class="icon"><i class="bi bi-moon"></i></span>
-            </button>
-            <button class="icon-button notifications">
-              <span class="icon"><i class="bi bi-bell"></i></span>
-            </button>
-            <div class="user-dropdown">
-              <div class="user-avatar" @click="toggleUserMenu">
-                {{ username ? username.charAt(0).toUpperCase() : "U" }}
-              </div>
-              <div class="dropdown-menu" v-show="showUserMenu">
-                <div class="dropdown-item" @click="openUserSettings">
-                  <span class="dropdown-icon"
-                    ><i class="bi bi-person-gear"></i
-                  ></span>
-                  <span>User Settings</span>
-                </div>
-                <div class="dropdown-item" @click="logout">
-                  <span class="dropdown-icon"
-                    ><i class="bi bi-box-arrow-right"></i
-                  ></span>
-                  <span>Logout</span>
-                </div>
-              </div>
+          <div
+            class="upload-area"
+            :class="{ 'has-image': currentImage }"
+            @click="!currentImage && triggerFileUpload()"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleFileDrop"
+          >
+            <div
+              v-if="!currentImage"
+              class="upload-placeholder"
+              :class="{ dragging: isDragging }"
+            >
+              <i class="bi bi-cloud-arrow-up"></i>
+              <p>
+                Click to upload or drag & drop<br />Supported formats: JPEG,
+                PNG
+              </p>
             </div>
-          </div>
-        </div>
-
-        <!-- Main annotation area -->
-        <div class="annotation-container">
-          <!-- Main image display area -->
-          <div class="image-container">
-            <div class="file-info-bar">
-              <span
-                >Raw CXRay Name:
-                {{ imageFile ? imageFile.name : "No file selected" }}</span
-              >
-              <button
-                class="upload-btn"
-                @click="triggerFileUpload"
-                :disabled="isAnalyzing"
-              >
-                <i class="bi bi-cloud-arrow-up"></i> Upload X-ray
+            <div
+              v-else
+              class="xray-image-container"
+            >
+              <img :src="currentImage" alt="X-ray image" />
+              <button class="remove-image-btn" @click.stop="removeImage">
+                <i class="bi bi-x-circle-fill"></i>
               </button>
             </div>
+            <input
+              type="file"
+              ref="fileInput"
+              accept="image/*"
+              @change="handleFileUpload"
+              class="hidden-file-input"
+            />
 
-            <div
-              class="upload-area"
-              :class="{ 'has-image': currentImage }"
-              @click="!currentImage && triggerFileUpload()"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @drop.prevent="handleFileDrop"
-            >
-              <div
-                v-if="!currentImage"
-                class="upload-placeholder"
-                :class="{ dragging: isDragging }"
-              >
-                <i class="bi bi-cloud-arrow-up"></i>
-                <p>
-                  Click to upload or drag & drop<br />Supported formats: JPEG,
-                  PNG
-                </p>
-              </div>
-              <div
-                v-else
-                class="xray-image-container"
-              >
-                <img :src="currentImage" alt="X-ray image" />
-                <button class="remove-image-btn" @click.stop="removeImage">
-                  <i class="bi bi-x-circle-fill"></i>
-                </button>
-              </div>
-              <input
-                type="file"
-                ref="fileInput"
-                accept="image/*"
-                @change="handleFileUpload"
-                class="hidden-file-input"
-              />
-
-              <!-- Model Selection Panel -->
-              <div class="abnormality-selection-container" @click.stop>
-                <div class="abnormality-selector">
-                  <div class="selector-label">AI Model Selection:</div>
-                  <div class="selector-dropdown-container">
-                    <select
-                      class="select-dropdown"
-                      v-model="selectedModel"
-                      @click.stop
-                    >
-                      <option value="CXR-IT3">SSD300_VGG16-CXR6plus3 v1</option>
-                      <option value="CXR-IT2">SSD300_VGG16-CXR9 v2</option>
-                    </select>
-                  </div>
+            <!-- Model Selection Panel -->
+            <div class="abnormality-selection-container" @click.stop>
+              <div class="abnormality-selector">
+                <div class="selector-label">AI Model Selection:</div>
+                <div class="selector-dropdown-container">
+                  <select
+                    class="select-dropdown"
+                    v-model="selectedModel"
+                    @click.stop
+                  >
+                    <option value="CXR-IT3">SSD300_VGG16-CXR6plus3 v1</option>
+                    <option value="CXR-IT2">SSD300_VGG16-CXR9 v2</option>
+                  </select>
                 </div>
               </div>
             </div>
-
-            <!-- Action buttons -->
-            <div class="action-buttons">
-              <button
-                class="analyze-with-ai-button"
-                :disabled="!currentImage || isAnalyzing"
-                @click="analyzeImage"
-              >
-                <i class="bi bi-search"></i> Analyze with AI
-              </button>
-            </div>
           </div>
 
-          <!-- Right sidebar with AI annotations -->
-          <div class="ai-annotations">
-            <!-- Add AI Results header -->
-            <div class="results-header">
-              <h2>AI Results</h2>
-            </div>
-
-            <!-- Mock model banner -->
-            <div
-              v-if="isUsingMockModel"
-              class="model-status-banner"
+          <!-- Action buttons -->
+          <div class="action-buttons">
+            <button
+              class="analyze-with-ai-button"
+              :disabled="!currentImage || isAnalyzing"
+              @click="analyzeImage"
             >
-              <i class="bi bi-info-circle-fill"></i>
-              <span
-                >Using mock AI predictions (server is using lightweight
-                model)</span
-              >
-            </div>
+              <i class="bi bi-search"></i> Analyze with AI
+            </button>
+          </div>
+        </div>
 
-            <div class="xray-image ai-image">
-              <!-- Use the pre-rendered annotated image with bounding boxes -->
-              <img
-                v-if="annotatedImage"
-                :src="annotatedImage"
-                alt="AI annotated X-ray"
-                class="standardized-image"
-              />
-              <!-- Fallback to the original image if no annotated image yet -->
-              <img
-                v-else-if="currentImage && !isAnalyzing"
-                :src="currentImage"
-                alt="X-ray"
-              />
+        <!-- Right sidebar with AI annotations -->
+        <div class="ai-annotations">
+          <!-- Add AI Results header -->
+          <div class="results-header">
+            <h2>AI Results</h2>
+          </div>
 
-              <!-- Professional analyzing indicator (matching AnnotateView) -->
-              <transition name="fade">
-                <a-i-model-loader v-if="isAnalyzing && !annotatedImage && !modelError" title="Analyzing Image" message="AI model is processing your chest X-ray..." />
-              </transition>
+          <!-- Mock model banner -->
+          <div
+            v-if="isUsingMockModel"
+            class="model-status-banner"
+          >
+            <i class="bi bi-info-circle-fill"></i>
+            <span
+              >Using mock AI predictions (server is using lightweight
+              model)</span
+            >
+          </div>
 
-              <!-- Empty state -->
-              <div
-                v-if="!currentImage && !annotatedImage"
-                class="placeholder-ai-message"
-              >
-                <i class="bi bi-robot"></i>
-                <p>AI annotations will appear here</p>
-              </div>
-            </div>
+          <div class="xray-image ai-image">
+            <!-- Use the pre-rendered annotated image with bounding boxes -->
+            <img
+              v-if="annotatedImage"
+              :src="annotatedImage"
+              alt="AI annotated X-ray"
+              class="standardized-image"
+            />
+            <!-- Fallback to the original image if no annotated image yet -->
+            <img
+              v-else-if="currentImage && !isAnalyzing"
+              :src="currentImage"
+              alt="X-ray"
+            />
 
-            <!-- Error state -->
+            <!-- Professional analyzing indicator (matching AnnotateView) -->
             <transition name="fade">
-              <model-error-overlay
-                v-if="modelError"
-                :title="'Model could not be loaded'"
-                :message="modelError"
-                :show-retry="true"
-                @retry="analyzeImage"
-              />
+              <a-i-model-loader v-if="isAnalyzing && !annotatedImage && !modelError" title="Analyzing Image" message="AI model is processing your chest X-ray..." />
             </transition>
 
-            <!-- AI Detection Results section (exactly matching AnnotateView) -->
+            <!-- Empty state -->
             <div
-              v-if="annotatedImage && aiPredictions.length > 0"
-              class="ai-detection-results"
+              v-if="!currentImage && !annotatedImage"
+              class="placeholder-ai-message"
             >
-              <div class="summary-header" @click="toggleResults">
-                <h3>AI Detection Results:</h3>
-                <button class="toggle-btn">
-                  <i
-                    :class="
-                      isResultsCollapsed
-                        ? 'bi bi-chevron-down'
-                        : 'bi bi-chevron-up'
-                    "
-                  ></i>
-                </button>
-              </div>
-              <div v-show="!isResultsCollapsed" class="confidence-list">
-                <div
-                  v-for="(prediction, index) in aiPredictions"
-                  :key="index"
-                  class="confidence-item"
-                  :style="{
-                    borderLeft: `4px solid ${getColorForFinding(prediction.class)}`
-                  }"
-                >
-                  <span class="confidence-label">{{ prediction.class }}:</span>
-                  <span
-                    class="confidence-value"
-                    :style="{ color: getColorForFinding(prediction.class) }"
-                  >
-                    {{ formatConfidence(prediction.score) }}
-                  </span>
-                </div>
-              </div>
+              <i class="bi bi-robot"></i>
+              <p>AI annotations will appear here</p>
             </div>
+          </div>
 
-            <!-- Download button (matching AnnotateView) -->
-            <div class="download-print-container">
-              <button class="download-print-btn" @click="downloadResult">
-                <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
+          <!-- Error state -->
+          <transition name="fade">
+            <model-error-overlay
+              v-if="modelError"
+              :title="'Model could not be loaded'"
+              :message="modelError"
+              :show-retry="true"
+              @retry="analyzeImage"
+            />
+          </transition>
+
+          <!-- AI Detection Results section (exactly matching AnnotateView) -->
+          <div
+            v-if="annotatedImage && aiPredictions.length > 0"
+            class="ai-detection-results"
+          >
+            <div class="summary-header" @click="toggleResults">
+              <h3>AI Detection Results:</h3>
+              <button class="toggle-btn">
+                <i
+                  :class="
+                    isResultsCollapsed
+                      ? 'bi bi-chevron-down'
+                      : 'bi bi-chevron-up'
+                  "
+                ></i>
               </button>
             </div>
-            
-            <!-- New Analysis button -->
-            <div class="action-buttons annotation-actions">
-              <button
-                class="action-button expert-button"
-                @click="resetAnalysis"
+            <div v-show="!isResultsCollapsed" class="confidence-list">
+              <div
+                v-for="(prediction, index) in aiPredictions"
+                :key="index"
+                class="confidence-item"
+                :style="{
+                  borderLeft: `4px solid ${getColorForFinding(prediction.class)}`
+                }"
               >
-                <i class="bi bi-arrow-counterclockwise"></i> New Analysis
-              </button>
+                <span class="confidence-label">{{ prediction.class }}:</span>
+                <span
+                  class="confidence-value"
+                  :style="{ color: getColorForFinding(prediction.class) }"
+                >
+                  {{ formatConfidence(prediction.score) }}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <!-- Download button (matching AnnotateView) -->
+          <div class="download-print-container">
+            <button class="download-print-btn" @click="downloadResult">
+              <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
+            </button>
+          </div>
+          
+          <!-- New Analysis button -->
+          <div class="action-buttons annotation-actions">
+            <button
+              class="action-button expert-button"
+              @click="resetAnalysis"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i> New Analysis
+            </button>
           </div>
         </div>
       </div>
@@ -342,12 +269,14 @@ import { logout } from "../utils/api";
 import ModelService from "@/services/modelService";
 import ModelErrorOverlay from "../components/ModelErrorOverlay.vue";
 import AIModelLoader from "../components/AIModelLoader.vue";
+import HeaderBar from '@/components/HeaderBar.vue';
 
 export default {
   name: "UploadCXRView",
   components: {
     ModelErrorOverlay,
     AIModelLoader,
+    HeaderBar,
   },
   data() {
     return {
@@ -666,109 +595,21 @@ export default {
 <style scoped>
 /* Base Layout Styles */
 .annotate-container {
-  min-height: 100vh;
   width: 100%;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-.app-layout {
+.annotate-wrapper {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  width: 100%;
+  padding: 0;
 }
 
 /* Navigation sidebar styles */
-.nav-sidebar {
-  width: 240px;
-  background: rgba(15, 23, 42, 0.8);
-  border-right: 1px solid rgba(59, 130, 246, 0.2);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-}
-
-.logo-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-  padding: 25px 0;
-}
-
-.sidebar-logo {
-  width: 180px;
-  height: auto;
-  filter: drop-shadow(0 0 8px rgba(93, 175, 255, 0.4));
-}
-
-.nav-items {
-  flex: 1;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.9rem 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.nav-item.active {
-  background: rgba(59, 130, 246, 0.15);
-  border-left: 3px solid #3b82f6;
-}
-
-.nav-icon {
-  margin-right: 1rem;
-  font-size: 1.1rem;
-  opacity: 0.8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-}
-
-.nav-icon i {
-  font-size: 1.2rem;
-}
-
-.nav-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #e5e7eb;
-}
-
-.nav-footer {
-  padding: 1.5rem 0;
-  border-top: 1px solid rgba(59, 130, 246, 0.1);
-}
+/* Navigation styles moved to NavSidebar.vue component */
 
 /* Main workspace area */
-.annotate-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin-left: 240px;
-  width: calc(100% - 240px);
-}
+.annotate-wrapper {  flex: 1;  display: flex;  flex-direction: column;  /* Navigation margin handled in AppLayout now */  width: 100%;}
 
 /* Header styles */
 .annotate-header {
@@ -897,8 +738,8 @@ export default {
 .annotation-container {
   display: flex;
   height: calc(100vh - 86px);
-  padding: 1rem;
-  gap: 1rem;
+  padding: 1.5rem;
+  gap: 1.5rem;
   overflow: hidden;
 }
 
@@ -1664,23 +1505,7 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .nav-sidebar {
-    width: 60px;
-  }
-
-  .nav-label {
-    display: none;
-  }
-
-  .nav-icon {
-    margin-right: 0;
-  }
-
-  .annotate-wrapper {
-    margin-left: 60px;
-    width: calc(100% - 60px);
-  }
-
+  /* Mobile sidebar styles moved to NavSidebar component */
   .nav-item {
     justify-content: center;
   }

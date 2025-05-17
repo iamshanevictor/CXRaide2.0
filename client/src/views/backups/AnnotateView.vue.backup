@@ -410,7 +410,12 @@
               <div class="summary-header" @click="toggleDetectionResults">
                 <h3>AI Detection Results:</h3>
                 <button class="toggle-btn">
-                  <i :class="detectionResultsExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+                  <i
+                    :class="
+                      detectionResultsExpanded
+                        ? 'bi bi-chevron-up'
+                        : 'bi bi-chevron-down'
+                    ></i>
                 </button>
               </div>
               <div v-show="detectionResultsExpanded" class="confidence-list">
@@ -1788,16 +1793,96 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 0;
 }
 
 /* Sidebar Navigation Styles (from HomeView) */
-/* Navigation styles moved to NavSidebar.vue component */
+.nav-sidebar {
+  width: 240px;
+  background: rgba(15, 23, 42, 0.8);
+  border-right: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
 
-/* Logo and navigation item styles moved to NavSidebar.vue component */
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  padding: 25px 0;
+}
+
+.sidebar-logo {
+  width: 180px;
+  height: auto;
+  filter: drop-shadow(0 0 8px rgba(93, 175, 255, 0.4));
+}
+
+.nav-items {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.9rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.nav-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid #3b82f6;
+}
+
+.nav-icon {
+  margin-right: 1rem;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+.nav-icon i {
+  font-size: 1.2rem;
+}
+
+.nav-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.nav-footer {
+  padding: 1.5rem 0;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+}
 
 /* Annotate specific styles */
-.annotate-wrapper {  flex: 1;  padding: 1.5rem;  /* Navigation margin handled in AppLayout now */  width: 100%;}
+.annotate-wrapper {
+  flex: 1;
+  padding: 1.5rem;
+  margin-left: 240px;
+  max-width: calc(100% - 240px);
+}
 
 .annotate-header {
   display: flex;
@@ -1935,10 +2020,9 @@ export default {
 /* Annotation Layout */
 .annotation-container {
   display: flex;
-  height: calc(100vh - 86px);
-  padding: 1.5rem;
-  gap: 1.5rem;
-  overflow: hidden;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  height: calc(100vh - 200px);
 }
 
 .annotation-tools {

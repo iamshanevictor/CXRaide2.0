@@ -21,12 +21,20 @@
           </div>
         </div>
       </div>
+      <!-- Handle Login view separately since it doesn't need the layout -->
       <router-view
-        v-else-if="!errorOccurred"
-        :key="$route.fullPath"
+        v-else-if="!errorOccurred && $route.name === 'login'"
         @loading-start="startLoading"
         @loading-end="stopLoading"
       />
+      <!-- Use layout for all authenticated routes -->
+      <AppLayout v-else-if="!errorOccurred && $route.name !== 'login'">
+        <router-view
+          :key="$route.fullPath"
+          @loading-start="startLoading"
+          @loading-end="stopLoading"
+        />
+      </AppLayout>
       <div v-else class="error-screen">
         <div class="error-container">
           <div class="error-icon">
@@ -44,7 +52,12 @@
 </template>
 
 <script>
+import AppLayout from '@/components/AppLayout.vue';
+
 export default {
+  components: {
+    AppLayout
+  },
   data() {
     return {
       errorOccurred: false,

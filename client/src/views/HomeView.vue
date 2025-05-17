@@ -37,388 +37,109 @@
     </div>
 
     <!-- Main content -->
-    <div v-else class="app-layout">
-      <!-- Left Navigation Bar -->
-      <div class="nav-sidebar">
-        <div class="logo-container">
-          <img
-            src="@/assets/LOGO1.png"
-            alt="CXRaide Logo"
-            class="sidebar-logo"
-          />
-        </div>
-        <div class="nav-items">
-          <div class="nav-item active">
-            <div class="nav-icon"><i class="bi bi-clipboard2-pulse"></i></div>
-            <div class="nav-label">Dashboard</div>
-          </div>
-          <div class="nav-item" @click="$router.push('/upload-cxr')">
-            <div class="nav-icon"><i class="bi bi-cloud-upload"></i></div>
-            <div class="nav-label">Upload CXR</div>
-          </div>
-          <div class="nav-item" @click="$router.push('/annotate')">
-            <div class="nav-icon"><i class="bi bi-pen"></i></div>
-            <div class="nav-label">Annotate</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-file-earmark-text"></i></div>
-            <div class="nav-label">Reports</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-database"></i></div>
-            <div class="nav-label">Datasets</div>
-          </div>
-          <div class="nav-item">
-            <div class="nav-icon"><i class="bi bi-gear"></i></div>
-            <div class="nav-label">Settings</div>
-          </div>
-        </div>
-        <div class="nav-footer">
-          <div class="nav-item" @click="logout">
-            <div class="nav-icon"><i class="bi bi-box-arrow-right"></i></div>
-            <div class="nav-label">Logout</div>
-          </div>
-        </div>
-      </div>
+    <div v-else class="dashboard-wrapper">
+      <!-- Header with welcome message -->
+      <HeaderBar :username="username">
+        <template #title>
+          Welcome back, <span class="highlight">{{ username }}</span>!
+        </template>
+      </HeaderBar>
 
-      <div class="dashboard-wrapper">
-        <!-- Header with welcome message -->
-        <div class="welcome-header">
-          <h1>
-            Welcome back, <span class="highlight">{{ username }}</span
-            >!
-          </h1>
-          <div class="header-actions">
-            <button class="icon-button dark-mode-toggle">
-              <span class="icon"><i class="bi bi-moon"></i></span>
-            </button>
-            <button class="icon-button notifications">
-              <span class="icon"><i class="bi bi-bell"></i></span>
-            </button>
-            <div class="user-dropdown">
-              <div class="user-avatar" @click="toggleUserMenu">
-                {{ username.charAt(0) }}
-              </div>
-              <div class="dropdown-menu" v-show="showUserMenu">
-                <div class="dropdown-item" @click="openUserSettings">
-                  <span class="dropdown-icon"
-                    ><i class="bi bi-person-gear"></i
-                  ></span>
-                  <span>User Settings</span>
-                </div>
-                <div class="dropdown-item" @click="logout">
-                  <span class="dropdown-icon"
-                    ><i class="bi bi-box-arrow-right"></i
-                  ></span>
-                  <span>Logout</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Main dashboard cards -->
-        <div class="dashboard-grid">
-          <!-- Model Information Card (Updated with more details) -->
-          <div class="card primary-card model-info-card">
-            <div class="card-header model-header">
-              <h2 class="model-title">Model: SSD300_VGG16</h2>
-              <div class="model-status-wrapper">
-                <div
-                  class="model-status-badge"
-                  :class="{
-                    'mock-model': modelInfo && modelInfo.using_mock_models,
-                    'real-model': !modelInfo || !modelInfo.using_mock_models,
-                  }"
-                  v-if="modelInfo"
-                >
-                  {{
-                    modelInfo.using_mock_models ? "Mock Model" : "Real Model"
-                  }}
-                  <i
-                    :class="
-                      modelInfo.using_mock_models
-                        ? 'bi bi-pc-display'
-                        : 'bi bi-cpu-fill'
-                    "
-                  ></i>
-                </div>
-              </div>
-            </div>
-            <div class="card-content model-content">
-              <!-- Alert message when mock models are used -->
+      <!-- Main dashboard cards -->
+      <div class="dashboard-grid">
+        <!-- Model Information Card (Updated with more details) -->
+        <div class="card primary-card model-info-card">
+          <div class="card-header model-header">
+            <h2 class="model-title">Model: SSD300_VGG16</h2>
+            <div class="model-status-wrapper">
               <div
-                class="mock-model-alert"
-                v-if="modelInfo && modelInfo.using_mock_models"
+                class="model-status-badge"
+                :class="{
+                  'mock-model': modelInfo && modelInfo.using_mock_models,
+                  'real-model': !modelInfo || !modelInfo.using_mock_models,
+                }"
+                v-if="modelInfo"
               >
-                <i class="bi bi-info-circle-fill"></i>
-                <span>{{ modelInfo.explanation }}</span>
-              </div>
-
-              <!-- Model specs in a grid layout -->
-              <div class="model-specs">
-                <div class="spec-item">
-                  <div class="spec-label">Base:</div>
-                  <div class="spec-value">VGG16 backbone</div>
-                </div>
-
-                <div class="spec-item">
-                  <div class="spec-label">Input Size:</div>
-                  <div class="spec-value">300x300px</div>
-                </div>
-
-                <div class="spec-item">
-                  <div class="spec-label">Feature Layers:</div>
-                  <div class="spec-value">
-                    conv4_3, conv7, conv8_2, conv9_2, conv10_2, conv11_2
-                  </div>
-                </div>
-
-                <div class="spec-item">
-                  <div class="spec-label">Training:</div>
-                  <div class="spec-value">
-                    Transfer Learning with Fine-tuning
-                  </div>
-                </div>
-
-                <div class="spec-item">
-                  <div class="spec-label">Loss Function:</div>
-                  <div class="spec-value">Focal Loss + Smooth L1 Loss</div>
-                </div>
-              </div>
-
-              <!-- Workflow section with improved styling - using arrows -->
-              <div class="workflow-container">
-                <div class="workflow-title">CXRaide 2.0 Workflow</div>
-                <div class="workflow-steps">
-                  <div class="workflow-step">
-                    <div class="step-circle step-active">1</div>
-                    <div class="step-label">Upload CXR</div>
-                  </div>
-
-                  <div class="workflow-arrow">
-                    <i class="bi bi-arrow-right"></i>
-                  </div>
-
-                  <div class="workflow-step">
-                    <div class="step-circle">2</div>
-                    <div class="step-label">Annotate</div>
-                  </div>
-
-                  <div class="workflow-arrow">
-                    <i class="bi bi-arrow-right"></i>
-                  </div>
-
-                  <div class="workflow-step">
-                    <div class="step-circle">3</div>
-                    <div class="step-label">Generate Report</div>
-                  </div>
-                </div>
+                {{
+                  modelInfo.using_mock_models ? "Mock Model" : "Real Model"
+                }}
+                <i
+                  :class="
+                    modelInfo.using_mock_models
+                      ? 'bi bi-pc-display'
+                      : 'bi bi-cpu-fill'
+                  "
+                ></i>
               </div>
             </div>
           </div>
-        </div>
+          <div class="card-content model-content">
+            <!-- Alert message when mock models are used -->
+            <div
+              class="mock-model-alert"
+              v-if="modelInfo && modelInfo.using_mock_models"
+            >
+              <i class="bi bi-info-circle-fill"></i>
+              <span>{{ modelInfo.explanation }}</span>
+            </div>
 
-        <!-- New content grid for the bottom containers -->
-        <div class="content-grid">
-          <!-- Performance Metrics Container -->
-          <div class="performance-metrics-container">
-            <div class="card-header">
-              <h2>Performance Metrics</h2>
-              <div class="iteration-badge">Iteration 3</div>
-            </div>
-            <div class="card-content">
-              <div class="metrics-columns">
-                <div class="metrics-column">
-                  <h3 class="metrics-category">Precision Metrics</h3>
-                  <div class="metric-row">
-                    <div class="metric-name">AP@[IoU=0.50:0.95]:</div>
-                    <div class="metric-value">31.02%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">AP@[IoU=0.50]:</div>
-                    <div class="metric-value">34.56%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">AP@[IoU=0.75]:</div>
-                    <div class="metric-value">33.09%</div>
-                  </div>
-                  <h4 class="metrics-subcategory">Precision by Area Size</h4>
-                  <div class="metric-row">
-                    <div class="metric-name">Small:</div>
-                    <div class="metric-value">37.91%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">Medium:</div>
-                    <div class="metric-value">32.51%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">Large:</div>
-                    <div class="metric-value">34.77%</div>
-                  </div>
-                </div>
-                <div class="metrics-column">
-                  <h3 class="metrics-category">Recall Metrics</h3>
-                  <div class="metric-row">
-                    <div class="metric-name">AR@1:</div>
-                    <div class="metric-value">88.55%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">AR@10:</div>
-                    <div class="metric-value">88.66%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">AR@100:</div>
-                    <div class="metric-value">88.66%</div>
-                  </div>
-                  <h4 class="metrics-subcategory">Recall by Area Size</h4>
-                  <div class="metric-row">
-                    <div class="metric-name">Small:</div>
-                    <div class="metric-value">83.58%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">Medium:</div>
-                    <div class="metric-value">90.31%</div>
-                  </div>
-                  <div class="metric-row">
-                    <div class="metric-name">Large:</div>
-                    <div class="metric-value">91.41%</div>
-                  </div>
-                </div>
+            <!-- Model specs in a grid layout -->
+            <div class="model-specs">
+              <div class="spec-item">
+                <div class="spec-label">Base:</div>
+                <div class="spec-value">VGG16 backbone</div>
               </div>
-              <div class="metrics-footer">
-                <div class="loss-stat">
-                  <div class="loss-label">Classification Loss:</div>
-                  <div class="loss-value">1.96</div>
-                </div>
-                <div class="loss-stat">
-                  <div class="loss-label">Localization Loss:</div>
-                  <div class="loss-value">0.0449</div>
-                </div>
-                <div class="loss-stat">
-                  <div class="loss-label">Total Loss:</div>
-                  <div class="loss-value">2.01</div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Dataset Information Container -->
-          <div class="dataset-info-container">
-            <div class="card-header">
-              <h2>Dataset Information</h2>
-              <div class="dataset-source">NIH + VinBig Datasets</div>
-            </div>
-            <div class="card-content">
-              <div class="dataset-metrics">
-                <div class="dataset-total">
-                  <span class="total-number">4,850</span>
-                  <span class="total-label">Total Images</span>
-                </div>
-                <div class="dataset-divider"></div>
-                <div class="dataset-samples">
-                  <span class="samples-number">9,613</span>
-                  <span class="samples-label">Abnormality Samples</span>
+              <div class="spec-item">
+                <div class="spec-label">Input Size:</div>
+                <div class="spec-value">300x300px</div>
+              </div>
+
+              <div class="spec-item">
+                <div class="spec-label">Feature Layers:</div>
+                <div class="spec-value">
+                  conv4_3, conv7, conv8_2, conv9_2, conv10_2, conv11_2
                 </div>
               </div>
 
-              <div class="distribution-chart">
-                <div class="distribution-item">
-                  <div class="distribution-label">Cardiomegaly</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 100%"></div>
-                    <span class="distribution-value">2,405</span>
-                  </div>
-                </div>
-                <div class="distribution-item">
-                  <div class="distribution-label">Pleural Thickening</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 82%"></div>
-                    <span class="distribution-value">1,981</span>
-                  </div>
-                </div>
-                <div class="distribution-item">
-                  <div class="distribution-label">Pulmonary Fibrosis</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 67%"></div>
-                    <span class="distribution-value">1,617</span>
-                  </div>
-                </div>
-                <div class="distribution-item">
-                  <div class="distribution-label">Pleural Effusion</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 49%"></div>
-                    <span class="distribution-value">1,173</span>
-                  </div>
-                </div>
-                <div class="distribution-item">
-                  <div class="distribution-label">Nodule/Mass</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 40%"></div>
-                    <span class="distribution-value">960</span>
-                  </div>
-                </div>
-                <div class="distribution-item">
-                  <div class="distribution-label">Other Classes</div>
-                  <div class="distribution-bar-container">
-                    <div class="distribution-bar" style="width: 30%"></div>
-                    <span class="distribution-value">1,477</span>
-                  </div>
+              <div class="spec-item">
+                <div class="spec-label">Training:</div>
+                <div class="spec-value">
+                  Transfer Learning with Fine-tuning
                 </div>
               </div>
+
+              <div class="spec-item">
+                <div class="spec-label">Loss Function:</div>
+                <div class="spec-value">Focal Loss + Smooth L1 Loss</div>
+              </div>
             </div>
-          </div>
 
-          <!-- System Status Container -->
-          <div class="system-status-container">
-            <div class="card-header">
-              <h2>System Status</h2>
-              <div class="status-timestamp">Last updated: 7:12:19 AM</div>
-            </div>
-            <div class="card-content">
-              <div class="status-items">
-                <div class="status-item">
-                  <div class="status-icon">
-                    <i class="bi bi-cpu"></i>
-                  </div>
-                  <div class="status-info">
-                    <div class="status-label">Model Service</div>
-                    <div class="status-active-text">Online</div>
-                    <div class="status-subtext">Operational</div>
-                  </div>
+            <!-- Workflow section with improved styling - using arrows -->
+            <div class="workflow-container">
+              <div class="workflow-title">CXRaide 2.0 Workflow</div>
+              <div class="workflow-steps">
+                <div class="workflow-step">
+                  <div class="step-circle step-active">1</div>
+                  <div class="step-label">Upload CXR</div>
                 </div>
 
-                <div class="status-item">
-                  <div class="status-icon">
-                    <i class="bi bi-server"></i>
-                  </div>
-                  <div class="status-info">
-                    <div class="status-label">Server Load</div>
-                    <div class="status-value">42%</div>
-                    <div class="status-subtext">Normal range</div>
-                  </div>
+                <div class="workflow-arrow">
+                  <i class="bi bi-arrow-right"></i>
                 </div>
 
-                <div class="status-item">
-                  <div class="status-icon">
-                    <i class="bi bi-layers"></i>
-                  </div>
-                  <div class="status-info">
-                    <div class="status-label">Processing Queue</div>
-                    <div class="status-value">3 items</div>
-                    <div class="status-subtext">Processing on schedule</div>
-                  </div>
+                <div class="workflow-step">
+                  <div class="step-circle">2</div>
+                  <div class="step-label">Annotate</div>
                 </div>
 
-                <div class="status-item">
-                  <div class="status-icon">
-                    <i class="bi bi-clock-history"></i>
-                  </div>
-                  <div class="status-info">
-                    <div class="status-label">System Uptime</div>
-                    <div class="status-value">5d 14h 22m</div>
-                    <div class="status-subtext">Since last restart</div>
-                  </div>
+                <div class="workflow-arrow">
+                  <i class="bi bi-arrow-right"></i>
+                </div>
+
+                <div class="workflow-step">
+                  <div class="step-circle">3</div>
+                  <div class="step-label">Generate Report</div>
                 </div>
               </div>
             </div>
@@ -426,20 +147,231 @@
         </div>
       </div>
 
-      <div v-if="isLoading" class="loader-overlay">
-        <div class="loader"></div>
-        <p>Loading dashboard data...</p>
+      <!-- New content grid for the bottom containers -->
+      <div class="content-grid">
+        <!-- Performance Metrics Container -->
+        <div class="performance-metrics-container">
+          <div class="card-header">
+            <h2>Performance Metrics</h2>
+            <div class="iteration-badge">Iteration 3</div>
+          </div>
+          <div class="card-content">
+            <div class="metrics-columns">
+              <div class="metrics-column">
+                <h3 class="metrics-category">Precision Metrics</h3>
+                <div class="metric-row">
+                  <div class="metric-name">AP@[IoU=0.50:0.95]:</div>
+                  <div class="metric-value">31.02%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">AP@[IoU=0.50]:</div>
+                  <div class="metric-value">34.56%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">AP@[IoU=0.75]:</div>
+                  <div class="metric-value">33.09%</div>
+                </div>
+                <h4 class="metrics-subcategory">Precision by Area Size</h4>
+                <div class="metric-row">
+                  <div class="metric-name">Small:</div>
+                  <div class="metric-value">37.91%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">Medium:</div>
+                  <div class="metric-value">32.51%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">Large:</div>
+                  <div class="metric-value">34.77%</div>
+                </div>
+              </div>
+              <div class="metrics-column">
+                <h3 class="metrics-category">Recall Metrics</h3>
+                <div class="metric-row">
+                  <div class="metric-name">AR@1:</div>
+                  <div class="metric-value">88.55%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">AR@10:</div>
+                  <div class="metric-value">88.66%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">AR@100:</div>
+                  <div class="metric-value">88.66%</div>
+                </div>
+                <h4 class="metrics-subcategory">Recall by Area Size</h4>
+                <div class="metric-row">
+                  <div class="metric-name">Small:</div>
+                  <div class="metric-value">83.58%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">Medium:</div>
+                  <div class="metric-value">90.31%</div>
+                </div>
+                <div class="metric-row">
+                  <div class="metric-name">Large:</div>
+                  <div class="metric-value">91.41%</div>
+                </div>
+              </div>
+            </div>
+            <div class="metrics-footer">
+              <div class="loss-stat">
+                <div class="loss-label">Classification Loss:</div>
+                <div class="loss-value">1.96</div>
+              </div>
+              <div class="loss-stat">
+                <div class="loss-label">Localization Loss:</div>
+                <div class="loss-value">0.0449</div>
+              </div>
+              <div class="loss-stat">
+                <div class="loss-label">Total Loss:</div>
+                <div class="loss-value">2.01</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dataset Information Container -->
+        <div class="dataset-info-container">
+          <div class="card-header">
+            <h2>Dataset Information</h2>
+            <div class="dataset-source">NIH + VinBig Datasets</div>
+          </div>
+          <div class="card-content">
+            <div class="dataset-metrics">
+              <div class="dataset-total">
+                <span class="total-number">4,850</span>
+                <span class="total-label">Total Images</span>
+              </div>
+              <div class="dataset-divider"></div>
+              <div class="dataset-samples">
+                <span class="samples-number">9,613</span>
+                <span class="samples-label">Abnormality Samples</span>
+              </div>
+            </div>
+
+            <div class="distribution-chart">
+              <div class="distribution-item">
+                <div class="distribution-label">Cardiomegaly</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 100%"></div>
+                  <span class="distribution-value">2,405</span>
+                </div>
+              </div>
+              <div class="distribution-item">
+                <div class="distribution-label">Pleural Thickening</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 82%"></div>
+                  <span class="distribution-value">1,981</span>
+                </div>
+              </div>
+              <div class="distribution-item">
+                <div class="distribution-label">Pulmonary Fibrosis</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 67%"></div>
+                  <span class="distribution-value">1,617</span>
+                </div>
+              </div>
+              <div class="distribution-item">
+                <div class="distribution-label">Pleural Effusion</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 49%"></div>
+                  <span class="distribution-value">1,173</span>
+                </div>
+              </div>
+              <div class="distribution-item">
+                <div class="distribution-label">Nodule/Mass</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 40%"></div>
+                  <span class="distribution-value">960</span>
+                </div>
+              </div>
+              <div class="distribution-item">
+                <div class="distribution-label">Other Classes</div>
+                <div class="distribution-bar-container">
+                  <div class="distribution-bar" style="width: 30%"></div>
+                  <span class="distribution-value">1,477</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status Container -->
+        <div class="system-status-container">
+          <div class="card-header">
+            <h2>System Status</h2>
+            <div class="status-timestamp">Last updated: 7:12:19 AM</div>
+          </div>
+          <div class="card-content">
+            <div class="status-items">
+              <div class="status-item">
+                <div class="status-icon">
+                  <i class="bi bi-cpu"></i>
+                </div>
+                <div class="status-info">
+                  <div class="status-label">Model Service</div>
+                  <div class="status-active-text">Online</div>
+                  <div class="status-subtext">Operational</div>
+                </div>
+              </div>
+
+              <div class="status-item">
+                <div class="status-icon">
+                  <i class="bi bi-server"></i>
+                </div>
+                <div class="status-info">
+                  <div class="status-label">Server Load</div>
+                  <div class="status-value">42%</div>
+                  <div class="status-subtext">Normal range</div>
+                </div>
+              </div>
+
+              <div class="status-item">
+                <div class="status-icon">
+                  <i class="bi bi-layers"></i>
+                </div>
+                <div class="status-info">
+                  <div class="status-label">Processing Queue</div>
+                  <div class="status-value">3 items</div>
+                  <div class="status-subtext">Processing on schedule</div>
+                </div>
+              </div>
+
+              <div class="status-item">
+                <div class="status-icon">
+                  <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="status-info">
+                  <div class="status-label">System Uptime</div>
+                  <div class="status-value">5d 14h 22m</div>
+                  <div class="status-subtext">Since last restart</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div v-if="isLoading" class="loader-overlay">
+      <div class="loader"></div>
+      <p>Loading dashboard data...</p>
     </div>
   </div>
 </template>
 
 <script>
+import HeaderBar from '@/components/HeaderBar.vue';
 import { apiUrl, logout, checkSession, health } from "../utils/api";
 import { runNetworkTest } from "../utils/network-test";
 import ModelService from "@/services/modelService";
 
 export default {
+  name: "HomeView",
+  components: {
+    HeaderBar,
+  },
   data() {
     return {
       apiUrl: apiUrl,
@@ -700,7 +632,14 @@ export default {
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css");
 
 .home-container {
+  width: 100%;
+}
+
+.dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  padding: 0;
 }
 
 /* App Layout with Sidebar */
@@ -710,93 +649,10 @@ export default {
 }
 
 /* Sidebar Navigation Styles */
-.nav-sidebar {
-  width: 240px;
-  background: rgba(15, 23, 42, 0.8);
-  border-right: 1px solid rgba(59, 130, 246, 0.2);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-}
-
-.logo-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-  padding: 25px 0;
-}
-
-.sidebar-logo {
-  width: 180px;
-  height: auto;
-  filter: drop-shadow(0 0 8px rgba(93, 175, 255, 0.4));
-}
-
-.nav-items {
-  flex: 1;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.9rem 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.nav-item.active {
-  background: rgba(59, 130, 246, 0.15);
-  border-left: 3px solid #3b82f6;
-}
-
-.nav-icon {
-  margin-right: 1rem;
-  font-size: 1.1rem;
-  opacity: 0.8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-}
-
-.nav-icon i {
-  font-size: 1.2rem;
-}
-
-.nav-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #e5e7eb;
-}
-
-.nav-footer {
-  padding: 1.5rem 0;
-  border-top: 1px solid rgba(59, 130, 246, 0.1);
-}
+/* Navigation styles moved to NavSidebar.vue component */
 
 /* Dashboard Layout Adjustments */
-.dashboard-wrapper {
-  flex: 1;
-  padding: 1.5rem;
-  margin-left: 240px;
-  max-width: calc(100% - 240px);
-}
+.dashboard-wrapper {  flex: 1;  padding: 1.5rem;  /* Navigation margin handled in AppLayout now */  width: 100%;}
 
 .welcome-header {
   display: flex;
@@ -933,7 +789,7 @@ export default {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.75rem;
-  margin-bottom: 2rem;
+  margin: 0 1.5rem 2rem;
 }
 
 @media (min-width: 1024px) {
@@ -2449,8 +2305,8 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1.5rem;
-  width: 100%;
-  margin-top: 2rem;
+  width: calc(100% - 3rem);
+  margin: 0 1.5rem 2rem;
 }
 
 .performance-metrics-container,
