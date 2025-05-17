@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: env.VITE_BASE_URL || "/",
     server: {
-      port: 8080,
+      port: 3000,
       strictPort: true,
     },
   };

@@ -17,7 +17,7 @@ loglevel = os.getenv('LOG_LEVEL', 'info')
 reload = os.getenv('FLASK_ENV', 'production') == 'development'
 
 # Bind to this socket
-bind = f"0.0.0.0:{int(os.getenv('PORT', 5000))}"
+bind = f"0.0.0.0:{int(os.getenv('PORT', 8080))}"
 
 # Limit worker restart on memory leaks - important for ML models
 max_requests = 20  # Lower for ML models that may use a lot of memory

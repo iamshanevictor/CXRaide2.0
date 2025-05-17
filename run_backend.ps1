@@ -44,4 +44,4 @@ Set-Location -Path ".\server"
 
 # Run Flask application
 Write-Host "Starting Flask server..." -ForegroundColor Green
-flask run --host=0.0.0.0 --port=5000 --reload
+flask run --host=0.0.0.0 --port=8080 --reload

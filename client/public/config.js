@@ -15,7 +15,7 @@
 
   // Optional: You can add runtime detection to change the URL based on hostname
   if (window.location.hostname === "localhost") {
-    window.__ENV__.VITE_API_URL = "http://localhost:5000";
+    window.__ENV__.VITE_API_URL = "http://localhost:8080";
     console.log("[Config] Development mode detected - using local API");
   }
 })();

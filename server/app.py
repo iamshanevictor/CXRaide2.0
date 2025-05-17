@@ -169,10 +169,13 @@ else:
     # Development environment - include local addresses
     app.config['CORS_ORIGINS'] = [
         "http://localhost:8080",           # Local development
+        "http://localhost:3000",           # New frontend port
         "http://localhost:5000",           # Local API
         "http://127.0.0.1:8080",          # Alternative local
+        "http://127.0.0.1:3000",          # New frontend port alternative
         "http://127.0.0.1:5000",          # Alternative local API
         "http://192.168.68.103:8080",     # Local network
+        "http://192.168.68.103:3000",     # New frontend port local network
         "http://192.168.68.103:5000",     # Local network API
         "https://cxraide.onrender.com",    # Also allow production URLs in development
         "http://cxraide.onrender.com",
@@ -695,4 +698,4 @@ def after_request(response):
 # Add this at the end of the file to support development mode with hot-reloading
 if __name__ == "__main__":
     # Enable hot-reloading in development
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)

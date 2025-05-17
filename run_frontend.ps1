@@ -4,7 +4,7 @@
 Set-Location -Path ".\client"
 
 # Set environment variables
-$env:VITE_API_URL = "http://localhost:5000"
+$env:VITE_API_URL = "http://localhost:8080"
 
 # Install dependencies if node_modules doesn't exist
 if (-not (Test-Path -Path ".\node_modules")) {
