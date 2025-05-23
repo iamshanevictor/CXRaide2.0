@@ -37,7 +37,7 @@
           <!-- Row 3 -->
           <div class="form-group">
             <label for="examTaken">Exam Taken:</label>
-            <input type="text" id="examTaken" v-model="patientInfo.examTaken" value="CHEST" />
+            <input type="text" id="examTaken" v-model="patientInfo.examTaken" />
           </div>
           <div class="form-group">
             <label for="address">Address:</label>

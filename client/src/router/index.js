@@ -62,23 +62,6 @@ setInterval(() => {
   }
 }, 10000);
 
-// Define a debounce function to prevent rapid navigation
-// This function is defined but currently not used - removed or commented to fix ESLint error
-/* 
-const debounce = (fn, delay) => {
-  let timeoutId;
-  return function (...args) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    timeoutId = setTimeout(() => {
-      fn.apply(this, args);
-      timeoutId = null;
-    }, delay);
-  };
-};
-*/
-
 router.beforeEach(async (to, from, next) => {
   console.log("[Router] Navigation started to:", to.path, "from:", from.path);
 
