@@ -138,9 +138,9 @@ The application uses MongoDB as its primary database:
 ## AI Models
 
 The application includes pre-trained models for chest X-ray analysis:
-- Models are cached in `.model_cache/` directory
-- Automatic model downloading and setup
-- Support for multiple model versions
+- Models must be present locally at `server/models/IT2_model_epoch_300.pth` and `server/models/IT3_model_epoch_260.pth`
+- No automatic downloads are performed; place the `.pth` files before running
+- Falls back to mock models when `USE_MOCK_MODELS=true` or when model files are missing
 - Configurable through environment variables
 
 ## Deployment

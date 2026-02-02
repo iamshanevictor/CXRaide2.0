@@ -20,7 +20,9 @@ ENV RENDER=false
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1-mesa-glx \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -37,6 +39,7 @@ FROM base AS development
 # Only copy essential files for startup
 COPY *.py ./
 COPY gunicorn.conf.py ./
+COPY models ./models
 # Start Flask in development mode, with auto-reload
 CMD ["flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"]
 
@@ -44,50 +47,10 @@ CMD ["flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"]
 FROM base AS production
 # Copy the application code
 COPY . .
+COPY models ./models
 
-# -------------------------------------------
-# MODEL DOWNLOAD SECTION
-# -------------------------------------------
-# Always attempt to download models for Docker environment
-RUN echo "Attempting to download models using download_models.py..." && \
-    python download_models.py || echo "Combined download script failed, trying alternatives..."
-
-# If download failed, try direct download for IT2 model
-RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
-    echo "Download script failed for IT2 model, trying backup method..." && \
-    python download_from_drive.py || echo "Simplified download failed too"; \
-    fi
-
-# Try direct download for IT3 model
-RUN if [ ! -f IT3_model_epoch_260.pth ]; then \
-    echo "Download script failed for IT3 model, trying direct download..." && \
-    (curl -L "https://drive.google.com/uc?export=download&id=1rd0j7hmw19H02z4vDfWw3Il-s4Xx-zTz" -o IT3_model_epoch_260.pth || \
-     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1rd0j7hmw19H02z4vDfWw3Il-s4Xx-zTz" -O IT3_model_epoch_260.pth); \
-    fi
-
-# Fall back to direct curl/wget for IT2 if needed
-RUN if [ ! -f IT2_model_epoch_300.pth ]; then \
-    echo "All IT2 model download methods failed, trying curl/wget..." && \
-    (curl -L "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -o IT2_model_epoch_300.pth || \
-     wget --no-check-certificate "https://drive.google.com/uc?export=download&id=1cbvOqEkmhXw-4t1_Reoc29JbVPRF4MNr" -O IT2_model_epoch_300.pth); \
-    fi
-
-# Verify model files exist and log their sizes
-RUN if [ -f IT2_model_epoch_300.pth ]; then \
-    echo "IT2 model file successfully included in build" && \
-    stat --format="%s bytes" IT2_model_epoch_300.pth; \
-    else \
-    echo "WARNING: Failed to obtain IT2 model file. Using mock model instead."; \
-    ENV USE_MOCK_MODELS=true; \
-    fi
-
-RUN if [ -f IT3_model_epoch_260.pth ]; then \
-    echo "IT3 model file successfully included in build" && \
-    stat --format="%s bytes" IT3_model_epoch_260.pth; \
-    else \
-    echo "WARNING: Failed to obtain IT3 model file. Using mock model instead."; \
-    ENV USE_MOCK_MODELS=true; \
-    fi
+# Verify model files exist to avoid silent fallbacks
+RUN test -f models/IT2_model_epoch_300.pth && test -f models/IT3_model_epoch_260.pth
 
 # Expose the port the app runs on
 EXPOSE 5000

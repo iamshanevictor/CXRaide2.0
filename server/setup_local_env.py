@@ -28,8 +28,9 @@ def print_step(text):
 
 def check_model_files():
     """Check if model files exist"""
-    it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
-    it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
+    model_dir = os.path.join(os.path.dirname(__file__), 'models')
+    it2_path = os.path.join(model_dir, 'IT2_model_epoch_300.pth')
+    it3_path = os.path.join(model_dir, 'IT3_model_epoch_260.pth')
     
     it2_exists = os.path.exists(it2_path)
     it3_exists = os.path.exists(it3_path)
@@ -84,30 +85,13 @@ def setup_real_environment():
     
     it2_exists, it3_exists = check_model_files()
     
-    if not it2_exists or not it3_exists:
-        print_step("Model files not found. You need to download them first.")
-        print("\nMissing model files:")
-        if not it2_exists:
-            print("  ❌ IT2_model_epoch_300.pth")
-        if not it3_exists:
-            print("  ❌ IT3_model_epoch_260.pth")
-        
-        download = input("\nAttempt to download missing model files? (y/n): ").lower().strip()
-        if download == 'y':
-            print_step("Attempting to download model files...")
-            try:
-                subprocess.run([sys.executable, 'download_models.py'], check=True)
-                print_step("Download completed. Checking files again...")
-                it2_exists, it3_exists = check_model_files()
-            except Exception as e:
-                print(f"Error downloading models: {str(e)}")
-    
     if it2_exists and it3_exists:
+        model_dir = os.path.join(os.path.dirname(__file__), 'models')
         print_step("Model files found!")
-        print(f"  ✅ IT2_model_epoch_300.pth: {os.path.getsize(os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')) / (1024*1024):.1f} MB")
-        print(f"  ✅ IT3_model_epoch_260.pth: {os.path.getsize(os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')) / (1024*1024):.1f} MB")
+        print(f"  ✅ IT2_model_epoch_300.pth: {os.path.getsize(os.path.join(model_dir, 'IT2_model_epoch_300.pth')) / (1024*1024):.1f} MB")
+        print(f"  ✅ IT3_model_epoch_260.pth: {os.path.getsize(os.path.join(model_dir, 'IT3_model_epoch_260.pth')) / (1024*1024):.1f} MB")
     else:
-        print_step("Could not find all model files. The application will fall back to mock models.")
+        print_step("Model files not found in server/models. Please place IT2_model_epoch_300.pth and IT3_model_epoch_260.pth there. The application will fall back to mock models until then.")
     
     print_step("Installing requirements with PyTorch...")
     subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.local.txt'])

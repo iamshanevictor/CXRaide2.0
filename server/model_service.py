@@ -8,12 +8,13 @@ import io
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import gc
 import sys
-import subprocess
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
 model_bp = Blueprint('model', __name__)
+
+MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
 
 # Try importing torch, but provide fallbacks if it fails
 torch_available = False
@@ -356,8 +357,8 @@ def load_model_in_background():
             logger.info("psutil not available for memory monitoring")
         
         # Check for model files before trying to load them
-        it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
-        it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
+        it2_path = os.path.join(MODEL_DIR, 'IT2_model_epoch_300.pth')
+        it3_path = os.path.join(MODEL_DIR, 'IT3_model_epoch_260.pth')
         
         if not os.path.exists(it2_path):
             logger.warning(f"IT2 model file not found at: {it2_path}")
@@ -409,76 +410,54 @@ def load_model_in_background():
 def load_specific_model(model_filename, model_identifier):
     """Load a specific model file with error handling"""
     logger.info(f"Loading {model_identifier} model...")
-    
+
     try:
-        # Check if we should force mock models regardless of file existence
         if os.environ.get('USE_MOCK_MODELS', 'False').lower() == 'true':
             logger.info(f"Skipping real {model_identifier} model load due to USE_MOCK_MODELS flag")
             return None
-        
-        # Create model architecture with pretrained weights to enable caching
-        logger.info(f"Creating {model_identifier} model architecture...")
-        cache_dir = os.path.join(os.path.dirname(__file__), '.model_cache')
-        os.makedirs(cache_dir, exist_ok=True)
-        
-        # Set the torch hub cache directory to our local cache
-        os.environ['TORCH_HOME'] = cache_dir
-        
-        # Initialize the base model - this will use cached weights if available
-        temp_model = models.detection.ssd300_vgg16(weights=models.detection.SSD300_VGG16_Weights.DEFAULT)
-        
-        # Check multiple possible locations for the model file
-        possible_paths = [
-            os.path.join(os.path.dirname(__file__), model_filename),       # Current directory
-            model_filename,                                                # Relative to working directory
-            f'../{model_filename}',                                        # Parent directory
-            f'/app/{model_filename}',                                      # Docker container root
-            f'/app/server/{model_filename}',                               # Docker container server dir
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), model_filename),  # Project root
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'server', model_filename),  # server subdirectory
-        ]
-        
-        model_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                model_path = path
-                logger.info(f"Found {model_identifier} model file at: {model_path}")
-                break
-        
-        if not model_path:
-            logger.critical(f"{model_identifier} model file not found! Falling back to mock model.")
-            logger.critical(f"Searched paths: {possible_paths}")
-            logger.critical(f"Current working directory: {os.getcwd()}")
+
+        if not torch_available:
+            logger.warning(f"PyTorch unavailable; cannot load {model_identifier} model")
             return None
-        
-        # Load weights
+
+        # Initialize architecture without downloading pretrained weights
+        logger.info(f"Creating {model_identifier} model architecture without external weight downloads...")
+        temp_model = models.detection.ssd300_vgg16(weights=None)
+
+        possible_paths = [
+            os.path.join(MODEL_DIR, model_filename),
+            model_filename,
+            os.path.join(os.path.dirname(__file__), model_filename),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), model_filename),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'server', model_filename),
+        ]
+
+        model_path = next((path for path in possible_paths if os.path.exists(path)), None)
+
+        if not model_path:
+            logger.critical(f"{model_identifier} model file not found in expected locations; falling back to mock model")
+            logger.critical(f"Searched paths: {possible_paths}")
+            return None
+
         file_size_mb = os.path.getsize(model_path) / (1024 * 1024)
         logger.info(f"Loading {model_identifier} model weights from {model_path} (Size: {file_size_mb:.2f} MB)...")
-        
-        # Use CPU explicitly and optimize memory usage
+
         device = torch.device('cpu')
-        
-        # Load the model with optimized settings
-        logger.info(f"Loading {model_identifier} state dictionary with map_location='cpu'...")
         state_dict = torch.load(model_path, map_location=device)
-        
-        # Clear CUDA memory if available
+
         if hasattr(torch, 'cuda') and torch.cuda.is_available():
             torch.cuda.empty_cache()
-        
-        logger.info(f"Applying state dictionary to {model_identifier} model...")
+
         temp_model.load_state_dict(state_dict)
-        
-        # Free up memory after loading
+
         del state_dict
         gc.collect()
-        
-        logger.info(f"Setting {model_identifier} model to evaluation mode...")
+
         temp_model.eval()
-        
+
         logger.info(f"{model_identifier} model loaded successfully")
         return temp_model
-        
+
     except Exception as e:
         logger.critical(f"Failed to load {model_identifier} model: {str(e)}", exc_info=True)
         return None
@@ -558,54 +537,31 @@ def get_model():
         try:
             # Try to load the real PyTorch models if available
             if torch_available:
-                it2_path = os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth')
-                it3_path = os.path.join(os.path.dirname(__file__), 'IT3_model_epoch_260.pth')
-                
-                logger.info(f"Current directory: {os.getcwd()}")
-                
-                # Check if model files exist, download them if not
-                if not os.path.exists(it2_path) or not os.path.exists(it3_path):
-                    logger.info("One or both model files missing. Attempting to download...")
-                    try:
-                        # Use the download_models script
-                        download_script = os.path.join(os.path.dirname(__file__), 'download_models.py')
-                        
-                        # Check if the download script exists
-                        if not os.path.exists(download_script):
-                            logger.error(f"Download script not found at {download_script}")
-                            raise FileNotFoundError(f"Download script not found at {download_script}")
-                        
-                        # Run the download script
-                        logger.info(f"Running model download script: {download_script}")
-                        result = subprocess.run([sys.executable, download_script], 
-                                              cwd=os.path.dirname(__file__),
-                                              capture_output=True, 
-                                              text=True)
-                        
-                        if result.returncode != 0:
-                            logger.error(f"Model download failed: {result.stderr}")
-                            raise Exception(f"Model download failed: {result.stderr}")
-                        
-                        logger.info(f"Model download completed: {result.stdout}")
-                        
-                        # Check again if the files exist
-                        if not os.path.exists(it2_path) or not os.path.exists(it3_path):
-                            logger.error("Models still missing after download attempt")
-                            raise FileNotFoundError("Models still missing after download attempt")
-                    except Exception as e:
-                        logger.error(f"Error downloading models: {str(e)}")
-                        # Continue with loading - we'll use the lightweight model as fallback if necessary
-                
-                # Load IT2 model (9 classes)
-                model_it2 = load_specific_model(it2_path, 'IT2')
-                
-                # Load IT3 model (6 classes)
-                model_it3 = load_specific_model(it3_path, 'IT3')
-                
-                # Check if any model failed to load
-                if model_it2 is None or model_it3 is None:
-                    logger.warning("One or both models failed to load, falling back to lightweight model")
+                it2_path = os.path.join(MODEL_DIR, 'IT2_model_epoch_300.pth')
+                it3_path = os.path.join(MODEL_DIR, 'IT3_model_epoch_260.pth')
+
+                missing = []
+                if not os.path.exists(it2_path):
+                    missing.append(it2_path)
+                if not os.path.exists(it3_path):
+                    missing.append(it3_path)
+
+                if missing:
+                    logger.warning("Model files missing; using lightweight mock models")
+                    for path in missing:
+                        logger.warning(f"Missing model file: {path}")
                     model_it2 = model_it3 = LightweightModel()
+                else:
+                    # Load IT2 model (9 classes)
+                    model_it2 = load_specific_model('IT2_model_epoch_300.pth', 'IT2')
+
+                    # Load IT3 model (6 classes)
+                    model_it3 = load_specific_model('IT3_model_epoch_260.pth', 'IT3')
+
+                    # Check if any model failed to load
+                    if model_it2 is None or model_it3 is None:
+                        logger.warning("One or both models failed to load, falling back to lightweight model")
+                        model_it2 = model_it3 = LightweightModel()
             else:
                 logger.warning("PyTorch not available, falling back to lightweight model")
                 model_it2 = model_it3 = LightweightModel()
@@ -855,7 +811,7 @@ def predict_image():
             logger.error("Failed to load models")
             return jsonify({
                 'error': 'Failed to load models. Check server logs for details.',
-                'details': 'The model files may be missing or corrupted. Ensure IT2_model_epoch_300.pth and IT3_model_epoch_260.pth exist in the server directory.'
+                'details': 'The model files may be missing or corrupted. Ensure IT2_model_epoch_300.pth and IT3_model_epoch_260.pth exist in server/models.'
             }), 500
 
         # Get the uploaded image
@@ -973,7 +929,7 @@ def predict_image():
         
     except FileNotFoundError as e:
         logger.error(f"Model file not found: {str(e)}")
-        return jsonify({'error': str(e), 'fix': 'Ensure the model files IT2_model_epoch_300.pth and IT3_model_epoch_260.pth exist in the server directory'}), 503  # Service Unavailable
+        return jsonify({'error': str(e), 'fix': 'Ensure the model files IT2_model_epoch_300.pth and IT3_model_epoch_260.pth exist in server/models'}), 503  # Service Unavailable
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}", exc_info=True)
         return jsonify({'error': f"Prediction error: {str(e)}"}), 500
@@ -1071,7 +1027,8 @@ def loading_status():
         
     # Check model files
     model_files = []
-    for path in [os.path.join(os.path.dirname(__file__), 'IT2_model_epoch_300.pth'), 'IT2_model_epoch_300.pth']:
+    for filename in ['IT2_model_epoch_300.pth', 'IT3_model_epoch_260.pth']:
+        path = os.path.join(MODEL_DIR, filename)
         if os.path.exists(path):
             model_files.append({
                 "path": path,

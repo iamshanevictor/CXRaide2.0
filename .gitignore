@@ -40,6 +40,9 @@ var/
 *.onnx
 *.tflite
 *.pb
+server/models/
+client/models/
+.model_cache/
 
 # Virtual Environment
 /venv/
