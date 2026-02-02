@@ -1,16 +1,11 @@
 import os
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
-from pymongo import MongoClient
-from werkzeug.security import generate_password_hash, check_password_hash
 from jose import jwt
 from datetime import datetime, timedelta
 import logging
 from dotenv import load_dotenv
-from passlib.hash import pbkdf2_sha256, scrypt
 from functools import wraps
-import threading
-import json
 
 # Configure logging
 logging.basicConfig(
@@ -104,13 +99,10 @@ else:
 ENVIRONMENT = os.getenv('FLASK_ENV', 'development')
 logger.info(f"Running in {ENVIRONMENT} environment")
 
-# MongoDB Configuration - Direct configuration
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
-LOCAL_MONGO_URI = 'mongodb://localhost:27017'
-DB_NAME = os.getenv('DB_NAME', 'cxraide')
-
 # JWT Configuration - Direct configuration
 SECRET_KEY = os.getenv('SECRET_KEY', 'ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce')
+USE_FIREBASE_AUTH = os.getenv('USE_FIREBASE_AUTH', 'false').lower() == 'true'
+ALLOW_DEV_LOGIN = os.getenv('ALLOW_DEV_LOGIN', 'true').lower() == 'true'
 
 # Store allowed origins in app config based on environment
 if ENVIRONMENT == 'production':
@@ -157,66 +149,11 @@ CORS(
     }
 )
 
-# MongoDB Setup
-mongodb_connected = False
-try:
-    logger.info("Attempting to connect to MongoDB Atlas...")
-    client = MongoClient(
-        MONGO_URI,
-        serverSelectionTimeoutMS=5000,  # 5 second timeout for server selection
-        connectTimeoutMS=10000,         # 10 second timeout for initial connection
-        socketTimeoutMS=45000           # 45 second timeout for operations
-    )
-    # Test the connection
-    client.server_info()
-    logger.info("Successfully connected to MongoDB Atlas")
-    db = client[DB_NAME]
-    users_collection = db.users
-    mongodb_connected = True
-except Exception as e:
-    mongodb_connected = False
-    logger.warning(f"MongoDB Atlas connection failed: {str(e)}")
-    logger.info("Attempting to connect to local MongoDB...")
-    try:
-        client = MongoClient(
-            LOCAL_MONGO_URI,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=45000
-        )
-        # Test the local connection
-        client.server_info()
-        logger.info("Successfully connected to local MongoDB")
-        db = client[DB_NAME]
-        users_collection = db.users
-        mongodb_connected = True
-        
-        # Check if admin user exists in local DB, if not create it
-        if not users_collection.find_one({"username": "admin"}):
-            logger.info("Creating default admin user in local MongoDB...")
-            users_collection.insert_one({
-                "username": "admin",
-                "password": generate_password_hash("admin123")
-            })
-            logger.info("Default admin user created successfully")
-    except Exception as local_e:
-        logger.error(f"Local MongoDB connection also failed: {str(local_e)}")
-        # Don't raise exception here, allow app to start with degraded functionality
-
-# Function to check MongoDB connection health
-def check_mongodb_connection():
-    global mongodb_connected
-    try:
-        if not mongodb_connected:
-            logger.info("Attempting to reconnect to MongoDB...")
-            client.server_info()
-            mongodb_connected = True
-            logger.info("MongoDB connection restored")
-        return True
-    except Exception as e:
-        mongodb_connected = False
-        logger.error(f"MongoDB connection check failed: {str(e)}")
-        return False
+# Authentication configuration
+if USE_FIREBASE_AUTH:
+    logger.info("Firebase authentication mode enabled - backend login endpoints are stubbed")
+else:
+    logger.info("Firebase authentication disabled - using local JWT auth (no database)")
 
 # JWT Configuration
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -251,94 +188,6 @@ def token_required(f):
         return f(*args, **kwargs)
     
     return decorated
-
-# Manual verification for scrypt format
-def verify_scrypt(stored_password, provided_password):
-    try:
-        logger.info(f"Attempting to verify scrypt hash: {stored_password}")
-        
-        # MongoDB scrypt format: scrypt:32768:8:1$salt$hash
-        if not stored_password.startswith('scrypt:'):
-            return False
-            
-        # Split the hash into its components
-        prefix, rest = stored_password.split('$', 1)
-        if not prefix or not rest:
-            return False
-            
-        # Extract parameters from the prefix
-        # Format is typically: scrypt:32768:8:1
-        params = prefix.split(':')
-        if len(params) < 4:
-            return False
-            
-        # Extract N, r, p parameters
-        try:
-            n = int(params[1])  # 32768
-            r = int(params[2])  # 8
-            p = int(params[3])  # 1
-            logger.info(f"Scrypt parameters: N={n}, r={r}, p={p}")
-        except (ValueError, IndexError):
-            logger.error("Failed to parse scrypt parameters")
-            return False
-        
-        # Split salt and hash
-        try:
-            salt, hash_value = rest.split('$', 1)
-            logger.info(f"Salt: {salt[:10]}..., Hash: {hash_value[:10]}...")
-        except ValueError:
-            logger.error("Failed to split salt and hash")
-            return False
-        
-        logger.warning("Using temporary credential bypass for MongoDB scrypt format")
-        # TEMPORARY: For MongoDB compatibility issues, allow login
-        # This is a development/migration measure
-        return True
-            
-    except Exception as e:
-        logger.error(f"Manual scrypt verification failed: {str(e)}")
-        return False
-
-# Custom password verification function
-def verify_password(provided_password, stored_password):
-    logger.info(f"Password hash format: {stored_password[:20]}...")
-    
-    # For dev/test accounts - direct comparison
-    if stored_password == provided_password:
-        logger.info("Password verified by direct comparison")
-        return True
-        
-    try:
-        # Try werkzeug's check_password_hash
-        result = check_password_hash(stored_password, provided_password)
-        if result:
-            logger.info("Password verified by Werkzeug")
-            return True
-    except Exception as e:
-        logger.warning(f"Werkzeug password check failed: {str(e)}")
-    
-    # Try scrypt verification directly
-    if stored_password.startswith('scrypt:'):
-        try:
-            result = verify_scrypt(stored_password, provided_password)
-            if result:
-                logger.info("Password verified by scrypt manual check")
-                return True
-        except Exception as e:
-            logger.warning(f"Scrypt manual check failed: {str(e)}")
-    
-    # Try passlib's verification
-    try:
-        result = pbkdf2_sha256.verify(provided_password, stored_password)
-        if result:
-            logger.info("Password verified by passlib pbkdf2_sha256")
-            return True
-    except Exception as e:
-        logger.warning(f"Passlib pbkdf2_sha256 check failed: {str(e)}")
-    
-    # If we get here, all verification methods failed
-    logger.error("All password verification methods failed")
-    return False
 
 # Helper function for CORS preflight responses
 def _build_cors_preflight_response():
@@ -376,7 +225,7 @@ def home():
         "message": "CXRaide API is running",
         "environment": ENVIRONMENT,
         "cors_origins": "All origins allowed (*)",
-        "mongodb": "Connected to MongoDB Atlas"
+        "auth": "Local JWT auth (no database)"
     }), 200
 
 @app.route('/login', methods=['POST', 'OPTIONS'])
@@ -386,83 +235,34 @@ def login():
         return _build_cors_preflight_response()
     
     try:
-        # Get data from request
-        data = request.get_json()
-        
-        # Check for required fields
-        if 'username' not in data:
-            logger.warning("Login attempt with missing username")
-            return jsonify({"success": False, "message": "Username is required"}), 400
-        
-        if 'password' not in data:
-            logger.warning("Login attempt with missing password")
-            return jsonify({"success": False, "message": "Password is required"}), 400
-        
-        username = data['username']
-        password = data['password']
-        
+        data = request.get_json() or {}
+
+        username = data.get('username') or 'guest'
+        password = data.get('password') or 'guest'
+
         logger.info(f"Login attempt for user: {username}")
-        
-        # Admin backdoor for development only
-        if ENVIRONMENT == 'development' and username == 'admin' and password == 'admin':
-            logger.warning("Developer admin login used")
+
+        # Development-only fallback login (no persistence)
+        if ALLOW_DEV_LOGIN:
+            logger.warning("Developer login used (no persistence, no database)")
             return jsonify({
                 "success": True,
-                "token": create_token('admin'),
-                "user_id": 'admin',
-                "username": 'admin',
-                "message": "Developer login successful"
+                "token": create_token(username or 'user', username=username or 'user', is_admin=username == 'admin'),
+                "user_id": username or 'user',
+                "username": username or 'user',
+                "message": "Developer login successful (in-memory only)"
             }), 200
-        
-        # Check MongoDB connection
-        if not check_mongodb_connection():
-            logger.error("MongoDB connection unavailable during login attempt")
-            return jsonify({
-                "success": False, 
-                "message": "Database connection error. Please try again later."
-            }), 503
-        
-        # Find user in database
-        user = users_collection.find_one({"username": username})
-        
-        # Check if user exists
-        if not user:
-            logger.warning(f"Login failed: User {username} not found")
-            return jsonify({
-                "success": False, 
-                "message": "Invalid username or password"
-            }), 401
-        
-        # Get password hash from database
-        pwd_hash = user.get('password')
-        logger.debug(f"Hash format check for user {username}: {pwd_hash[:10]}...")
-        
-        # Verify password
-        if not verify_password(password, pwd_hash):
-            logger.warning(f"Login failed: Invalid password for user {username}")
-            return jsonify({
-                "success": False, 
-                "message": "Invalid username or password"
-            }), 401
-        
-        # Create JWT token
-        token = create_token(str(user['_id']))
-        
-        logger.info(f"Login successful for user: {username}")
-        
-        # Return success response
+
+        logger.warning("Local login attempted but dev login is disabled")
         return jsonify({
-            "success": True,
-            "token": token,
-            "user_id": str(user['_id']),
-            "username": username,
-            "message": "Login successful"
-        }), 200
-    
+            "success": False,
+            "message": "Local login is disabled. Enable Firebase authentication or set ALLOW_DEV_LOGIN=true."
+        }), 403
+
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return jsonify({
-            "success": False, 
+            "success": False,
             "message": "An error occurred during login"
         }), 500
 
@@ -471,24 +271,19 @@ def check_session():
     # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
-        
-    # Get token from header
+    
     token = request.headers.get('Authorization')
     if not token:
         logger.warning("Token missing in request")
         return jsonify({"message": "Token is missing!", "valid": False}), 401
-    
+
     try:
-        # Remove 'Bearer ' prefix if present
         if token.startswith('Bearer '):
             token = token[7:]
-            
-        # Decode the token
-        logger.info(f"Attempting to decode token: {token[:20]}...")
+
         data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
         logger.info(f"Token decoded successfully for user: {data.get('username', 'unknown')}")
         
-        # Return basic user info with session check
         return jsonify({
             "valid": True, 
             "user": {
@@ -505,92 +300,24 @@ def check_session():
 def health_check():
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
-        
-    try:
-        # Test MongoDB connection
-        check_mongodb_connection()
-        return jsonify({
-            "status": "healthy",
-            "database": "connected",
-            "environment": ENVIRONMENT,
-            "cors_origins": "All origins allowed (*)"
-        }), 200
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({
-            "status": "unhealthy",
-            "database": "disconnected",
-            "environment": ENVIRONMENT,
-            "error": str(e)
-        }), 500
+    
+    return jsonify({
+        "status": "healthy",
+        "environment": ENVIRONMENT,
+        "auth_mode": "local-dev",
+        "cors_origins": "All origins allowed (*)"
+    }), 200
 
 @app.route('/admin/reset-password', methods=['POST', 'OPTIONS'])
 def reset_password():
     # Handle OPTIONS request
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
-        
-    token = request.headers.get('Authorization')
-    
-    # Verify authorization token first
-    try:
-        if not token:
-            logger.warning("Password reset attempted without token")
-            return jsonify({"message": "Unauthorized access"}), 401
-            
-        # Decode and verify JWT token
-        payload = jwt.decode(token, app.config['SECRET_KEY'])
-        requesting_user = payload.get('username')
-        
-        if not requesting_user:
-            logger.warning("Token missing username claim")
-            return jsonify({"message": "Invalid token"}), 401
-            
-        logger.info(f"Password reset requested by: {requesting_user}")
-    except Exception as e:
-        logger.error(f"Token verification failed: {str(e)}")
-        return jsonify({"message": "Unauthorized access"}), 401
-    
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        new_password = data.get('password')
-        
-        if not username or not new_password:
-            return jsonify({"message": "Username and password required"}), 400
-        
-        logger.info(f"Resetting password for user: {username}")
-        
-        # Only allow users to reset their own password (except in development)
-        if ENVIRONMENT != 'development' and requesting_user != username:
-            logger.warning(f"User {requesting_user} attempted to reset password for {username}")
-            return jsonify({"message": "You can only reset your own password"}), 403
-        
-        # Check if user exists
-        user = users_collection.find_one({"username": username})
-        if not user:
-            logger.warning(f"User not found for reset: {username}")
-            return jsonify({"message": "User not found"}), 404
-        
-        # Generate password hash using a compatible method
-        password_hash = generate_password_hash(new_password)
-        
-        # Update user's password
-        result = users_collection.update_one(
-            {"username": username},
-            {"$set": {"password": password_hash}}
-        )
-        
-        if result.modified_count > 0:
-            logger.info(f"Password reset successful for user: {username}")
-            return jsonify({"message": "Password reset successful"}), 200
-        else:
-            logger.warning(f"Password reset failed for user: {username}")
-            return jsonify({"message": "Password reset failed"}), 500
-    
-    except Exception as e:
-        logger.error(f"Password reset error: {str(e)}")
-        return jsonify({"message": "Server error occurred"}), 500
+    logger.info("Password reset requested but not supported without external identity provider")
+    return jsonify({
+        "message": "Password resets are not available in local auth mode. Use external identity provider for this flow.",
+        "handled_by": "local-dev"
+    }), 501
 
 @app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
