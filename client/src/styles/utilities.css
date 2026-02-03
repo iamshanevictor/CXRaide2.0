@@ -1,0 +1,18 @@
+.shadow-card { box-shadow: var(--shadow-sm); }
+.shadow-float { box-shadow: var(--shadow-md); }
+
+.text-muted { color: var(--muted); }
+.text-subtle { color: var(--text-2); }
+
+.hr { height: 1px; background: var(--border); border: 0; margin: 16px 0; }
+
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 960px) { .grid-3 { grid-template-columns: 1fr; } }
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }

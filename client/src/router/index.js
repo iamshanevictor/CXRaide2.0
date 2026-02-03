@@ -6,8 +6,32 @@ const routes = [
   {
     path: "/",
     name: "landing",
-    component: () => import("../views/LandingView.vue"),
+    component: () => import("../views/LandingSaaSView.vue"),
     meta: { layout: "blank" },
+  },
+  {
+    path: "/demo",
+    name: "demo",
+    component: () => import("../views/DemoWorkspaceView.vue"),
+    meta: { layout: "public" },
+  },
+  {
+    path: "/research",
+    name: "research",
+    component: () => import("../views/ResearchView.vue"),
+    meta: { layout: "public" },
+  },
+  {
+    path: "/metrics",
+    name: "metrics",
+    component: () => import("../views/MetricsDashboardView.vue"),
+    meta: { layout: "public" },
+  },
+  {
+    path: "/about",
+    name: "about",
+    component: () => import("../views/AboutView.vue"),
+    meta: { layout: "public" },
   },
   {
     path: "/home",
@@ -51,6 +75,18 @@ const baseUrl =
 const router = createRouter({
   history: createWebHistory(baseUrl),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: "smooth",
+      };
+    }
+
+    return { top: 0 };
+  },
 });
 
 // Track navigation attempts to prevent infinite loops

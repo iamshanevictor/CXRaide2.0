@@ -10,7 +10,9 @@
     <!-- Right login form section -->
     <div class="login-form-section">
       <div class="login-card">
-        <h1>CXRaide 2.0</h1>
+        <div class="card-brand" aria-label="CXRaide">
+          <img class="card-brand-logo" src="@/assets/LOGO1.png" alt="" />
+        </div>
         <p class="subtitle">
           Automatic Chest X-Ray Pattern Annotation and Classification
         </p>
@@ -363,6 +365,20 @@ h1 {
   text-shadow: 0 0 5px rgba(93, 175, 255, 0.3);
   letter-spacing: 1px;
   display: block;
+}
+
+.card-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.card-brand-logo {
+  height: 56px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(93, 175, 255, 0.22));
 }
 
 .subtitle {

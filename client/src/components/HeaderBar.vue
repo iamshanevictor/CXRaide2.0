@@ -5,14 +5,16 @@
       <slot name="subtitle"></slot>
     </h1>
     <div class="header-actions">
-      <button class="icon-button dark-mode-toggle">
-        <span class="icon"><i class="bi bi-moon"></i></span>
+      <button class="icon-button dark-mode-toggle" type="button" @click="toggleTheme" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+        <span class="icon"><i :class="isDark ? 'bi bi-sun' : 'bi bi-moon'" /></span>
       </button>
-      <button class="icon-button notifications">
-        <span class="icon"><i class="bi bi-bell"></i></span>
+
+      <button class="icon-button notifications" type="button" title="Notifications (demo)">
+        <span class="icon"><i class="bi bi-bell" /></span>
       </button>
-      <div class="user-dropdown">
-        <div class="user-avatar" @click="toggleUserMenu">
+
+      <div v-if="hasToken" class="user-dropdown">
+        <div class="user-avatar" @click="toggleUserMenu" :title="username || 'User'">
           {{ username ? username.charAt(0).toUpperCase() : "U" }}
         </div>
         <div class="dropdown-menu" v-show="showUserMenu">
@@ -26,6 +28,10 @@
           </div>
         </div>
       </div>
+
+      <button v-else class="sign-in" type="button" @click="$router.push('/login')">
+        Sign in
+      </button>
     </div>
   </div>
 </template>
@@ -36,6 +42,7 @@ export default {
   data() {
     return {
       showUserMenu: false,
+      isDark: true,
     };
   },
   props: {
@@ -44,9 +51,26 @@ export default {
       default: "",
     },
   },
+  computed: {
+    hasToken() {
+      return Boolean(localStorage.getItem("authToken"));
+    },
+  },
+  mounted() {
+    // Initialize theme from storage
+    const saved = localStorage.getItem("cxraide_theme");
+    // Default is dark unless user explicitly set light
+    this.isDark = saved !== "light";
+    document.body.classList.toggle("theme-light", !this.isDark);
+  },
   methods: {
     toggleUserMenu() {
       this.showUserMenu = !this.showUserMenu;
+    },
+    toggleTheme() {
+      this.isDark = !this.isDark;
+      document.body.classList.toggle("theme-light", !this.isDark);
+      localStorage.setItem("cxraide_theme", this.isDark ? "dark" : "light");
     },
     openUserSettings() {
       // Placeholder for future implementation
@@ -66,18 +90,19 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 h1 {
   font-size: 1.8rem;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text);
   margin: 0;
 }
 
 .highlight {
-  color: #3b82f6;
+  color: var(--primary);
   position: relative;
 }
 
@@ -88,9 +113,9 @@ h1 {
 }
 
 .icon-button {
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -102,8 +127,8 @@ h1 {
 }
 
 .icon-button:hover {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: var(--surface-2);
+  color: var(--primary);
 }
 
 .icon {
@@ -118,7 +143,7 @@ h1 {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: linear-gradient(45deg, #3b82f6, #93c5fd);
+  background: linear-gradient(45deg, var(--primary), rgba(147, 197, 253, 1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,26 +161,25 @@ h1 {
   position: absolute;
   right: 0;
   top: 50px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   width: 200px;
   z-index: 100;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .dropdown-item {
   padding: 0.8rem 1rem;
   display: flex;
   align-items: center;
-  color: #e2e8f0;
+  color: var(--text);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .dropdown-item:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--surface-2);
 }
 
 .dropdown-icon {
@@ -165,4 +189,16 @@ h1 {
   align-items: center;
   justify-content: center;
 }
+
+.sign-in {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sign-in:hover { background: var(--surface-2); }
 </style> 

@@ -3,6 +3,10 @@ import App from "./App.vue";
 import router from "./router";
 import axios from "axios";
 
+import "./styles/theme.css";
+import "./styles/base.css";
+import "./styles/utilities.css";
+
 const app = createApp(App);
 
 // Configure axios globally

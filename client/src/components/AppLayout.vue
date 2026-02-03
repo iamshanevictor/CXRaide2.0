@@ -34,5 +34,6 @@ export default {
   width: calc(100% - 240px) !important;
   padding: 0 !important;
   overflow-x: hidden !important;
+  background: var(--bg) !important;
 }
 </style> 

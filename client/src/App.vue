@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <UiToastHost />
     <!-- Offline mode notification -->
     <div v-if="isOfflineMode" class="offline-notification">
       <i class="bi bi-wifi-off"></i>
@@ -44,6 +45,16 @@
           @loading-end="stopLoading"
         />
 
+        <!-- Public pages that should have the top navbar (no sidebar) -->
+        <PublicLayout v-else-if="$route.meta && $route.meta.layout === 'public'">
+          <component
+            :is="Component"
+            :key="$route.fullPath"
+            @loading-start="startLoading"
+            @loading-end="stopLoading"
+          />
+        </PublicLayout>
+
         <!-- Authenticated app pages -->
         <AppLayout v-else>
           <component
@@ -60,10 +71,14 @@
 
 <script>
 import AppLayout from '@/components/AppLayout.vue';
+import PublicLayout from '@/components/PublicLayout.vue';
+import UiToastHost from '@/ui/UiToastHost.vue';
 
 export default {
   components: {
-    AppLayout
+    AppLayout,
+    PublicLayout,
+    UiToastHost,
   },
   data() {
     return {
@@ -74,6 +89,14 @@ export default {
     };
   },
   created() {
+    // Theme: default to dark (original blue). Use theme-light only when explicitly chosen.
+    try {
+      const savedTheme = localStorage.getItem('cxraide_theme');
+      document.body.classList.toggle('theme-light', savedTheme === 'light');
+    } catch (e) {
+      // ignore
+    }
+
     // Check if we're in offline mode
     this.checkOfflineMode();
     
@@ -157,65 +180,29 @@ export default {
 </script>
 
 <style>
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
-@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css");
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* App-level helpers kept intentionally small; most styling lives in src/styles */
+.offline-notification {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9998;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  color: var(--text-2);
 }
 
-body {
-  margin: 0;
-  padding: 0;
+.loading-screen,
+.error-screen {
   min-height: 100vh;
-  font-family: "Montserrat", sans-serif;
-  background: linear-gradient(135deg, #090c14 0%, #10172a 100%);
-  color: #ffffff;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-a {
-  color: #64a5ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-a:hover {
-  color: #3b82f6;
-  text-decoration: underline;
-}
-
-button {
-  font-family: "Montserrat", sans-serif;
-}
-
-/* Global select element styling */
-select {
-  appearance: none;
-  background-color: rgba(15, 23, 42, 0.95);
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px;
-  padding-right: 35px;
-  cursor: pointer;
-  color: #f3f4f6;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 0.75rem;
-  font-size: 1rem;
-  width: 100%;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-select:hover, select:focus {
-  border-color: #3b82f6;
-  outline: none;
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+  display: grid;
+  place-items: center;
+  background: var(--bg);
 }
 
 select option {
