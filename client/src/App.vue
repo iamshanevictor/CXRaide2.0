@@ -6,48 +6,55 @@
       <span>Offline Mode - Limited Functionality</span>
     </div>
     
-    <transition name="fade" mode="out-in">
-      <div v-if="isLoading" class="loading-screen">
-        <div class="loading-container">
-          <div class="loader-ring">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <div class="loading-text">Loading CXRaide</div>
-          <div class="loading-dots">
-            <span></span><span></span><span></span>
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <div v-if="isLoading" class="loading-screen">
+          <div class="loading-container">
+            <div class="loader-ring">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <div class="loading-text">Loading CXRaide</div>
+            <div class="loading-dots">
+              <span></span><span></span><span></span>
+            </div>
           </div>
         </div>
-      </div>
-      <!-- Handle Login view separately since it doesn't need the layout -->
-      <router-view
-        v-else-if="!errorOccurred && $route.name === 'login'"
-        @loading-start="startLoading"
-        @loading-end="stopLoading"
-      />
-      <!-- Use layout for all authenticated routes -->
-      <AppLayout v-else-if="!errorOccurred && $route.name !== 'login'">
-        <router-view
-          :key="$route.fullPath"
+
+        <div v-else-if="errorOccurred" class="error-screen">
+          <div class="error-container">
+            <div class="error-icon">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2>Application Error</h2>
+            <p>We encountered an unexpected issue. Please try again.</p>
+            <button @click="reloadApp" class="reload-button">
+              <i class="bi bi-arrow-clockwise"></i> Reload Application
+            </button>
+          </div>
+        </div>
+
+        <!-- Public/blank layout pages (Landing, Login, etc.) -->
+        <component
+          v-else-if="$route.meta && $route.meta.layout === 'blank'"
+          :is="Component"
           @loading-start="startLoading"
           @loading-end="stopLoading"
         />
-      </AppLayout>
-      <div v-else class="error-screen">
-        <div class="error-container">
-          <div class="error-icon">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-          </div>
-          <h2>Application Error</h2>
-          <p>We encountered an unexpected issue. Please try again.</p>
-          <button @click="reloadApp" class="reload-button">
-            <i class="bi bi-arrow-clockwise"></i> Reload Application
-          </button>
-        </div>
-      </div>
-    </transition>
+
+        <!-- Authenticated app pages -->
+        <AppLayout v-else>
+          <component
+            :is="Component"
+            :key="$route.fullPath"
+            @loading-start="startLoading"
+            @loading-end="stopLoading"
+          />
+        </AppLayout>
+      </transition>
+    </router-view>
   </div>
 </template>
 

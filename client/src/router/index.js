@@ -5,7 +5,9 @@ import modelService from "../services/modelService";
 const routes = [
   {
     path: "/",
-    redirect: "/login", // Direct initial redirect to login
+    name: "landing",
+    component: () => import("../views/LandingView.vue"),
+    meta: { layout: "blank" },
   },
   {
     path: "/home",
@@ -27,6 +29,7 @@ const routes = [
     path: "/login",
     name: "login",
     component: () => import("../views/LoginView.vue"), // Dynamic import
+    meta: { layout: "blank" },
   },
   {
     path: "/upload-cxr",
@@ -37,7 +40,7 @@ const routes = [
   // Add a catch-all 404 route
   {
     path: "/:pathMatch(.*)*",
-    redirect: "/login",
+    redirect: "/",
   },
 ];
 
@@ -116,7 +119,23 @@ router.beforeEach(async (to, from, next) => {
     return next();
   }
 
-  // Bypass auth check for login page
+  // Bypass auth check for public/blank-layout pages
+  if (to.meta?.requiresAuth !== true) {
+    // Special handling for login page
+    if (to.path === "/login" || to.name === "login") {
+      // If user is already logged in and trying to access login page, redirect to home
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        console.log("[Auth] User already has token, redirecting to home");
+        return next("/home");
+      }
+      return next();
+    }
+
+    return next();
+  }
+
+  // Backward-compatible bypass for login page (should not be hit due to block above)
   if (to.path === "/login" || to.name === "login") {
     // If user is already logged in and trying to access login page, redirect to home
     const token = localStorage.getItem("authToken");
