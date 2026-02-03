@@ -1,12 +1,12 @@
 # CXRaide 2.0
 
-A web application for chest X-ray annotation and AI-assisted analysis, featuring a Vue.js frontend and Flask backend with MongoDB database.
+A web application for chest X-ray annotation and AI-assisted analysis, featuring a Vue.js frontend and stateless Flask backend (no external database required).
 
 ## Features
 
 - Chest X-ray image upload and management
 - AI-assisted analysis using trained models
-- Local MongoDB database for data persistence
+- Runs without an external database (stateless backend)
 - Docker-based development and production environments
 - Hot-reloading for rapid development
 - Production-ready deployment configuration
@@ -18,26 +18,6 @@ A web application for chest X-ray annotation and AI-assisted analysis, featuring
 - Docker and Docker Compose
 - Python 3.8+ (for local development)
 - Node.js 16+ (for local development)
-- MongoDB (optional, for local development)
-
-### Configuring MongoDB Credentials
-
-**IMPORTANT: Security Notice**
-
-For security reasons, MongoDB credentials should never be hard-coded or committed to Git. Instead:
-
-1. Create a `.env` file in the server directory with your MongoDB connection string:
-   ```
-   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/...
-   DB_NAME=cxraide
-   SECRET_KEY=your_secure_random_key
-   ```
-
-2. The `.env` file is already in the `.gitignore` to prevent accidental commits
-
-3. For Docker deployments, set these environment variables in your deployment platform's dashboard or pass them at runtime
-
-4. For local development without Docker, the `run_backend.ps1` script will check for the MONGO_URI environment variable
 
 ### Quick Start with Docker
 
@@ -90,22 +70,38 @@ chmod +x dev.sh
 ./dev.sh clean
 ```
 
-### Local Development Setup1. Clone the repository2. Set up environment variables in `.env` file:   - Create a `.env` file in the server directory   - Add the following with your actual MongoDB connection:     ```     MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/...     DB_NAME=cxraide     SECRET_KEY=your_secure_random_key     ```   - **IMPORTANT:** Never commit your `.env` file to git! The `.gitignore` is already set up to exclude it.3. Install dependencies:   ```bash   # Backend dependencies   cd server   pip install -r requirements.txt   pip install -r requirements.local.txt   # Frontend dependencies   cd ../client   npm install   ```
-4. Start MongoDB locally or use Docker container
-5. Initialize the database:
-   ```bash
-   cd server
-   python init_db.py
-   ```
+### Local Development Setup
+
+1. Clone the repository
+2. (Optional) Create a `.env` in the `server` directory to override defaults:
+  ```
+  SECRET_KEY=your_secure_random_key
+  USE_MOCK_MODELS=false
+  ```
+3. Install dependencies:
+  ```bash
+  # Backend dependencies
+  cd server
+  pip install -r requirements.txt
+  pip install -r requirements.local.txt
+  # Frontend dependencies
+  cd ../client
+  npm install
+  ```
+
+### Firebase Migration Prep
+
+- Frontend env template: `client/.env.firebase.example` (contains `VITE_FIREBASE_*` values). Copy to `client/.env` and fill with your Firebase project settings.
+- Backend env template: `server/.env.firebase.example` (for service account path via `GOOGLE_APPLICATION_CREDENTIALS`). Copy to `server/.env` when enabling Firebase token verification.
+- Firebase bootstrap helper (not yet wired): `client/src/firebase.js` initializes the Firebase app/auth if env vars are present. Import and use in the login flow when you’re ready to switch from the temporary/mock login.
 
 ### Development Workflow
 
 1. Start the development environment: `.\dev.ps1 dev-build` (PowerShell) or `./dev.sh dev-build` (Bash)
 2. The frontend will be available at http://localhost:8080
 3. The backend API will be available at http://localhost:5000
-4. MongoDB will be available at mongodb://localhost:27017
-5. Edit files in the `client/` or `server/` directories - changes will automatically be reflected
-6. No need to restart containers for most changes due to hot-reloading
+4. Edit files in the `client/` or `server/` directories - changes will automatically be reflected
+5. No need to restart containers for most changes due to hot-reloading
 
 ## Project Structure
 
@@ -117,7 +113,7 @@ chmod +x dev.sh
 - `server/` - Flask backend API
   - RESTful endpoints
   - AI model integration
-  - MongoDB integration
+  - Stateless auth/token handling (no database dependency)
   - Model caching system
 
 - Configuration Files:
@@ -129,11 +125,7 @@ chmod +x dev.sh
 
 ## Database
 
-The application uses MongoDB as its primary database:
-- Development: Runs in a Docker container
-- Production: Configured through environment variables
-- Data persistence through Docker volumes
-- Automatic initialization through `init_db.py`
+No database is required for the current flow. Authentication uses in-memory/dev tokens so the app can run fully stateless.
 
 ## AI Models
 

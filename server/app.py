@@ -1,11 +1,12 @@
 import os
+import logging
+from datetime import datetime, timedelta
+from functools import wraps
+
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from jose import jwt
-from datetime import datetime, timedelta
-import logging
 from dotenv import load_dotenv
-from functools import wraps
 
 # Configure logging
 logging.basicConfig(
@@ -104,6 +105,30 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'ecd500797722db1d8de3f1330c6890105c13aa4bbe
 USE_FIREBASE_AUTH = os.getenv('USE_FIREBASE_AUTH', 'false').lower() == 'true'
 ALLOW_DEV_LOGIN = os.getenv('ALLOW_DEV_LOGIN', 'true').lower() == 'true'
 
+firebase_admin = None
+fb_auth = None
+firebase_ready = False
+
+if USE_FIREBASE_AUTH:
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, auth as fb_auth
+
+        cred_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
+        if cred_path:
+            cred = credentials.Certificate(cred_path)
+            firebase_admin.initialize_app(cred)
+            logger.info("Initialized Firebase with service account credential")
+        else:
+            cred = credentials.ApplicationDefault()
+            firebase_admin.initialize_app(cred)
+            logger.info("Initialized Firebase with application default credential")
+        firebase_ready = True
+    except Exception as e:
+        firebase_ready = False
+        logger.error(f"Failed to initialize Firebase Admin: {e}")
+        USE_FIREBASE_AUTH = False
+
 # Store allowed origins in app config based on environment
 if ENVIRONMENT == 'production':
     app.config['CORS_ORIGINS'] = [
@@ -159,34 +184,46 @@ else:
 app.config['SECRET_KEY'] = SECRET_KEY
 JWT_EXPIRATION = timedelta(hours=1)
 
-# JWT token decorator
+def _verify_token(token_value):
+    """Verify token using Firebase if enabled, otherwise local JWT."""
+    if not token_value:
+        raise ValueError("Token missing")
+
+    # Strip Bearer prefix
+    if token_value.startswith('Bearer '):
+        token_value = token_value[7:]
+
+    if USE_FIREBASE_AUTH and firebase_ready and fb_auth:
+        decoded = fb_auth.verify_id_token(token_value)
+        logger.info(f"Firebase token verified for user: {decoded.get('user_id')}")
+        return {
+            "username": decoded.get("email") or decoded.get("user_id"),
+            "sub": decoded.get("uid") or decoded.get("user_id"),
+            "is_admin": False,
+        }
+
+    decoded = jwt.decode(token_value, app.config["SECRET_KEY"], algorithms=["HS256"])
+    logger.info(f"Local token decoded for user: {decoded.get('username', 'unknown')}")
+    return decoded
+
+
+# JWT/Firebase token decorator
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = None
-        # Check if token is in headers
-        if "Authorization" in request.headers:
-            token = request.headers["Authorization"]
-        
+        token = request.headers.get("Authorization")
         if not token:
             logger.warning("Token missing in request")
             return jsonify({"message": "Token is missing!", "valid": False}), 401
-        
+
         try:
-            # Decode the token
-            logger.info(f"Attempting to decode token: {token[:20]}...")
-            # Remove 'Bearer ' prefix if present
-            if token.startswith('Bearer '):
-                token = token[7:]
-            data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-            logger.info(f"Token decoded successfully for user: {data.get('username', 'unknown')}")
+            data = _verify_token(token)
             g.user = data
         except Exception as e:
             logger.error(f"Token validation error: {str(e)}")
             return jsonify({"message": "Token is invalid!", "valid": False}), 401
-            
         return f(*args, **kwargs)
-    
+
     return decorated
 
 # Helper function for CORS preflight responses
@@ -225,7 +262,7 @@ def home():
         "message": "CXRaide API is running",
         "environment": ENVIRONMENT,
         "cors_origins": "All origins allowed (*)",
-        "auth": "Local JWT auth (no database)"
+        "auth": "firebase" if USE_FIREBASE_AUTH else "local-jwt"
     }), 200
 
 @app.route('/login', methods=['POST', 'OPTIONS'])
@@ -234,6 +271,13 @@ def login():
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
     
+    # In Firebase mode the client authenticates directly with Firebase and sends tokens to us.
+    if USE_FIREBASE_AUTH:
+        return jsonify({
+            "success": True,
+            "message": "Firebase handles login on the client. Use the ID token in Authorization header.",
+        }), 200
+
     try:
         data = request.get_json() or {}
 
@@ -278,14 +322,9 @@ def check_session():
         return jsonify({"message": "Token is missing!", "valid": False}), 401
 
     try:
-        if token.startswith('Bearer '):
-            token = token[7:]
-
-        data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-        logger.info(f"Token decoded successfully for user: {data.get('username', 'unknown')}")
-        
+        data = _verify_token(token)
         return jsonify({
-            "valid": True, 
+            "valid": True,
             "user": {
                 "username": data.get("username"),
                 "user_id": data.get("sub"),
@@ -304,7 +343,7 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "auth_mode": "local-dev",
+        "auth_mode": "firebase" if USE_FIREBASE_AUTH else "local-dev",
         "cors_origins": "All origins allowed (*)"
     }), 200
 

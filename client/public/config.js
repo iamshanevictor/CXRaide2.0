@@ -14,9 +14,11 @@
   console.log("[Config] Using API URL:", window.__ENV__.VITE_API_URL);
 
   // Optional: You can add runtime detection to change the URL based on hostname
+  // Prefer an injected API URL when present; otherwise default to backend on port 5000 to avoid clashing with the frontend dev server.
   if (window.location.hostname === "localhost") {
-    window.__ENV__.VITE_API_URL = "http://localhost:8080";
-    console.log("[Config] Development mode detected - using local API");
+    const injectedApiUrl = window.__ENV__.VITE_API_URL;
+    window.__ENV__.VITE_API_URL = injectedApiUrl || "http://localhost:5000";
+    console.log("[Config] Development mode detected - using local API", window.__ENV__.VITE_API_URL);
   }
 })();
 

@@ -99,8 +99,8 @@
 </template>
 
 <script>
-import { login, health, apiUrl } from "../utils/api";
-import { version } from "../../package.json";
+import { health, apiUrl } from "../utils/api";
+import pkg from "../../package.json";
 
 export default {
   data() {
@@ -118,12 +118,18 @@ export default {
         typeof window !== "undefined" && window.location
           ? window.location.protocol
           : "http:",
-      appVersion: version,
+      appVersion: pkg.version,
     };
   },
   async created() {
-    // Check server health on component creation
-    await this.checkServerHealth();
+    // Skip health check if Firebase is not configured yet
+    const hasFirebase = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
+    if (hasFirebase) {
+      await this.checkServerHealth();
+    } else {
+      this.connectionStatus = "Temp Bypass";
+      this.debugInfo = true;
+    }
   },
   methods: {
     async checkServerHealth() {
@@ -150,60 +156,18 @@ export default {
       this.debugInfo = true;
 
       try {
-        console.log("[Login] Attempting login to:", `${this.apiUrl}/login`);
-        const response = await login(this.username, this.password);
-
-        console.log("[Login] Login response:", response.data);
-        if (response.data.token) {
-          // Store the token securely in localStorage
-          localStorage.setItem("authToken", response.data.token);
-          console.log("[Login] Login successful, redirecting to home page");
-
-          // Force a page reload to clear any stale state
-          setTimeout(() => {
-            this.$router.push("/home");
-          }, 500);
-        } else {
-          console.error("[Login] No token received in response");
-          throw new Error("No token received from server");
-        }
+        const { firebaseEmailLogin } = await import("../services/firebaseAuth");
+        const result = await firebaseEmailLogin(this.username, this.password);
+        localStorage.setItem("authToken", `Bearer ${result.idToken}`);
+        this.connectionStatus = "Connected";
+        this.error = null;
+        setTimeout(() => {
+          this.$router.push("/home");
+          this.isLoading = false;
+        }, 300);
       } catch (error) {
-        console.error("[Login] Detailed login error:", {
-          message: error.message,
-          code: error.code,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
-
-        // Network error or connection issue detected - bypass login
-        if (error.code === "ECONNABORTED" || error.code === "ERR_NETWORK" || !error.response) {
-          console.log("[Login] Network error detected - bypassing authentication");
-          
-          // Create a mock token (with appropriate expiration)
-          const mockToken = this.createMockToken(this.username || "guest_user");
-          localStorage.setItem("authToken", mockToken);
-          
-          // Show a warning to the user
-          this.error = "Connection to server failed. Proceeding in offline mode with limited functionality.";
-          
-          // Delay for 1.5 seconds so user can see the message
-          setTimeout(() => {
-            this.$router.push("/home");
-          }, 1500);
-          
-          return;
-        }
-        
-        // Handle other errors normally
-        if (error.response && error.response.status === 500) {
-          this.error = "Server error. Please try again later.";
-        } else if (error.response && error.response.status === 401) {
-          this.error = "Invalid credentials. Please try again.";
-        } else {
-          this.error =
-            error.response?.data?.message || error.message || "Login failed";
-        }
-      } finally {
+        console.error("[Login] Firebase auth error:", error);
+        this.error = "Login failed. Check credentials or Firebase config.";
         this.isLoading = false;
       }
     },

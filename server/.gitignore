@@ -9,3 +9,4 @@ models/
 .model_cache/
 app.py.backup
 app.py.bak
+firebase-adminsdk*.json

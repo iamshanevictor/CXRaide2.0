@@ -26,10 +26,6 @@ services:
         value: "true"
       - key: RENDER
         value: "true"
-      - key: MONGO_URI
-        value: ${MONGO_URI}
-      - key: DB_NAME
-        value: "cxraide"
       - key: SECRET_KEY
         value: ${SECRET_KEY}
     healthCheckPath: /health

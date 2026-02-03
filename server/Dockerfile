@@ -7,11 +7,13 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_ENV=development
 ENV FLASK_ENV=development
-ENV DB_NAME=cxraide
 ENV SECRET_KEY=ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce
 ENV WORKER_TIMEOUT=600
 ENV GUNICORN_WORKERS=1
 ENV GUNICORN_THREADS=2
+# Avoid pip network stalls on large wheels (e.g., torch)
+ENV PIP_DEFAULT_TIMEOUT=300
+ENV PIP_RETRIES=5
 # This flag should be set to false in Docker since we'll include the model files
 ENV USE_MOCK_MODELS=false
 # For Render.com deployment only, leave false for local Docker
@@ -32,7 +34,7 @@ COPY requirements.txt .
 COPY requirements.local.txt .
 
 # Install Python dependencies INCLUDING PyTorch (unlike Render)
-RUN pip install --no-cache-dir -r requirements.local.txt
+RUN pip install --no-cache-dir --default-timeout=300 --retries=5 -r requirements.local.txt
 
 # Development stage - expects volumes to be mounted
 FROM base AS development

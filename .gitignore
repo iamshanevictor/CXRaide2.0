@@ -10,6 +10,7 @@ bfg.jar
 .env.development
 .env.production
 .env.*
+firebase-adminsdk*.json
 
 # Python specific
 __pycache__/

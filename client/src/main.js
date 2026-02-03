@@ -23,7 +23,3 @@ window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global error:", { message, source, lineno, colno, error });
 };
 
-// Enable HMR (Hot Module Replacement) for development
-if (module.hot) {
-  module.hot.accept();
-}

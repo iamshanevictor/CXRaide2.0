@@ -31,8 +31,8 @@ function Test-Docker {
 # Start in development mode
 function Start-DevMode {
     if (Test-Docker) {
-        Write-Host "Starting in development mode..." -ForegroundColor Green
-        docker-compose up
+        Write-Host "Starting in development mode (with rebuild to pick up new deps)..." -ForegroundColor Green
+        docker-compose up --build
     }
 }
 

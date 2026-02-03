@@ -120,9 +120,7 @@ If you encounter issues on Render.com, check:
 5. Add the following environment variables:
 
    ```
-   DB_NAME=your_database_name
    FLASK_ENV=production
-   MONGO_URI=your_mongodb_connection_string
    PORT=10000
    SECRET_KEY=your_secret_key
    ```
@@ -236,4 +234,4 @@ If you encounter "Connection Failed" or network errors from certain devices:
 1. Update the code in your GitHub repository as needed
 2. Render.com will automatically deploy new changes
 3. Monitor server logs for errors
-4. Regularly back up your MongoDB database
+4. Rotate secrets periodically (e.g., SECRET_KEY)
