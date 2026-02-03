@@ -2,24 +2,25 @@
 // This file is loaded before Vue.js and provides global constants
 
 (function () {
-  // Global environment variables
-  window.__ENV__ = {
-    // Default Production API URL - can be overridden by environment variables at build time
-    VITE_API_URL: "https://cxraide-backend.onrender.com",
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
-    // Default base URL for the router
-    VITE_BASE_URL: "/",
-  };
+  // Allow pre-existing injected values (e.g., from a reverse proxy) but provide sensible defaults.
+  window.__ENV__ = window.__ENV__ || {};
+
+  const defaultApiUrl = isLocalhost
+    ? "http://localhost:5000"
+    : "https://cxraide-backend.onrender.com";
+
+  // If someone hardcoded a production URL previously, prefer local when running on localhost.
+  window.__ENV__.VITE_API_URL = isLocalhost
+    ? "http://localhost:5000"
+    : (window.__ENV__.VITE_API_URL || defaultApiUrl);
+
+  // Default base URL for the router
+  window.__ENV__.VITE_BASE_URL = window.__ENV__.VITE_BASE_URL || "/";
 
   console.log("[Config] Using API URL:", window.__ENV__.VITE_API_URL);
-
-  // Optional: You can add runtime detection to change the URL based on hostname
-  // Prefer an injected API URL when present; otherwise default to backend on port 5000 to avoid clashing with the frontend dev server.
-  if (window.location.hostname === "localhost") {
-    const injectedApiUrl = window.__ENV__.VITE_API_URL;
-    window.__ENV__.VITE_API_URL = injectedApiUrl || "http://localhost:5000";
-    console.log("[Config] Development mode detected - using local API", window.__ENV__.VITE_API_URL);
-  }
 })();
 
 // Fix common issues

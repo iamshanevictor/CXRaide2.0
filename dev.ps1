@@ -65,11 +65,36 @@ function Invoke-Compose {
     }
 }
 
+function Test-FirebaseWebConfig {
+    # Only enable Firebase mode if the frontend has Web SDK config (VITE_FIREBASE_API_KEY)
+    $envFiles = @(
+        "./client/.env",
+        "./client/.env.local",
+        "./client/.env.development",
+        "./client/.env.development.local"
+    )
+
+    foreach ($file in $envFiles) {
+        if (Test-Path -Path $file) {
+            try {
+                $content = Get-Content -Path $file -Raw
+                if ($content -match "(?m)^VITE_FIREBASE_API_KEY\s*=\s*\S+") {
+                    return $true
+                }
+            }
+            catch {
+                # ignore read errors
+            }
+        }
+    }
+    return $false
+}
+
 # Start in development mode
 function Start-DevMode {
     if (Test-Docker) {
         Write-Host "Starting in development mode (with rebuild to pick up new deps)..." -ForegroundColor Green
-        if (Test-Path -Path "./firebase-adminsdk.json") {
+        if ((Test-Path -Path "./firebase-adminsdk.json") -and (Test-FirebaseWebConfig)) {
             Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "up", "--build")
         }
         else {
@@ -82,7 +107,7 @@ function Start-DevMode {
 function Start-DevBuild {
     if (Test-Docker) {
         Write-Host "Rebuilding and starting in development mode..." -ForegroundColor Green
-        if (Test-Path -Path "./firebase-adminsdk.json") {
+        if ((Test-Path -Path "./firebase-adminsdk.json") -and (Test-FirebaseWebConfig)) {
             Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "up", "--build")
         }
         else {
@@ -95,7 +120,7 @@ function Start-DevBuild {
 function Start-ProdMode {
     if (Test-Docker) {
         Write-Host "Starting in production mode..." -ForegroundColor Green
-        if (Test-Path -Path "./firebase-adminsdk.json") {
+        if ((Test-Path -Path "./firebase-adminsdk.json") -and (Test-FirebaseWebConfig)) {
             Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "-f", "docker-compose.prod.yml", "up")
         }
         else {
@@ -108,7 +133,7 @@ function Start-ProdMode {
 function Start-ProdBuild {
     if (Test-Docker) {
         Write-Host "Rebuilding and starting in production mode..." -ForegroundColor Green
-        if (Test-Path -Path "./firebase-adminsdk.json") {
+        if ((Test-Path -Path "./firebase-adminsdk.json") -and (Test-FirebaseWebConfig)) {
             Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "-f", "docker-compose.prod.yml", "up", "--build")
         }
         else {

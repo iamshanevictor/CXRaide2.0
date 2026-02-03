@@ -4,14 +4,21 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
+function _getEnv(key) {
+  return (
+    (typeof window !== "undefined" && window.__ENV__ && window.__ENV__[key]) ||
+    import.meta.env?.[key]
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: _getEnv("VITE_FIREBASE_API_KEY"),
+  authDomain: _getEnv("VITE_FIREBASE_AUTH_DOMAIN"),
+  projectId: _getEnv("VITE_FIREBASE_PROJECT_ID"),
+  storageBucket: _getEnv("VITE_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: _getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: _getEnv("VITE_FIREBASE_APP_ID"),
+  measurementId: _getEnv("VITE_FIREBASE_MEASUREMENT_ID"),
 };
 
 export function getFirebaseApp() {

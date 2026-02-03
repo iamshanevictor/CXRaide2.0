@@ -26,7 +26,7 @@
 
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username">{{ usernameLabel }}</label>
             <div class="input-group">
               <span class="input-icon">
                 <i class="bi bi-person"></i>
@@ -35,7 +35,7 @@
                 type="text"
                 id="username"
                 v-model="username"
-                placeholder="Enter your username"
+                :placeholder="usernamePlaceholder"
                 class="input-field"
                 :disabled="isLoading"
                 required
@@ -99,8 +99,9 @@
 </template>
 
 <script>
-import { health, apiUrl } from "../utils/api";
+import { health, apiUrl, login as apiLogin } from "../utils/api";
 import pkg from "../../package.json";
+import { getFirebaseAuth } from "../firebase";
 
 export default {
   data() {
@@ -121,13 +122,27 @@ export default {
       appVersion: pkg.version,
     };
   },
+  computed: {
+    isFirebaseConfigured() {
+      try {
+        return Boolean(getFirebaseAuth());
+      } catch (e) {
+        return false;
+      }
+    },
+    usernameLabel() {
+      return this.isFirebaseConfigured ? "Email" : "Username";
+    },
+    usernamePlaceholder() {
+      return this.isFirebaseConfigured
+        ? "Enter your email"
+        : "Enter your username";
+    },
+  },
   async created() {
-    // Skip health check if Firebase is not configured yet
-    const hasFirebase = Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
-    if (hasFirebase) {
-      await this.checkServerHealth();
-    } else {
-      this.connectionStatus = "Temp Bypass";
+    await this.checkServerHealth();
+    if (!this.isFirebaseConfigured) {
+      this.connectionStatus = "Local Dev Login";
       this.debugInfo = true;
     }
   },
@@ -156,10 +171,21 @@ export default {
       this.debugInfo = true;
 
       try {
-        const { firebaseEmailLogin } = await import("../services/firebaseAuth");
-        const result = await firebaseEmailLogin(this.username, this.password);
-        localStorage.setItem("authToken", `Bearer ${result.idToken}`);
-        this.connectionStatus = "Connected";
+        if (this.isFirebaseConfigured) {
+          const { firebaseEmailLogin } = await import("../services/firebaseAuth");
+          const result = await firebaseEmailLogin(this.username, this.password);
+          localStorage.setItem("authToken", `Bearer ${result.idToken}`);
+          this.connectionStatus = "Connected";
+        } else {
+          const response = await apiLogin(this.username, this.password);
+          const token = response?.data?.token;
+          if (!token) {
+            throw new Error(response?.data?.message || "No token returned");
+          }
+          localStorage.setItem("authToken", `Bearer ${token}`);
+          this.connectionStatus = "Connected";
+        }
+
         this.error = null;
         setTimeout(() => {
           this.$router.push("/home");
@@ -167,7 +193,9 @@ export default {
         }, 300);
       } catch (error) {
         console.error("[Login] Firebase auth error:", error);
-        this.error = "Login failed. Check credentials or Firebase config.";
+        this.error = this.isFirebaseConfigured
+          ? "Login failed. Check email/password or Firebase config."
+          : "Login failed. (Local dev login)";
         this.isLoading = false;
       }
     },
