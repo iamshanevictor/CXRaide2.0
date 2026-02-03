@@ -1,5 +1,22 @@
 # PowerShell script to manage Docker environment for CXRaide development and production
 
+function Get-ComposeCommand {
+    # Prefer Docker Compose v2 (`docker compose`) but support legacy `docker-compose`
+    try {
+        docker compose version | Out-Null
+        return @("docker", "compose")
+    }
+    catch {
+        try {
+            docker-compose version | Out-Null
+            return @("docker-compose")
+        }
+        catch {
+            return $null
+        }
+    }
+}
+
 # Show usage
 function Show-Help {
     Write-Host "CXRaide Docker Development Helper" -ForegroundColor Cyan
@@ -28,11 +45,36 @@ function Test-Docker {
     }
 }
 
+function Invoke-Compose {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Args
+    )
+
+    $composeCmd = Get-ComposeCommand
+    if (-not $composeCmd) {
+        Write-Host "Docker Compose not found. Install Docker Desktop (recommended) or docker-compose." -ForegroundColor Red
+        exit 1
+    }
+
+    if ($composeCmd.Count -eq 2) {
+        & $composeCmd[0] $composeCmd[1] @Args
+    }
+    else {
+        & $composeCmd[0] @Args
+    }
+}
+
 # Start in development mode
 function Start-DevMode {
     if (Test-Docker) {
         Write-Host "Starting in development mode (with rebuild to pick up new deps)..." -ForegroundColor Green
-        docker-compose up --build
+        if (Test-Path -Path "./firebase-adminsdk.json") {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "up", "--build")
+        }
+        else {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "up", "--build")
+        }
     }
 }
 
@@ -40,7 +82,12 @@ function Start-DevMode {
 function Start-DevBuild {
     if (Test-Docker) {
         Write-Host "Rebuilding and starting in development mode..." -ForegroundColor Green
-        docker-compose up --build
+        if (Test-Path -Path "./firebase-adminsdk.json") {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "up", "--build")
+        }
+        else {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "up", "--build")
+        }
     }
 }
 
@@ -48,7 +95,12 @@ function Start-DevBuild {
 function Start-ProdMode {
     if (Test-Docker) {
         Write-Host "Starting in production mode..." -ForegroundColor Green
-        docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+        if (Test-Path -Path "./firebase-adminsdk.json") {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "-f", "docker-compose.prod.yml", "up")
+        }
+        else {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.prod.yml", "up")
+        }
     }
 }
 
@@ -56,7 +108,12 @@ function Start-ProdMode {
 function Start-ProdBuild {
     if (Test-Docker) {
         Write-Host "Rebuilding and starting in production mode..." -ForegroundColor Green
-        docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+        if (Test-Path -Path "./firebase-adminsdk.json") {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.firebase.yml", "-f", "docker-compose.prod.yml", "up", "--build")
+        }
+        else {
+            Invoke-Compose -Args @("-f", "docker-compose.yml", "-f", "docker-compose.prod.yml", "up", "--build")
+        }
     }
 }
 
@@ -64,7 +121,7 @@ function Start-ProdBuild {
 function Stop-Containers {
     if (Test-Docker) {
         Write-Host "Stopping containers..." -ForegroundColor Yellow
-        docker-compose down
+        Invoke-Compose -Args @("down")
     }
 }
 
@@ -72,7 +129,7 @@ function Stop-Containers {
 function Clean-Environment {
     if (Test-Docker) {
         Write-Host "Stopping containers and removing volumes..." -ForegroundColor Yellow
-        docker-compose down -v
+        Invoke-Compose -Args @("down", "-v")
     }
 }
 

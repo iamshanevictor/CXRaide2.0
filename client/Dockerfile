@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package files for dependency installation
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with lockfile
+RUN npm ci --legacy-peer-deps
 
 # Development stage with hot-reloading
 FROM base as development
@@ -15,7 +15,7 @@ ENV NODE_ENV=development
 # Expose development server port
 EXPOSE 8080
 # Start Vite dev server; ensure deps present when using bind mounts
-CMD ["sh", "-c", "npm install && npm run dev -- --host --port 8080"]
+CMD ["sh", "-c", "npm ci --legacy-peer-deps && npm run dev -- --host --port 8080"]
 
 # Build stage for production
 FROM base as build-stage

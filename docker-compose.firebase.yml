@@ -1,0 +1,7 @@
+services:
+  backend:
+    environment:
+      - USE_FIREBASE_AUTH=true
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-adminsdk.json
+    volumes:
+      - ./firebase-adminsdk.json:/app/firebase-adminsdk.json:ro

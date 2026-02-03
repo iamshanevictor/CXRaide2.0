@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   backend:
     build:
@@ -13,6 +11,7 @@ services:
       - SECRET_KEY=ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce
       - USE_MOCK_MODELS=false
       - RENDER=false
+      - USE_FIREBASE_AUTH=false
     volumes:
       - ./server:/app
     networks:
