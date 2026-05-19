@@ -10,7 +10,11 @@ bfg.jar
 .env.development
 .env.production
 .env.*
-firebase-adminsdk*.json
+!.env.example
+!client/.env.example
+!server/.env.example
+*.key
+*.pem
 
 # Python specific
 __pycache__/

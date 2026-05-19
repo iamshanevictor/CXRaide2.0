@@ -69,8 +69,7 @@ const routes = [
 ];
 
 // Get the base URL from environment variables or use a default value
-const baseUrl =
-  window.__ENV__?.VITE_BASE_URL || import.meta.env?.VITE_BASE_URL || "/";
+const baseUrl = import.meta.env?.VITE_BASE_URL || "/";
 
 const router = createRouter({
   history: createWebHistory(baseUrl),

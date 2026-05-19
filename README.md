@@ -1,159 +1,110 @@
 # CXRaide 2.0
 
-A web application for chest X-ray annotation and AI-assisted analysis, featuring a Vue.js frontend and stateless Flask backend (no external database required).
+Automatic Chest X-Ray Pattern Annotation and Classification.
 
-## Features
-
-- Chest X-ray image upload and management
-- AI-assisted analysis using trained models
-- Runs without an external database (stateless backend)
-- Docker-based development and production environments
-- Hot-reloading for rapid development
-- Production-ready deployment configuration
-
-## Development Setup
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.8+ (for local development)
-- Node.js 16+ (for local development)
-
-### Quick Start with Docker
-
-This project uses Docker for both development and production. The development environment is set up with hot-reloading for faster development iterations.
-
-#### Using Windows (PowerShell)
-
-```powershell
-# Start development environment with hot-reloading
-.\dev.ps1 dev
-
-# Rebuild and start development environment
-.\dev.ps1 dev-build
-
-# Start production environment
-.\dev.ps1 prod
-
-# Rebuild and start production environment
-.\dev.ps1 prod-build
-
-# Stop all containers
-.\dev.ps1 down
-
-# Stop containers and remove volumes
-.\dev.ps1 clean
-```
-
-#### Using Linux/Mac (Bash)
-
-```bash
-# Make the script executable (first time only)
-chmod +x dev.sh
-
-# Start development environment with hot-reloading
-./dev.sh dev
-
-# Rebuild and start development environment
-./dev.sh dev-build
-
-# Start production environment
-./dev.sh prod
-
-# Rebuild and start production environment
-./dev.sh prod-build
-
-# Stop all containers
-./dev.sh down
-
-# Stop containers and remove volumes
-./dev.sh clean
-```
-
-### Local Development Setup
-
-1. Clone the repository
-2. (Optional) Create a `.env` in the `server` directory to override defaults:
-  ```
-  SECRET_KEY=your_secure_random_key
-  USE_MOCK_MODELS=false
-  ```
-3. Install dependencies:
-  ```bash
-  # Backend dependencies
-  cd server
-  pip install -r requirements.txt
-  pip install -r requirements.local.txt
-  # Frontend dependencies
-  cd ../client
-  npm install
-  ```
-
-### Firebase Migration Prep
-
-- Frontend env template: `client/.env.firebase.example` (contains `VITE_FIREBASE_*` values). Copy to `client/.env` and fill with your Firebase project settings.
-- Backend env template: `server/.env.firebase.example` (for service account path via `GOOGLE_APPLICATION_CREDENTIALS`). Copy to `server/.env` when enabling Firebase token verification.
-- Firebase bootstrap helper (not yet wired): `client/src/firebase.js` initializes the Firebase app/auth if env vars are present. Import and use in the login flow when you’re ready to switch from the temporary/mock login.
-
-### Development Workflow
-
-1. Start the development environment: `.\dev.ps1 dev-build` (PowerShell) or `./dev.sh dev-build` (Bash)
-2. The frontend will be available at http://localhost:8080
-3. The backend API will be available at http://localhost:5000
-4. Edit files in the `client/` or `server/` directories - changes will automatically be reflected
-5. No need to restart containers for most changes due to hot-reloading
+CXRaide 2.0 is a local-first research application with a Vue/Vite frontend and a Flask backend. The backend provides local JWT-style development login and chest X-ray model inference endpoints. Database integration is intentionally disabled for now and will be redesigned later.
 
 ## Project Structure
 
-- `client/` - Vue.js frontend application
-  - Modern UI components
-  - Responsive design
-  - Real-time updates
+```text
+client/   Vue 3 + Vite frontend
+server/   Flask backend and model inference service
+```
 
-- `server/` - Flask backend API
-  - RESTful endpoints
-  - AI model integration
-  - Stateless auth/token handling (no database dependency)
-  - Model caching system
+## Local Development
 
-- Configuration Files:
-  - `docker-compose.yml` - Main Docker Compose file for development
-  - `docker-compose.prod.yml` - Production overrides for Docker Compose
-  - `dev.ps1` - PowerShell helper script for Windows users
-  - `dev.sh` - Bash helper script for Linux/Mac users
-  - `.env` - Environment variables configuration
-
-## Database
-
-No database is required for the current flow. Authentication uses in-memory/dev tokens so the app can run fully stateless.
-
-## AI Models
-
-The application includes pre-trained models for chest X-ray analysis:
-- Models must be present locally at `server/models/IT2_model_epoch_300.pth` and `server/models/IT3_model_epoch_260.pth`
-- No automatic downloads are performed; place the `.pth` files before running
-- Falls back to mock models when `USE_MOCK_MODELS=true` or when model files are missing
-- Configurable through environment variables
-
-## Deployment
-
-For deployment to platforms like Render.com:
-1. Test the production build locally: `.\dev.ps1 prod-build` (PowerShell) or `./dev.sh prod-build` (Bash)
-2. Push your changes to GitHub
-3. Render.com will automatically deploy from your GitHub repository
-
-See `RENDER_DEPLOYMENT.md` for detailed deployment instructions.
-
-### Alternative Setup Without Docker
-
-If Docker is not available on your system, you can run the backend and frontend using the following PowerShell scripts:
+### Backend
 
 ```powershell
-# Run the backend
 .\run_backend.ps1
+```
 
-# Run the frontend
+Manual setup:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r server\requirements.txt
+$env:PORT="5000"
+$env:FRONTEND_URL="http://localhost:5173"
+$env:SECRET_KEY="local-dev-secret-change-me"
+$env:USE_MOCK_MODELS="true"
+$env:ALLOW_DEV_LOGIN="true"
+cd server
+flask run --host=0.0.0.0 --port=5000 --reload
+```
+
+The backend will run at `http://localhost:5000`.
+
+### Frontend
+
+```powershell
 .\run_frontend.ps1
 ```
 
-Ensure that all prerequisites are installed and configured correctly before running these scripts.
+Manual setup:
+
+```powershell
+cd client
+npm install
+$env:VITE_API_BASE_URL="http://localhost:5000"
+npm run dev
+```
+
+The frontend will run at `http://localhost:5173`.
+
+## Environment Variables
+
+Frontend (`client/.env`):
+
+```text
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+Backend (`server/.env` or shell):
+
+```text
+PORT=5000
+FRONTEND_URL=http://localhost:5173
+SECRET_KEY=local-dev-secret-change-me
+USE_MOCK_MODELS=true
+ALLOW_DEV_LOGIN=true
+```
+
+For real local model inference, place model files in `server/models/` and set:
+
+```text
+USE_MOCK_MODELS=false
+```
+
+Expected model filenames:
+
+```text
+server/models/IT2_model_epoch_300.pth
+server/models/IT3_model_epoch_260.pth
+```
+
+Install real model extras only when needed:
+
+```powershell
+pip install -r server\requirements.local.txt
+```
+
+## Vercel Frontend Deployment
+
+The frontend is Vercel-ready. Deploy the `client/` folder as the Vercel project.
+
+Vercel settings:
+
+- Framework preset: Vite
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `VITE_API_BASE_URL=https://your-future-backend-url.com`
+
+The Flask/Python backend includes image processing and optional PyTorch model inference. It should remain a separate backend/model service for now rather than being forced into Vercel serverless functions.
+
+## Database Status
+
+No external database or cloud identity provider is active. Login is a local development placeholder that issues a short-lived JWT when `ALLOW_DEV_LOGIN=true`.
+
+TODO: Database-backed users, access control, image assignments, and annotation persistence will be redesigned later.

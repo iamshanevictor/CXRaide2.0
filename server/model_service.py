@@ -319,10 +319,7 @@ def load_model_in_background():
         # Log the current working directory for debugging
         logger.info(f"Current working directory: {os.getcwd()}")
         
-        # Log environment settings
-        is_render = os.environ.get('RENDER', 'False').lower() == 'true'
-        env_type = "Render.com" if is_render else "Local/Docker"
-        logger.info(f"Environment: {env_type}, USE_MOCK_MODELS={use_mock}, PyTorch available={torch_available}")
+        logger.info(f"Environment: local, USE_MOCK_MODELS={use_mock}, PyTorch available={torch_available}")
         
         # If PyTorch is not available, log critical error
         if not torch_available:
@@ -952,8 +949,7 @@ def model_status():
         models = get_models()
         
         # Determine model deployment status
-        is_render = os.environ.get('RENDER', 'False') == 'True'
-        deployment_environment = "Render.com" if is_render else "Local"
+        deployment_environment = "Local"
         
         # Check model types
         mock_it2 = model_it2 is not None and hasattr(model_it2, 'is_mock')

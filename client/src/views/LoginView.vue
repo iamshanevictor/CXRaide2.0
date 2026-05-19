@@ -103,7 +103,6 @@
 <script>
 import { health, apiUrl, login as apiLogin } from "../utils/api";
 import pkg from "../../package.json";
-import { getFirebaseAuth } from "../firebase";
 
 export default {
   data() {
@@ -125,28 +124,17 @@ export default {
     };
   },
   computed: {
-    isFirebaseConfigured() {
-      try {
-        return Boolean(getFirebaseAuth());
-      } catch (e) {
-        return false;
-      }
-    },
     usernameLabel() {
-      return this.isFirebaseConfigured ? "Email" : "Username";
+      return "Username";
     },
     usernamePlaceholder() {
-      return this.isFirebaseConfigured
-        ? "Enter your email"
-        : "Enter your username";
+      return "Enter your username";
     },
   },
   async created() {
     await this.checkServerHealth();
-    if (!this.isFirebaseConfigured) {
-      this.connectionStatus = "Local Dev Login";
-      this.debugInfo = true;
-    }
+    this.connectionStatus = "Local Dev Login";
+    this.debugInfo = true;
   },
   methods: {
     async checkServerHealth() {
@@ -173,20 +161,13 @@ export default {
       this.debugInfo = true;
 
       try {
-        if (this.isFirebaseConfigured) {
-          const { firebaseEmailLogin } = await import("../services/firebaseAuth");
-          const result = await firebaseEmailLogin(this.username, this.password);
-          localStorage.setItem("authToken", `Bearer ${result.idToken}`);
-          this.connectionStatus = "Connected";
-        } else {
-          const response = await apiLogin(this.username, this.password);
-          const token = response?.data?.token;
-          if (!token) {
-            throw new Error(response?.data?.message || "No token returned");
-          }
-          localStorage.setItem("authToken", `Bearer ${token}`);
-          this.connectionStatus = "Connected";
+        const response = await apiLogin(this.username, this.password);
+        const token = response?.data?.token;
+        if (!token) {
+          throw new Error(response?.data?.message || "No token returned");
         }
+        localStorage.setItem("authToken", `Bearer ${token}`);
+        this.connectionStatus = "Connected";
 
         this.error = null;
         setTimeout(() => {
@@ -194,47 +175,10 @@ export default {
           this.isLoading = false;
         }, 300);
       } catch (error) {
-        console.error("[Login] Firebase auth error:", error);
-        this.error = this.isFirebaseConfigured
-          ? "Login failed. Check email/password or Firebase config."
-          : "Login failed. (Local dev login)";
+        console.error("[Login] Auth error:", error);
+        this.error = "Login failed. (Local dev login)";
         this.isLoading = false;
       }
-    },
-    // Helper function to create a mock JWT token
-    createMockToken(username) {
-      // Create header
-      const header = {
-        alg: "HS256",
-        typ: "JWT"
-      };
-      
-      // Create payload with 24 hour expiration
-      const now = Math.floor(Date.now() / 1000);
-      const payload = {
-        sub: username,
-        name: username,
-        username: username,
-        iat: now,
-        exp: now + 86400, // 24 hours from now
-        offline_mode: true // Flag to indicate this is a bypass token
-      };
-      
-      // For mock token, we'll use base64 encoding (not actual JWT signing)
-      const encodeBase64 = (obj) => {
-        return btoa(JSON.stringify(obj))
-          .replace(/=/g, '')
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_');
-      };
-      
-      // Create the token parts
-      const headerEncoded = encodeBase64(header);
-      const payloadEncoded = encodeBase64(payload);
-      const signatureEncoded = encodeBase64({sig: "mock_signature"});
-      
-      // Combine into a JWT token format
-      return `${headerEncoded}.${payloadEncoded}.${signatureEncoded}`;
     },
   },
 };

@@ -15,9 +15,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+
 # Detect environment and set model strategy
 def setup_environment():
-    """Configure environment variables based on deployment context"""
+    """Choose real local models when present, otherwise fall back to mock models."""
     model_dir = os.path.join(os.path.dirname(__file__), 'models')
     it2_path = os.path.join(model_dir, 'IT2_model_epoch_300.pth')
     it3_path = os.path.join(model_dir, 'IT3_model_epoch_260.pth')
@@ -30,8 +32,6 @@ def setup_environment():
         logger.info(f"Using environment setting for mock models: {use_mock_models}")
         return
 
-    is_render = os.environ.get('RENDER', 'False').lower() == 'true'
-
     try:
         import torch
         pytorch_available = True
@@ -43,22 +43,18 @@ def setup_environment():
         return
 
     if pytorch_available:
-        if is_render:
-            os.environ['USE_MOCK_MODELS'] = 'True'
-            logger.info("Running on Render.com - using mock models by default")
+        if os.path.exists(it2_path) and os.path.exists(it3_path):
+            os.environ['USE_MOCK_MODELS'] = 'False'
+            logger.info("Real model files found - using real models")
+            logger.info(f"IT2 model: {it2_path} ({os.path.getsize(it2_path) / (1024*1024):.1f} MB)")
+            logger.info(f"IT3 model: {it3_path} ({os.path.getsize(it3_path) / (1024*1024):.1f} MB)")
         else:
-            if os.path.exists(it2_path) and os.path.exists(it3_path):
-                os.environ['USE_MOCK_MODELS'] = 'False'
-                logger.info("Real model files found - using real models")
-                logger.info(f"IT2 model: {it2_path} ({os.path.getsize(it2_path) / (1024*1024):.1f} MB)")
-                logger.info(f"IT3 model: {it3_path} ({os.path.getsize(it3_path) / (1024*1024):.1f} MB)")
-            else:
-                os.environ['USE_MOCK_MODELS'] = 'True'
-                logger.warning("Model files not found - using mock models")
-                if not os.path.exists(it2_path):
-                    logger.warning(f"Missing IT2 model file: {it2_path}")
-                if not os.path.exists(it3_path):
-                    logger.warning(f"Missing IT3 model file: {it3_path}")
+            os.environ['USE_MOCK_MODELS'] = 'True'
+            logger.warning("Model files not found - using mock models")
+            if not os.path.exists(it2_path):
+                logger.warning(f"Missing IT2 model file: {it2_path}")
+            if not os.path.exists(it3_path):
+                logger.warning(f"Missing IT3 model file: {it3_path}")
 
 # Set up environment before other operations
 setup_environment()
@@ -68,9 +64,9 @@ model_bp = None
 get_model = None
 
 try:
-    # Try direct import first (Docker container)
+    # Direct import works when running from the server directory.
     from model_service import model_bp, get_model
-    logger.info("Successfully imported model_service directly (Docker mode)")
+    logger.info("Successfully imported model_service directly")
 except ImportError:
     try:
         # Then try with server prefix (local development)
@@ -84,8 +80,6 @@ except ImportError:
         def get_model():
             logger.error("Model loading function not available")
             return None, None
-
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -102,61 +96,18 @@ logger.info(f"Running in {ENVIRONMENT} environment")
 
 # JWT Configuration - Direct configuration
 SECRET_KEY = os.getenv('SECRET_KEY', 'ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce')
-USE_FIREBASE_AUTH = os.getenv('USE_FIREBASE_AUTH', 'false').lower() == 'true'
 ALLOW_DEV_LOGIN = os.getenv('ALLOW_DEV_LOGIN', 'true').lower() == 'true'
 
-firebase_admin = None
-fb_auth = None
-firebase_ready = False
+app.config['CORS_ORIGINS'] = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
 
-if USE_FIREBASE_AUTH:
-    try:
-        import firebase_admin
-        from firebase_admin import credentials, auth as fb_auth
-
-        cred_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '').strip()
-        if cred_path:
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
-            logger.info("Initialized Firebase with service account credential")
-        else:
-            cred = credentials.ApplicationDefault()
-            firebase_admin.initialize_app(cred)
-            logger.info("Initialized Firebase with application default credential")
-        firebase_ready = True
-    except Exception as e:
-        firebase_ready = False
-        logger.error(f"Failed to initialize Firebase Admin: {e}")
-        USE_FIREBASE_AUTH = False
-
-# Store allowed origins in app config based on environment
-if ENVIRONMENT == 'production':
-    app.config['CORS_ORIGINS'] = [
-        "https://cxraide.onrender.com",     # Production frontend
-        "http://cxraide.onrender.com",      # HTTP version
-        "https://www.cxraide.onrender.com",  # www version
-        "http://www.cxraide.onrender.com",   # www HTTP version
-        "https://cxraide-backend.onrender.com",  # Backend URL
-        "http://cxraide-backend.onrender.com",   # Backend HTTP URL
-        "*"  # Allow all origins temporarily for debugging
-    ]
-else:
-    # Development environment - include local addresses
-    app.config['CORS_ORIGINS'] = [
-        "http://localhost:8080",           # Local development
-        "http://localhost:3000",           # New frontend port
-        "http://localhost:5000",           # Local API
-        "http://127.0.0.1:8080",          # Alternative local
-        "http://127.0.0.1:3000",          # New frontend port alternative
-        "http://127.0.0.1:5000",          # Alternative local API
-        "http://192.168.68.103:8080",     # Local network
-        "http://192.168.68.103:3000",     # New frontend port local network
-        "http://192.168.68.103:5000",     # Local network API
-        "https://cxraide.onrender.com",    # Also allow production URLs in development
-        "http://cxraide.onrender.com",
-        "https://cxraide-backend.onrender.com",
-        "http://cxraide-backend.onrender.com"
-    ]
+frontend_url = os.getenv('FRONTEND_URL', '').strip()
+if frontend_url:
+    app.config['CORS_ORIGINS'].append(frontend_url)
 
 logger.info(f"Allowed origins: {app.config['CORS_ORIGINS']}")
 
@@ -174,18 +125,14 @@ CORS(
     }
 )
 
-# Authentication configuration
-if USE_FIREBASE_AUTH:
-    logger.info("Firebase authentication mode enabled - backend login endpoints are stubbed")
-else:
-    logger.info("Firebase authentication disabled - using local JWT auth (no database)")
+logger.info("Using local JWT auth. TODO: Database-backed users will be redesigned later.")
 
 # JWT Configuration
 app.config['SECRET_KEY'] = SECRET_KEY
 JWT_EXPIRATION = timedelta(hours=1)
 
 def _verify_token(token_value):
-    """Verify token using Firebase if enabled, otherwise local JWT."""
+    """Verify a local development JWT."""
     if not token_value:
         raise ValueError("Token missing")
 
@@ -193,21 +140,12 @@ def _verify_token(token_value):
     if token_value.startswith('Bearer '):
         token_value = token_value[7:]
 
-    if USE_FIREBASE_AUTH and firebase_ready and fb_auth:
-        decoded = fb_auth.verify_id_token(token_value)
-        logger.info(f"Firebase token verified for user: {decoded.get('user_id')}")
-        return {
-            "username": decoded.get("email") or decoded.get("user_id"),
-            "sub": decoded.get("uid") or decoded.get("user_id"),
-            "is_admin": False,
-        }
-
     decoded = jwt.decode(token_value, app.config["SECRET_KEY"], algorithms=["HS256"])
     logger.info(f"Local token decoded for user: {decoded.get('username', 'unknown')}")
     return decoded
 
 
-# JWT/Firebase token decorator
+# Local JWT token decorator
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -261,8 +199,8 @@ def home():
     return jsonify({
         "message": "CXRaide API is running",
         "environment": ENVIRONMENT,
-        "cors_origins": "All origins allowed (*)",
-        "auth": "firebase" if USE_FIREBASE_AUTH else "local-jwt"
+        "cors_origins": app.config['CORS_ORIGINS'],
+        "auth": "local-jwt"
     }), 200
 
 @app.route('/login', methods=['POST', 'OPTIONS'])
@@ -271,18 +209,10 @@ def login():
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
     
-    # In Firebase mode the client authenticates directly with Firebase and sends tokens to us.
-    if USE_FIREBASE_AUTH:
-        return jsonify({
-            "success": True,
-            "message": "Firebase handles login on the client. Use the ID token in Authorization header.",
-        }), 200
-
     try:
         data = request.get_json() or {}
 
         username = data.get('username') or 'guest'
-        password = data.get('password') or 'guest'
 
         logger.info(f"Login attempt for user: {username}")
 
@@ -300,7 +230,7 @@ def login():
         logger.warning("Local login attempted but dev login is disabled")
         return jsonify({
             "success": False,
-            "message": "Local login is disabled. Enable Firebase authentication or set ALLOW_DEV_LOGIN=true."
+            "message": "Local login is disabled. Set ALLOW_DEV_LOGIN=true for development."
         }), 403
 
     except Exception as e:
@@ -343,8 +273,8 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "auth_mode": "firebase" if USE_FIREBASE_AUTH else "local-dev",
-        "cors_origins": "All origins allowed (*)"
+        "auth_mode": "local-dev",
+        "cors_origins": app.config['CORS_ORIGINS']
     }), 200
 
 @app.route('/admin/reset-password', methods=['POST', 'OPTIONS'])
@@ -354,7 +284,7 @@ def reset_password():
         return _build_cors_preflight_response()
     logger.info("Password reset requested but not supported without external identity provider")
     return jsonify({
-        "message": "Password resets are not available in local auth mode. Use external identity provider for this flow.",
+        "message": "Password resets are not available in local placeholder auth mode.",
         "handled_by": "local-dev"
     }), 501
 
@@ -397,9 +327,10 @@ def after_request(response):
     origin = request.headers.get('Origin', '')
     logger.info(f"Request details - Method: {request.method}, Path: {request.path}, Origin: {origin}")
     
-    # Allow all origins for all environments - but don't add header if it already exists
+    # Mirror allowed local/Vercel frontend origins for simple local development.
     if 'Access-Control-Allow-Origin' not in response.headers:
-        response.headers.add('Access-Control-Allow-Origin', origin or '*')
+        allowed_origins = app.config.get('CORS_ORIGINS', [])
+        response.headers.add('Access-Control-Allow-Origin', origin if origin in allowed_origins else allowed_origins[0])
     
     # Handle OPTIONS requests explicitly for CORS preflight
     if request.method == 'OPTIONS':
@@ -421,5 +352,5 @@ def after_request(response):
 
 # Add this at the end of the file to support development mode with hot-reloading
 if __name__ == "__main__":
-    # Enable hot-reloading in development
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=True)

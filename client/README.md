@@ -1,24 +1,17 @@
-# client
+# CXRaide Frontend
 
-## Project setup
-```
+Vue 3 + Vite frontend for CXRaide 2.0.
+
+```powershell
 npm install
+$env:VITE_API_BASE_URL="http://localhost:5000"
+npm run dev
 ```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+Build for Vercel:
 
-### Compiles and minifies for production
-```
+```powershell
 npm run build
 ```
 
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Output directory: `dist`.

@@ -1,28 +1,24 @@
-# PowerShell script to set up and run the CXRaide backend without Docker
+# Run the CXRaide backend locally.
 
-# Create virtual environment if it doesn't exist
-if (-not (Test-Path -Path ".\venv")) {
+if (-not (Test-Path -Path ".\.venv")) {
     Write-Host "Creating Python virtual environment..." -ForegroundColor Green
-    python -m venv venv
+    python -m venv .venv
 }
 
-# Activate virtual environment
 Write-Host "Activating virtual environment..." -ForegroundColor Green
-.\venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 
-# Install dependencies
-Write-Host "Installing dependencies..." -ForegroundColor Green
-pip install -r server\requirements.local.txt
+Write-Host "Installing backend dependencies..." -ForegroundColor Green
+pip install -r server\requirements.txt
 
-# Set environment variables (no database required)
 $env:FLASK_ENV = "development"
-$env:SECRET_KEY = "ecd500797722db1d8de3f1330c6890105c13aa4bbe4d1cce"
-$env:USE_MOCK_MODELS = "false"
-$env:RENDER = "false"
+$env:PORT = "5000"
+$env:FRONTEND_URL = "http://localhost:5173"
+$env:SECRET_KEY = "local-dev-secret-change-me"
+$env:USE_MOCK_MODELS = "true"
+$env:ALLOW_DEV_LOGIN = "true"
 
-# Change to server directory
 Set-Location -Path ".\server"
 
-# Run Flask application
-Write-Host "Starting Flask server..." -ForegroundColor Green
+Write-Host "Starting Flask server at http://localhost:5000" -ForegroundColor Green
 flask run --host=0.0.0.0 --port=5000 --reload

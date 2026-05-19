@@ -1,16 +1,12 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
-import axios from "axios";
 
 import "./styles/theme.css";
 import "./styles/base.css";
 import "./styles/utilities.css";
 
 const app = createApp(App);
-
-// Configure axios globally
-app.config.globalProperties.$axios = axios;
 
 // Error handling
 app.config.errorHandler = (err, vm, info) => {
