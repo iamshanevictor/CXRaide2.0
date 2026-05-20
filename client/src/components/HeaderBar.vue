@@ -89,13 +89,13 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
 h1 {
-  font-size: 1.8rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text);
   margin: 0;
@@ -109,16 +109,16 @@ h1 {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.45rem;
 }
 
 .icon-button {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--muted);
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,7 +132,7 @@ h1 {
 }
 
 .icon {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
 }
 
 .user-dropdown {
@@ -140,9 +140,9 @@ h1 {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: linear-gradient(45deg, var(--primary), rgba(147, 197, 253, 1));
   display: flex;
   align-items: center;
@@ -160,17 +160,17 @@ h1 {
 .dropdown-menu {
   position: absolute;
   right: 0;
-  top: 50px;
+  top: 36px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  width: 200px;
+  width: 170px;
   z-index: 100;
   box-shadow: var(--shadow-md);
 }
 
 .dropdown-item {
-  padding: 0.8rem 1rem;
+  padding: 0.55rem 0.7rem;
   display: flex;
   align-items: center;
   color: var(--text);
@@ -183,8 +183,8 @@ h1 {
 }
 
 .dropdown-icon {
-  margin-right: 0.75rem;
-  width: 20px;
+  margin-right: 0.5rem;
+  width: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,8 +194,8 @@ h1 {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
   font-weight: 650;
   cursor: pointer;
 }

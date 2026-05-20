@@ -113,17 +113,17 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 500px;
+  max-width: 380px;
   width: 90%;
 }
 
 .scanner-container {
   position: relative;
-  width: 240px;
-  height: 240px;
-  margin-bottom: 20px;
+  width: 170px;
+  height: 170px;
+  margin-bottom: 12px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
   box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
 }
@@ -147,7 +147,7 @@ export default {
   position: absolute;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -170,8 +170,8 @@ export default {
 
 .corner {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-color: #3b82f6;
   border-style: solid;
   border-width: 0;
@@ -210,14 +210,14 @@ export default {
 }
 
 .progress-container {
-  width: 240px;
-  margin: 10px 0 15px;
+  width: 180px;
+  margin: 6px 0 10px;
 }
 
 .progress-bar {
-  height: 6px;
+  height: 4px;
   background: rgba(59, 130, 246, 0.2);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -235,32 +235,32 @@ export default {
 }
 
 .loader-title {
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #f3f4f6;
-  margin: 0 0 8px 0;
+  margin: 0 0 5px 0;
 }
 
 .loader-message {
-  font-size: 1rem;
+  font-size: 0.78rem;
   color: #94a3b8;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.8rem;
 }
 
 .ai-steps {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 6px;
   position: relative;
 }
 
 .ai-steps::before {
   content: "";
   position: absolute;
-  top: 25px;
-  left: 40px;
-  right: 40px;
+  top: 18px;
+  left: 34px;
+  right: 34px;
   height: 2px;
   background: rgba(59, 130, 246, 0.2);
   z-index: 0;
@@ -270,32 +270,32 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 80px;
+  width: 66px;
   z-index: 1;
 }
 
 .step-icon {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   background: rgba(15, 23, 42, 0.9);
   border: 2px solid rgba(59, 130, 246, 0.2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   position: relative;
   transition: all 0.3s ease;
 }
 
 .step-icon i {
   color: #94a3b8;
-  font-size: 1.1rem;
+  font-size: 0.88rem;
   transition: all 0.3s ease;
 }
 
 .step-label {
-  font-size: 0.75rem;
+  font-size: 0.62rem;
   color: #94a3b8;
   text-align: center;
   transition: all 0.3s ease;

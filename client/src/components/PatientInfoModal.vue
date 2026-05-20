@@ -269,13 +269,13 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.65rem 0.9rem;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .modal-header h2 {
   color: #f3f4f6;
-  font-size: 1.5rem;
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
 }
@@ -284,13 +284,13 @@ export default {
   background: transparent;
   border: none;
   color: #f3f4f6;
-  font-size: 1.5rem;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.65rem;
+  height: 1.65rem;
   border-radius: 50%;
   transition: background-color 0.2s;
 }
@@ -300,15 +300,15 @@ export default {
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 0.9rem;
   overflow-y: auto;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
 }
 
 .form-group {
@@ -317,18 +317,18 @@ export default {
 }
 
 .form-group label {
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   color: #d1d5db;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 input, select, textarea {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  padding: 0.75rem;
+  padding: 0.48rem 0.6rem;
   color: #f3f4f6;
-  font-size: 1rem;
+  font-size: 0.78rem;
   width: 100%;
   transition: border-color 0.2s;
 }
@@ -353,7 +353,7 @@ select {
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 16px;
-  padding-right: 35px; /* Space for the arrow */
+  padding-right: 28px; /* Space for the arrow */
   cursor: pointer;
 }
 
@@ -375,21 +375,21 @@ textarea {
 }
 
 .form-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.8rem;
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 4px;
-  padding: 1rem;
+  padding: 0.65rem;
   background-color: rgba(15, 23, 42, 0.4);
 }
 
 .form-section h3 {
   color: #f3f4f6;
-  font-size: 1.2rem;
-  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  margin: 0 0 0.6rem 0;
   text-align: center;
   font-weight: 500;
   background-color: rgba(15, 23, 42, 0.6);
-  padding: 0.5rem;
+  padding: 0.35rem;
   border-radius: 4px;
 }
 
@@ -397,7 +397,7 @@ textarea {
 .form-section select {
   background-color: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.45rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -407,28 +407,28 @@ textarea {
 }
 
 .finding-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .finding-group label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   color: #d1d5db;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .modal-footer {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
+  gap: 0.55rem;
+  padding: 0.65rem 0.9rem;
   border-top: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .submit-btn, .cancel-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.45rem 0.85rem;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;

@@ -2339,4 +2339,265 @@ export default {
   padding: 1.5rem;
   flex: 1;
 }
+
+/* Compact dashboard density */
+.dashboard-wrapper {
+  padding: 0.75rem;
+}
+
+.welcome-header {
+  margin-bottom: 0.6rem;
+}
+
+.welcome-header h1 {
+  font-size: 1.2rem;
+}
+
+.header-actions {
+  gap: 0.45rem;
+}
+
+.icon-button,
+.user-avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.icon-button .icon,
+.dropdown-icon {
+  font-size: 0.9rem;
+}
+
+.dropdown-menu {
+  width: 168px;
+}
+
+.dropdown-item {
+  padding: 0.45rem 0.6rem;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.dashboard-grid,
+.content-grid {
+  gap: 0.75rem;
+  width: calc(100% - 1rem);
+  margin: 0 0.5rem 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-card-container,
+  .content-grid {
+    gap: 0.9rem;
+  }
+
+  .content-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card,
+.info-card,
+.status-card,
+.model-info-card,
+.primary-card,
+.secondary-card,
+.model-info-container,
+.performance-metrics-container,
+.dataset-info-container,
+.system-status-container {
+  border-radius: 0.45rem;
+  padding: 0.85rem;
+}
+
+.performance-metrics-container,
+.dataset-info-container,
+.system-status-container {
+  min-height: 300px;
+}
+
+.performance-metrics-container .card-header,
+.dataset-info-container .card-header,
+.system-status-container .card-header,
+.card-header {
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.performance-metrics-container .card-content,
+.dataset-info-container .card-content,
+.system-status-container .card-content,
+.metrics-content {
+  padding: 0.75rem;
+}
+
+.card-header h2,
+.status-card h2,
+.results-header h2 {
+  font-size: 0.95rem;
+}
+
+.model-header {
+  margin-bottom: 0.75rem;
+}
+
+.model-title {
+  font-size: 1.05rem;
+  gap: 0.45rem;
+}
+
+.model-status-badge,
+.model-badge,
+.iteration-badge,
+.badge {
+  padding: 0.2rem 0.45rem;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  border-radius: 999px;
+}
+
+.model-specs {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
+}
+
+.spec-label,
+.status-label,
+.status-name,
+.status-subtext,
+.status-timestamp,
+.trend,
+.trend-up {
+  font-size: 0.72rem;
+}
+
+.spec-value,
+.status-value {
+  font-size: 0.88rem;
+}
+
+.workflow-container {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.workflow-title {
+  font-size: 0.9rem;
+  margin-bottom: 0.65rem;
+}
+
+.workflow-steps {
+  gap: 0.45rem;
+}
+
+.step-circle {
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.step-label {
+  font-size: 0.72rem;
+  max-width: 88px;
+}
+
+.progress-ring {
+  width: 5.8rem;
+  height: 5.8rem;
+}
+
+.progress-ring::before {
+  width: 4.8rem;
+  height: 4.8rem;
+}
+
+.inner-content h2,
+.dataset-preview h2 {
+  font-size: 1.35rem;
+}
+
+.analyses-list,
+.actions-grid,
+.status-grid,
+.status-indicators,
+.info-status-container,
+.metrics-columns {
+  gap: 0.65rem;
+}
+
+.analysis-item,
+.action-button,
+.loss-stat {
+  padding: 0.45rem;
+}
+
+.analysis-icon,
+.status-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-right: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.analysis-details h3 {
+  font-size: 0.82rem;
+}
+
+.analysis-details p,
+.placeholder-list li,
+.placeholder-message p {
+  font-size: 0.72rem;
+}
+
+.chart-container {
+  height: 11rem;
+}
+
+.chart-placeholder {
+  height: 7rem;
+}
+
+.chart-legend {
+  margin-top: 0.55rem;
+  gap: 0.55rem;
+}
+
+.metrics-category {
+  font-size: 0.82rem;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.25rem;
+}
+
+.metrics-subcategory {
+  font-size: 0.72rem;
+  margin: 0.45rem 0 0.3rem;
+}
+
+.metric-name,
+.metric-value {
+  font-size: 0.7rem;
+}
+
+.placeholder-content {
+  min-height: 140px;
+  padding: 0.65rem;
+}
+
+.placeholder-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.55rem;
+}
+
+.system-status-card {
+  margin-top: 0.75rem;
+}
+
+.mock-model-alert {
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0.6rem;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+}
 </style>

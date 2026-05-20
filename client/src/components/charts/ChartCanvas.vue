@@ -56,6 +56,6 @@ export default {
 
 canvas {
   width: 100% !important;
-  height: 280px !important;
+  height: 220px !important;
 }
 </style>

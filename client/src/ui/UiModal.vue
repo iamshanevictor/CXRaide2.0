@@ -43,21 +43,21 @@ export default {
   background: rgba(2,6,23,0.55);
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 10px;
   z-index: 9999;
 }
 
 .modal {
-  width: min(720px, 100%);
+  width: min(860px, 100%);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 10px;
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
 .head {
-  padding: 14px 16px;
+  padding: 9px 10px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -65,13 +65,13 @@ export default {
   border-bottom: 1px solid var(--border);
 }
 
-.title { font-weight: 900; color: var(--text); }
-.subtitle { margin-top: 2px; color: var(--muted); font-size: 13px; }
+.title { font-weight: 850; color: var(--text); font-size: 13px; }
+.subtitle { margin-top: 1px; color: var(--muted); font-size: 11px; }
 
 .x {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--muted);
@@ -80,13 +80,13 @@ export default {
 
 .x:hover { background: var(--surface-2); color: var(--text); }
 
-.body { padding: 16px; }
+.body { padding: 10px; }
 
 .foot {
-  padding: 14px 16px;
+  padding: 9px 10px;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
 }
 </style>

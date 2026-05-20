@@ -26,6 +26,6 @@ export default {
 }
 
 .content {
-  min-height: calc(100vh - 68px);
+  min-height: calc(100vh - 48px);
 }
 </style>

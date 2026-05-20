@@ -32,19 +32,19 @@ export default {
   overflow: hidden;
 }
 
-.ui-card.padded .ui-card__body { padding: 16px; }
+.ui-card.padded .ui-card__body { padding: 10px; }
 
 .ui-card__header {
-  padding: 14px 16px;
+  padding: 9px 10px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   border-bottom: 1px solid var(--border);
 }
 
-.title { font-weight: 700; font-size: 14px; color: var(--text); }
-.subtitle { margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+.title { font-weight: 750; font-size: 12.5px; color: var(--text); }
+.subtitle { margin-top: 1px; font-size: 10.8px; color: var(--muted); }
 
-.ui-card__actions { display: flex; gap: 10px; align-items: center; }
+.ui-card__actions { display: flex; gap: 6px; align-items: center; }
 </style>

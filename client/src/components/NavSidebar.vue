@@ -105,7 +105,7 @@ export default {
 <style>
 /* Sidebar styling with higher specificity and !important flags */
 .app-layout-container .nav-sidebar {
-  width: 240px !important;
+  width: 196px !important;
   background: var(--surface) !important;
   border-right: 1px solid var(--border) !important;
   display: flex !important;
@@ -118,7 +118,7 @@ export default {
 }
 
 .app-layout-container .logo-container {
-  padding: 1.1rem 1.25rem !important;
+  padding: 0.7rem 0.8rem !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
@@ -129,8 +129,8 @@ export default {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 12px !important;
-  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  padding: 4px 6px !important;
   transition: background 0.2s ease !important;
 }
 
@@ -139,7 +139,7 @@ export default {
 }
 
 .app-layout-container .sidebar-logo {
-  height: 32px !important;
+  height: 25px !important;
   width: auto !important;
   max-width: 190px !important;
   display: block !important;
@@ -147,25 +147,25 @@ export default {
 
 .app-layout-container .nav-items {
   flex-grow: 1 !important;
-  padding: 1rem 0 !important;
+  padding: 0.45rem 0 !important;
   overflow-y: auto !important;
 }
 
 .app-layout-container .nav-section {
-  padding: 0.4rem 1.5rem 0.25rem 1.5rem !important;
-  font-size: 0.72rem !important;
+  padding: 0.35rem 0.9rem 0.15rem 0.9rem !important;
+  font-size: 0.62rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
   color: var(--muted) !important;
   opacity: 0.9 !important;
-  margin-top: 0.4rem !important;
+  margin-top: 0.25rem !important;
 }
 
 .app-layout-container .nav-item {
   display: flex !important;
   align-items: center !important;
-  padding: 0.85rem 1.5rem !important;
+  padding: 0.55rem 0.9rem !important;
   color: var(--text-2) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
@@ -184,21 +184,21 @@ export default {
 }
 
 .app-layout-container .nav-icon {
-  font-size: 1.2rem !important;
-  width: 24px !important;
+  font-size: 0.95rem !important;
+  width: 18px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
 .app-layout-container .nav-label {
-  margin-left: 1rem !important;
+  margin-left: 0.65rem !important;
   font-weight: 500 !important;
-  font-size: 0.95rem !important;
+  font-size: 0.78rem !important;
 }
 
 .app-layout-container .nav-footer {
-  padding: 1rem 0 !important;
+  padding: 0.45rem 0 !important;
   border-top: 1px solid var(--border) !important;
 }
 </style> 

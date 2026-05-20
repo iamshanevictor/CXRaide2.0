@@ -1536,4 +1536,177 @@ export default {
     flex-direction: column;
   }
 }
+
+/* Compact upload + AI review density */
+.annotate-header {
+  padding: 0.65rem 0.9rem;
+}
+
+.annotate-header h1 {
+  font-size: 1.1rem;
+}
+
+.header-actions {
+  gap: 0.45rem;
+}
+
+.icon-button,
+.user-avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.icon-button .icon,
+.dropdown-icon {
+  font-size: 0.9rem;
+}
+
+.dropdown-menu {
+  width: 168px;
+}
+
+.dropdown-item {
+  padding: 0.45rem 0.6rem;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.annotation-container {
+  height: calc(100vh - 52px);
+  padding: 0.65rem;
+  gap: 0.65rem;
+}
+
+.image-container,
+.ai-annotations {
+  border-radius: 0.45rem;
+}
+
+.results-header,
+.file-info-bar,
+.detection-header,
+.summary-header {
+  padding: 0.45rem 0.65rem;
+}
+
+.results-header h2,
+.detection-header h3,
+.summary-header h3 {
+  font-size: 0.82rem;
+}
+
+.file-info-bar,
+.model-status-banner,
+.notification-details,
+.api-info p {
+  font-size: 0.76rem;
+}
+
+.upload-btn,
+.action-button,
+.analyze-with-ai-button,
+.download-print-btn,
+.btn-secondary,
+.btn-primary {
+  padding: 0.42rem 0.7rem;
+  font-size: 0.76rem;
+  gap: 0.35rem;
+}
+
+.upload-placeholder,
+.placeholder-ai-message {
+  gap: 0.55rem;
+  padding: 1rem;
+}
+
+.upload-placeholder i,
+.placeholder-ai-message i {
+  font-size: 2rem;
+}
+
+.upload-placeholder p,
+.placeholder-ai-message p,
+.processing-status p {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.upload-area {
+  min-height: 220px;
+}
+
+.remove-image-btn {
+  width: 1.55rem;
+  height: 1.55rem;
+  font-size: 0.9rem;
+}
+
+.model-status-banner,
+.mock-model-notification {
+  margin: 0.45rem;
+}
+
+.notification-content,
+.notification-details,
+.action-buttons,
+.abnormality-selection-container,
+.download-print-container {
+  padding: 0.45rem 0.65rem;
+  gap: 0.45rem;
+}
+
+.abnormality-selector {
+  gap: 0.35rem;
+}
+
+.selector-label,
+.detection-name,
+.detection-value,
+.confidence-label,
+.confidence-value {
+  font-size: 0.76rem;
+}
+
+.select-dropdown {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.76rem;
+}
+
+.detection-list.expanded,
+.confidence-list {
+  max-height: 220px;
+}
+
+.detection-item,
+.confidence-item {
+  padding: 0.35rem 0.65rem;
+  gap: 0.35rem;
+}
+
+.detection-color-bar {
+  height: 1.1rem;
+}
+
+.processing-frame {
+  height: 220px;
+  margin-bottom: 1rem;
+}
+
+.processing-status h3 {
+  font-size: 1rem;
+}
+
+.processing-steps {
+  gap: 0.75rem;
+}
+
+.processing-step i {
+  font-size: 1.05rem;
+  margin-bottom: 0.25rem;
+}
+
+.error-panel {
+  padding: 1rem;
+  margin: 1rem auto;
+}
 </style>

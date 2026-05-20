@@ -76,13 +76,13 @@ export default {
 .page { min-height: 100vh; background: var(--bg); }
 
 .page-head {
-  margin-bottom: 14px;
-  padding: 10px 2px 0;
+  margin-bottom: 8px;
+  padding: 6px 2px 0;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -90,23 +90,23 @@ export default {
 
 .highlight { color: var(--primary); }
 
-.p { color: var(--text-2); line-height: 1.55; margin: 0; }
-.list { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.7; }
+.p { color: var(--text-2); line-height: 1.42; margin: 0; font-size: 12px; }
+.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
 .callout {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 14px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
   background: rgba(220,38,38,0.06);
   border: 1px solid rgba(220,38,38,0.18);
   color: var(--text-2);
 }
 .mono {
-  padding: 12px;
-  border-radius: 14px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--text-2);
 }
 </style>

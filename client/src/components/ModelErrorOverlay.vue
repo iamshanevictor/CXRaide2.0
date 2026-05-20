@@ -60,51 +60,51 @@ export default {
   background: rgba(220, 38, 38, 0.1);
   border: 1px solid rgba(220, 38, 38, 0.3);
   border-radius: 8px;
-  padding: 2rem;
-  max-width: 400px;
+  padding: 1rem;
+  max-width: 320px;
   width: 90%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   text-align: center;
 }
 
 .error-icon {
-  font-size: 2.5rem;
+  font-size: 1.6rem;
   color: rgb(220, 38, 38);
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: rgba(220, 38, 38, 0.1);
 }
 
 .error-title {
-  font-size: 1.5rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #f3f4f6;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.4rem 0;
 }
 
 .error-message {
-  font-size: 1rem;
+  font-size: 0.78rem;
   color: #d1d5db;
-  line-height: 1.5;
-  margin-bottom: 1.5rem;
+  line-height: 1.35;
+  margin-bottom: 0.8rem;
 }
 
 .retry-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #f3f4f6;
-  padding: 0.5rem 1.5rem;
+  padding: 0.38rem 0.8rem;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -120,6 +120,6 @@ export default {
 }
 
 .retry-button i {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 </style>

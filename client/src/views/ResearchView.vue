@@ -106,34 +106,34 @@ export default {
 .content { background: var(--bg); }
 
 .page-head {
-  margin-bottom: 14px;
-  padding: 10px 2px 0;
+  margin-bottom: 8px;
+  padding: 6px 2px 0;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.01em;
 }
 
-.p { margin: 0 0 10px; color: var(--text-2); line-height: 1.55; }
-.list { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.7; }
+.p { margin: 0 0 6px; color: var(--text-2); line-height: 1.42; font-size: 12px; }
+.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
 
 .pipeline {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .step {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   font-weight: 700;
@@ -141,9 +141,9 @@ export default {
 }
 
 .num {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
   background: var(--primary-soft);
@@ -153,21 +153,21 @@ export default {
 .pill {
   display: inline-flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 4px 7px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-2);
   font-weight: 650;
-  font-size: 12.5px;
+  font-size: 10.8px;
 }
 
-.shots { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.shots { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
 @media (max-width: 980px) { .shots { grid-template-columns: 1fr; } }
 
 .shot {
-  height: 140px;
-  border-radius: 16px;
+  height: 110px;
+  border-radius: 8px;
   border: 1px dashed rgba(37,99,235,0.45);
   background: radial-gradient(500px 140px at 20% 0%, rgba(37,99,235,0.08), transparent 60%), var(--surface);
   display: grid;

@@ -729,14 +729,14 @@ export default {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding: 10px 2px 0;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 2px 0;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -753,12 +753,12 @@ export default {
   .subtitle { white-space: normal; }
 }
 
-.subtitle { margin-left: 10px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.subtitle { margin-left: 6px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
 
 .grid {
   display: grid;
-  grid-template-columns: 360px 1fr 380px;
-  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  gap: 10px;
   align-items: start;
 }
 
@@ -766,72 +766,72 @@ export default {
   .grid { grid-template-columns: 1fr; }
 }
 
-.panel { position: sticky; top: 84px; }
+.panel { position: sticky; top: 58px; }
 @media (max-width: 1180px) { .panel { position: static; } }
 
-.stack { display: grid; gap: 12px; }
+.stack { display: grid; gap: 8px; }
 
 .drop {
   border: 1px dashed rgba(37,99,235,0.45);
   background: radial-gradient(700px 120px at 20% 0%, rgba(37,99,235,0.08), transparent 60%), var(--surface);
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 8px;
+  padding: 10px;
   cursor: pointer;
 }
 
 .drop.dragging { background: rgba(37,99,235,0.10); box-shadow: var(--ring); }
-.drop-title { font-weight: 800; display: flex; gap: 10px; align-items: center; color: var(--text); }
-.drop-sub { margin-top: 4px; font-size: 13px; }
+.drop-title { font-weight: 800; display: flex; gap: 6px; align-items: center; color: var(--text); font-size: 12px; }
+.drop-sub { margin-top: 2px; font-size: 11.5px; }
 
 .hidden { display: none; }
 
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.field label { display: block; font-size: 12.5px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.field label { display: block; font-size: 11px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
 .field select {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 7px 9px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
 }
 
-.hint { margin-top: 6px; font-size: 12.5px; }
+.hint { margin-top: 4px; font-size: 11px; }
 
 .toggles {
   display: grid;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 16px;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
 
-.toggle { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-2); }
-.toggle input { width: 16px; height: 16px; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--text-2); }
+.toggle input { width: 13px; height: 13px; }
 
 .callout {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 10px;
+  grid-template-columns: 16px 1fr;
+  gap: 7px;
   align-items: start;
-  padding: 12px;
-  border-radius: 16px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid rgba(220,38,38,0.18);
   background: rgba(220,38,38,0.06);
   color: var(--text-2);
 }
 
 .callout-title { font-weight: 900; margin-bottom: 2px; color: var(--text); }
-.callout-text { font-size: 13px; color: var(--text-2); }
+.callout-text { font-size: 11.5px; color: var(--text-2); }
 
-.viewer { min-height: 560px; }
-.viewer-inner { padding: 10px; }
+.viewer { min-height: 500px; }
+.viewer-inner { padding: 6px; }
 
 .empty {
-  height: 520px;
-  border-radius: 16px;
+  height: 480px;
+  border-radius: 8px;
   border: 1px dashed var(--border);
   background: var(--surface);
   display: grid;
@@ -840,13 +840,13 @@ export default {
   gap: 4px;
 }
 
-.empty i { font-size: 28px; color: rgba(37,99,235,0.55); }
+.empty i { font-size: 22px; color: rgba(37,99,235,0.55); }
 .empty-title { font-weight: 900; color: var(--text); }
 
 .image-wrap {
   position: relative;
   width: 100%;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: #0b1220;
@@ -858,7 +858,7 @@ export default {
 .box {
   position: absolute;
   border: 2px solid;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 
 .box.expert.selected { outline: none; box-shadow: var(--ring); }
@@ -867,12 +867,12 @@ export default {
 
 .tag {
   position: absolute;
-  left: 8px;
-  top: -12px;
-  padding: 4px 8px;
+  left: 6px;
+  top: -10px;
+  padding: 2px 6px;
   border-radius: 999px;
   color: #fff;
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 800;
   box-shadow: var(--shadow-sm);
 }
@@ -881,9 +881,9 @@ export default {
   position: absolute;
   right: -10px;
   top: -10px;
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
   cursor: pointer;
@@ -905,19 +905,19 @@ export default {
 .overlay-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: var(--shadow-md);
-  padding: 14px 16px;
+  padding: 9px 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .overlay-title { font-weight: 900; color: var(--text); }
 
 .spinner {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
   border: 3px solid rgba(37,99,235,0.22);
   border-top-color: rgba(37,99,235,0.95);
@@ -926,32 +926,32 @@ export default {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.list-wrap { padding: 14px 16px; }
-.empty-mini { padding: 10px 0; }
+.list-wrap { padding: 9px 10px; }
+.empty-mini { padding: 6px 0; }
 
-.pred-list { display: grid; gap: 10px; }
+.pred-list { display: grid; gap: 6px; }
 .pred {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
 
-.pred-left { display: flex; align-items: center; gap: 10px; }
-.dot { width: 10px; height: 10px; border-radius: 999px; }
+.pred-left { display: flex; align-items: center; gap: 6px; }
+.dot { width: 7px; height: 7px; border-radius: 999px; }
 .pred-name { font-weight: 800; color: var(--text); }
 
 .report-controls {
-  padding: 14px 16px;
+  padding: 9px 10px;
   display: flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
 
-.report { padding: 14px 16px; }
+.report { padding: 9px 10px; }
 </style>

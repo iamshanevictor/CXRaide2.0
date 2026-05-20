@@ -44,18 +44,18 @@ export default {
 }
 
 .topbar-inner {
-  height: 68px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 10px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  padding: 6px;
-  border-radius: 12px;
+  padding: 3px;
+  border-radius: 8px;
 }
 
 .brand:hover {
@@ -67,7 +67,7 @@ export default {
 }
 
 .logo {
-  height: 28px;
+  height: 22px;
   width: auto;
   max-width: 220px;
   object-fit: contain;
@@ -77,14 +77,14 @@ export default {
 .links {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   color: var(--text-2);
 }
 
 .links a {
   color: var(--text-2);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .links a:hover {
@@ -95,7 +95,7 @@ export default {
 .cta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 @media (max-width: 860px) {

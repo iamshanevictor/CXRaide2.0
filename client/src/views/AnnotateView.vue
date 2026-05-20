@@ -3462,4 +3462,188 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 6px 10px rgba(249, 38, 114, 0.3);
 }
+
+/* Compact clinical workspace density */
+.annotate-wrapper {
+  padding: 0.75rem;
+}
+
+.annotate-header {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.45rem;
+}
+
+.annotate-header h1 {
+  font-size: 1.2rem;
+}
+
+.header-actions {
+  gap: 0.45rem;
+}
+
+.icon-button,
+.user-avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.icon-button .icon,
+.dropdown-icon {
+  font-size: 0.9rem;
+}
+
+.dropdown-menu {
+  width: 168px;
+}
+
+.dropdown-item {
+  padding: 0.45rem 0.6rem;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.annotation-container {
+  height: calc(100vh - 56px);
+  padding: 0.65rem;
+  gap: 0.65rem;
+}
+
+.main-content-area {
+  gap: 0.65rem;
+}
+
+.annotation-tools {
+  width: 82px;
+  padding: 0.45rem;
+  gap: 0.6rem;
+  border-radius: 0.45rem;
+}
+
+.tool-group,
+.zoom-controls,
+.undo-redo-controls {
+  gap: 0.35rem;
+}
+
+.tool-button {
+  padding: 0.35rem;
+  border-radius: 0.35rem;
+}
+
+.tool-button i {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.tool-button span {
+  font-size: 0.62rem;
+  line-height: 1.15;
+}
+
+.zoom-btn,
+.undo-redo-btn {
+  font-size: 0.58rem;
+  padding: 0.25rem 0.35rem;
+}
+
+.image-title,
+.results-header,
+.file-info-bar {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+.results-header h2 {
+  font-size: 0.92rem;
+}
+
+.upload-area {
+  min-height: 220px;
+  margin: 0.5rem;
+  padding: 1rem;
+}
+
+.upload-placeholder {
+  padding: 1rem;
+}
+
+.upload-placeholder i,
+.placeholder-image i,
+.placeholder-ai-message i {
+  font-size: 2.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.placeholder-image {
+  padding: 1rem;
+}
+
+.placeholder-image p,
+.upload-placeholder p,
+.placeholder-ai-message p {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin-bottom: 0.75rem;
+}
+
+.file-upload-label,
+.upload-placeholder-button,
+.upload-btn,
+.action-button,
+.download-print-btn,
+.debug-btn {
+  padding: 0.42rem 0.7rem;
+  font-size: 0.78rem;
+  gap: 0.35rem;
+}
+
+.abnormality-selection-container,
+.abnormality-type-container {
+  padding: 0.45rem 0.65rem;
+  gap: 0.75rem;
+}
+
+.abnormality-selector,
+.abnormality-type-row {
+  gap: 0.45rem;
+}
+
+.selector-label,
+.abnormality-label {
+  font-size: 0.76rem;
+  min-width: 92px;
+}
+
+.selector-dropdown-container,
+.abnormality-select {
+  min-width: 140px;
+}
+
+.select-dropdown,
+.abnormality-select,
+.custom-select {
+  height: 30px;
+  padding: 0.32rem 1.7rem 0.32rem 0.55rem !important;
+  font-size: 0.76rem !important;
+  border-radius: 0.3rem !important;
+}
+
+.model-status-banner,
+.mock-model-banner,
+.model-error-message,
+.error-message {
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0.45rem;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+}
+
+.ai-detection-results {
+  margin: 0.25rem;
+}
+
+.download-print-container {
+  padding: 0.45rem;
+  margin-top: 0.25rem;
+}
 </style>

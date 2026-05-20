@@ -60,18 +60,18 @@ export default {
 .loader-ring {
   display: inline-block;
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 52px;
+  height: 52px;
 }
 
 .loader-ring div {
   box-sizing: border-box;
   display: block;
   position: absolute;
-  width: 64px;
-  height: 64px;
-  margin: 8px;
-  border: 6px solid #3b82f6;
+  width: 42px;
+  height: 42px;
+  margin: 5px;
+  border: 4px solid #3b82f6;
   border-radius: 50%;
   animation: loader-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
   border-color: #3b82f6 transparent transparent transparent;
@@ -90,23 +90,23 @@ export default {
 }
 
 .loading-text {
-  margin-top: 1.5rem;
-  font-size: 1.2rem;
+  margin-top: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: #e5e7eb;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .loading-dots {
   display: flex;
   justify-content: center;
-  margin-top: 0.75rem;
+  margin-top: 0.45rem;
 }
 
 .loading-dots span {
-  width: 8px;
-  height: 8px;
-  margin: 0 4px;
+  width: 5px;
+  height: 5px;
+  margin: 0 3px;
   background-color: #3b82f6;
   border-radius: 50%;
   display: inline-block;

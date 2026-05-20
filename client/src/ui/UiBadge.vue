@@ -17,10 +17,10 @@ export default {
 .ui-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 3px 7px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 600;
   border: 1px solid var(--border);
   background: var(--surface-2);

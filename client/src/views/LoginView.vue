@@ -545,4 +545,87 @@ label {
   align-items: center;
   justify-content: center;
 }
+
+/* Compact auth density */
+.illustration-section {
+  padding: 24px;
+}
+
+.login-form-section {
+  padding: 24px;
+}
+
+.login-card {
+  padding: 24px;
+  max-width: 380px;
+  border-radius: 12px;
+}
+
+.card-brand-logo {
+  max-height: 38px;
+}
+
+.subtitle {
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.status-badge {
+  top: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+}
+
+.login-form {
+  margin-top: 18px;
+}
+
+.form-group,
+.input-group {
+  margin-bottom: 0.75rem;
+}
+
+label {
+  margin-bottom: 5px;
+  font-size: 11.5px;
+}
+
+.input-icon {
+  left: 0.75rem;
+}
+
+.input-field {
+  padding: 0.55rem 0.75rem 0.55rem 2rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.form-actions {
+  margin-bottom: 0.85rem;
+}
+
+.remember-me,
+.forgot-password {
+  font-size: 0.72rem;
+}
+
+.auth-button {
+  padding: 0.58rem;
+  border-radius: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.error-message {
+  padding: 0.5rem;
+  margin-top: 0.65rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.connection-info {
+  margin-top: 18px;
+  padding-top: 12px;
+  font-size: 10.5px;
+}
 </style>

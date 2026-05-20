@@ -159,13 +159,13 @@ export default {
 .page { min-height: 100vh; background: var(--bg); }
 
 .page-head {
-  margin-bottom: 14px;
-  padding: 10px 2px 0;
+  margin-bottom: 8px;
+  padding: 6px 2px 0;
 }
 
 .page-head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -173,13 +173,13 @@ export default {
 
 .highlight { color: var(--primary); }
 
-.list { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.7; }
+.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
 
-.big { font-size: 34px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); }
+.big { font-size: 24px; font-weight: 900; letter-spacing: -0.01em; color: var(--text); }
 </style>
 
 <style scoped>
 .page { min-height: 100vh; background: var(--bg); }
-.big { font-size: 34px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); }
-.list { margin: 0; padding-left: 18px; color: var(--text-2); line-height: 1.7; }
+.big { font-size: 24px; font-weight: 900; letter-spacing: -0.01em; color: var(--text); }
+.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
 </style>
