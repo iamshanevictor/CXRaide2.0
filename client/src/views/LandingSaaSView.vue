@@ -25,7 +25,7 @@
         <div class="container hero-inner">
           <div class="copy">
             <UiBadge variant="info">
-              <i class="bi bi-shield-check" /> Research demo • Not for clinical diagnosis
+              <i class="bi bi-shield-check" /> Research demo - Not for clinical diagnosis
             </UiBadge>
 
             <h1>AI-Assisted Chest X-Ray Annotation &amp; Detection</h1>
@@ -44,14 +44,14 @@
             </div>
 
             <div class="pill-row" style="margin-top: 14px">
-              <span class="pill"><i class="bi bi-bounding-box" /> Expert boxes → CSV</span>
+              <span class="pill"><i class="bi bi-bounding-box" /> Expert boxes -> CSV</span>
               <span class="pill"><i class="bi bi-cpu" /> SSD300_VGG16</span>
               <span class="pill"><i class="bi bi-file-earmark-text" /> Structured report</span>
             </div>
           </div>
 
           <div class="preview">
-            <UiCard title="Demo workspace" subtitle="Upload → predict → verify → export">
+            <UiCard title="Demo workspace" subtitle="Upload -> predict -> verify -> export">
               <div class="preview-grid">
                 <div class="preview-item">
                   <div class="k">mAP (Iter. 3)</div>
@@ -124,11 +124,45 @@
         </div>
       </section>
 
+      <section class="research-fill">
+        <div class="container">
+          <div class="section-head compact-head">
+            <h2>Suggested research details to add</h2>
+            <p class="text-muted">
+              Placeholder content you can replace with your final study information, adviser details, dataset notes, and evaluation results.
+            </p>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-tile">
+              <div class="info-kicker">Study Context</div>
+              <h3>Problem and motivation</h3>
+              <p>Describe why chest X-ray annotation is time-consuming, where inconsistencies appear, and how human-in-the-loop AI support may help.</p>
+            </div>
+            <div class="info-tile">
+              <div class="info-kicker">Dataset</div>
+              <h3>Training and evaluation data</h3>
+              <p>Add dataset names, image counts, abnormality classes, preprocessing steps, split strategy, and annotation format.</p>
+            </div>
+            <div class="info-tile">
+              <div class="info-kicker">Model</div>
+              <h3>Architecture and inference</h3>
+              <p>Summarize the detector/classifier used, confidence thresholds, bounding-box postprocessing, and known failure cases.</p>
+            </div>
+            <div class="info-tile">
+              <div class="info-kicker">Governance</div>
+              <h3>Ethics and limitations</h3>
+              <p>State privacy safeguards, research-only boundaries, limitations, and the role of qualified radiologists in final interpretation.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer class="footer">
         <div class="container footer-inner">
           <div>
             <div class="foot-brand">CXRaide 2.0</div>
-            <div class="text-muted">AI-assisted CXR annotation &amp; detection • Research demo</div>
+            <div class="text-muted">AI-assisted CXR annotation &amp; detection - Research demo</div>
           </div>
           <div class="footer-links">
             <RouterLink to="/about">About</RouterLink>
@@ -155,10 +189,18 @@ export default {
 <style scoped>
 .landing {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(900px 320px at 20% 0%, rgba(37,99,235,0.10), transparent 55%),
     radial-gradient(900px 360px at 80% 10%, rgba(14,165,233,0.10), transparent 55%),
     var(--bg);
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -175,7 +217,7 @@ export default {
 }
 
 .topbar-inner {
-  height: 48px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -195,52 +237,103 @@ export default {
 .logo { height: 22px; width: auto; max-width: 190px; object-fit: contain; display: block; }
 
 .links { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
-.links a { color: var(--text-2); font-weight: 600; font-size: 12px; }
+.links a { color: var(--text-2); font-weight: 600; font-size: 13px; }
 .links a:hover { color: var(--primary); text-decoration: none; }
 
 .cta { display: flex; align-items: center; gap: 6px; }
 
-.hero { padding: 24px 0 12px; }
-.hero-inner { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 14px; align-items: start; }
+.hero { padding: 34px 0 18px; }
+.hero-inner { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 22px; align-items: start; }
 @media (max-width: 980px) { .hero-inner { grid-template-columns: 1fr; } }
 
-.copy h1 { font-size: 28px; line-height: 1.08; margin: 9px 0 7px; letter-spacing: -0.01em; }
-.lead { color: var(--text-2); font-size: 12.5px; line-height: 1.45; max-width: 64ch; }
+.copy h1 { font-size: 34px; line-height: 1.12; margin: 12px 0 9px; letter-spacing: -0.01em; }
+.lead { color: var(--text-2); font-size: 14px; line-height: 1.52; max-width: 68ch; }
 
-.hero-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.hero-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: rgba(30,41,59,0.45);
   color: var(--text-2);
   font-weight: 650;
-  font-size: 10.8px;
+  font-size: 12px;
 }
 
 :global(body.theme-light) .pill { background: rgba(255,255,255,0.7); }
 
-.preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
-.preview-item .k { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.preview-item .v { margin-top: 2px; font-size: 14px; font-weight: 800; color: var(--text); }
+.preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.preview-item .k { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.preview-item .v { margin-top: 3px; font-size: 16px; font-weight: 800; color: var(--text); }
 
-.disclaimer { margin-top: 8px; padding: 7px 8px; border-radius: 8px; background: var(--surface-2); color: var(--text-2); font-size: 11px; }
+.disclaimer { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); color: var(--text-2); font-size: 12px; }
 
-.section { padding: 18px 0 30px; }
-.section-head { margin-bottom: 8px; }
-.section-head h2 { margin: 0 0 3px; font-size: 17px; }
+.section { padding: 24px 0 18px; }
+.section-head { margin-bottom: 12px; }
+.section-head h2 { margin: 0 0 5px; font-size: 20px; }
 
-#features { scroll-margin-top: 58px; }
+#features { scroll-margin-top: 66px; }
 
-.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
+.list { margin: 0; padding-left: 17px; color: var(--text-2); line-height: 1.55; font-size: 13px; }
 
-.bottom-cta { margin-top: 10px; display: flex; justify-content: center; }
+.bottom-cta { margin-top: 14px; display: flex; justify-content: center; }
 
-.footer { border-top: 1px solid var(--border); padding: 12px 0; background: rgba(15,23,42,0.55); }
+.research-fill {
+  padding: 18px 0 36px;
+}
+
+.compact-head {
+  max-width: 780px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.info-tile {
+  min-height: 138px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.info-kicker {
+  color: var(--primary-2);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-tile h3 {
+  margin: 6px 0 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.info-tile p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.48;
+}
+
+@media (max-width: 1100px) {
+  .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .info-grid { grid-template-columns: 1fr; }
+}
+
+.footer { margin-top: auto; border-top: 1px solid var(--border); padding: 16px 0; background: rgba(15,23,42,0.55); }
 :global(body.theme-light) .footer { background: rgba(255,255,255,0.55); }
 .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .foot-brand { font-weight: 850; }

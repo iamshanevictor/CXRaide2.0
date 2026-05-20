@@ -30,9 +30,9 @@ export default {
 .ui-btn {
   border: 1px solid transparent;
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -76,8 +76,8 @@ export default {
 
 .ui-btn.danger:hover:not(:disabled) { filter: brightness(0.98); transform: translateY(-1px); }
 
-.ui-btn.sm { padding: 5px 8px; font-size: 11px; border-radius: 7px; }
-.ui-btn.lg { padding: 8px 12px; font-size: 12.5px; border-radius: 9px; }
+.ui-btn.sm { padding: 6px 9px; font-size: 12px; border-radius: 7px; }
+.ui-btn.lg { padding: 9px 14px; font-size: 13.5px; border-radius: 9px; }
 
 .spinner {
   width: 12px;
@@ -93,7 +93,7 @@ export default {
   border-top-color: rgba(15,23,42,0.55);
 }
 
-.btn-icon { font-size: 13px; }
+.btn-icon { font-size: 14px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

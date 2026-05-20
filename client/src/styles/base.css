@@ -5,14 +5,14 @@
 html, body { height: 100%; }
 
 html {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 13px;
-  line-height: 1.42;
+  font-size: 14px;
+  line-height: 1.48;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -29,7 +29,7 @@ a:hover { text-decoration: underline; }
 
 button, input, select, textarea {
   font-family: var(--font);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 :focus-visible {
@@ -39,14 +39,14 @@ button, input, select, textarea {
 }
 
 .container {
-  width: min(1480px, calc(100% - 24px));
+  width: min(1360px, calc(100% - 32px));
   margin: 0 auto;
 }
 
 .kbd {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 10.5px;
-  padding: 1px 5px;
+  font-size: 11px;
+  padding: 2px 5px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);

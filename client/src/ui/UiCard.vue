@@ -32,10 +32,10 @@ export default {
   overflow: hidden;
 }
 
-.ui-card.padded .ui-card__body { padding: 10px; }
+.ui-card.padded .ui-card__body { padding: 12px; }
 
 .ui-card__header {
-  padding: 9px 10px;
+  padding: 11px 12px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -43,8 +43,8 @@ export default {
   border-bottom: 1px solid var(--border);
 }
 
-.title { font-weight: 750; font-size: 12.5px; color: var(--text); }
-.subtitle { margin-top: 1px; font-size: 10.8px; color: var(--muted); }
+.title { font-weight: 750; font-size: 13.5px; color: var(--text); }
+.subtitle { margin-top: 2px; font-size: 12px; color: var(--muted); }
 
 .ui-card__actions { display: flex; gap: 6px; align-items: center; }
 </style>
