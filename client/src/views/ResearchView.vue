@@ -1,88 +1,145 @@
-<template>
+﻿<template>
   <div class="page">
     <div class="content">
       <div class="container" style="padding: 18px 0 34px">
         <div class="page-head">
-          <h1>Research / Study : <span class="highlight">CXRaide 2.0</span></h1>
+          <h1>Study : <span class="highlight">CXRaide 2.0</span></h1>
+          <p class="page-subtitle">AI-Assisted Chest X-Ray Annotation and Abnormality Detection for PCSC 2025.</p>
         </div>
 
         <UiBadge variant="warning" style="margin-bottom: 12px">
-          <i class="bi bi-exclamation-triangle" /> Research demo • Not for clinical diagnosis
+          <i class="bi bi-exclamation-triangle" /> Research prototype - Not for clinical diagnosis
         </UiBadge>
 
         <div class="grid-2">
-          <UiCard title="Overview" subtitle="Problem → tool → evaluation">
+          <UiCard title="Problem Statement" subtitle="Why annotation preservation matters">
             <p class="p">
-              Chest X-rays are high-volume and time-sensitive. Interpretation errors can delay care.
-              CXRaide 2.0 explores an AI-assisted workflow: model suggestions + expert verification + traceable exports.
+              Chest X-ray interpretation is a high-volume and time-sensitive task. Manual annotation of abnormalities
+              requires expert radiologists and can be expensive, time-consuming, and inconsistent.
             </p>
-            <ul class="list">
-              <li>Expert bounding boxes saved to CSV</li>
-              <li>AI abnormality detection (SSD300_VGG16)</li>
-              <li>Structured report generation for standardized output</li>
-            </ul>
+            <p class="p">
+              Many existing systems focus on abnormality classification but do not adequately preserve expert
+              annotations and precise bounding-box coordinates needed for validation, reproducibility, and future AI training.
+            </p>
           </UiCard>
 
-          <UiCard title="How it works" subtitle="Pipeline at a glance">
+          <UiCard title="System Overview" subtitle="Human-in-the-loop research workflow">
+            <p class="p">
+              CXRaide 2.0 combines AI-assisted detection, bounding-box localization, expert annotation,
+              annotation preservation, and structured report generation. AI provides initial predictions while
+              radiologists review, verify, and refine findings.
+            </p>
             <div class="pipeline">
-              <div class="step"><span class="num">1</span><span>Upload CXR</span></div>
-              <i class="bi bi-arrow-right" />
-              <div class="step"><span class="num">2</span><span>Run detection</span></div>
-              <i class="bi bi-arrow-right" />
-              <div class="step"><span class="num">3</span><span>Expert edits</span></div>
-              <i class="bi bi-arrow-right" />
-              <div class="step"><span class="num">4</span><span>Export CSV/PDF</span></div>
+              <div v-for="step in workflow" :key="step" class="step"><span class="num">{{ step.number }}</span><span>{{ step.label }}</span></div>
             </div>
-            <div class="text-muted" style="margin-top: 10px; font-size: 13px; line-height: 1.45;">
-              The goal is to make labeling and analysis reproducible: every box has coordinates, labels, and provenance.
-            </div>
+          </UiCard>
+        </div>
+
+        <div class="grid-3" style="margin-top: 16px">
+          <UiCard v-for="objective in objectives" :key="objective.title" :title="objective.title" :subtitle="objective.subtitle">
+            <p class="p">{{ objective.body }}</p>
           </UiCard>
         </div>
 
         <div class="grid-2" style="margin-top: 16px">
-          <UiCard title="Dataset" subtitle="NIH + VinBig">
-            <ul class="list">
-              <li>NIH ChestX-ray14 + VinBig used for training/evaluation</li>
-              <li>Preprocessing: resize to detector input, normalization</li>
-              <li>Sampling/balancing strategies to address class imbalance</li>
-            </ul>
-          </UiCard>
-
-          <UiCard title="Model architecture" subtitle="SSD300_VGG16">
-            <ul class="list">
-              <li>Single-shot detector with VGG16 backbone</li>
-              <li>Bounding box regression + classification heads</li>
-              <li>Postprocessing: confidence thresholding + NMS</li>
-            </ul>
-          </UiCard>
-
-          <UiCard title="Metrics" subtitle="What we track">
-            <ul class="list">
-              <li>mAP (AP@[0.50:0.95]) for detection quality</li>
-              <li>Precision/Recall for sensitivity vs specificity</li>
-              <li>AUC per abnormality (where applicable)</li>
-            </ul>
-          </UiCard>
-
-          <UiCard title="Iterations" subtitle="Comparison across training rounds">
-            <p class="p">
-              Iterations are compared to measure improvements and failure modes (e.g., localization vs classification).
-            </p>
-            <div class="pill-row">
-              <span class="pill">IT2: SSD300_VGG16-CXR9</span>
-              <span class="pill">IT3: SSD300_VGG16-CXR6plus3</span>
+          <UiCard title="Training Datasets" subtitle="NIH + VinBigData">
+            <div class="dataset-list">
+              <div class="dataset-row">
+                <strong>NIH Chest X-ray Dataset</strong>
+                <span>112,120 original images; bounding-box annotated subset used.</span>
+              </div>
+              <div class="dataset-row">
+                <strong>VinBigData Chest X-ray Dataset</strong>
+                <span>15,000 radiologist-annotated images; multiple annotations merged with Weighted Box Fusion.</span>
+              </div>
+              <div class="dataset-row">
+                <strong>Final Combined Dataset</strong>
+                <span>NIH + VinBig; approximately 4,850 curated images.</span>
+              </div>
             </div>
-            <div style="margin-top: 12px">
-              <UiButton variant="secondary" icon="bi bi-graph-up" @click="$router.push('/metrics')">Open metrics dashboard</UiButton>
+          </UiCard>
+
+          <UiCard title="Detected Abnormalities" subtitle="Nine supported categories">
+            <div class="tag-panel">
+              <span v-for="item in abnormalities" :key="item" class="pill">{{ item }}</span>
             </div>
           </UiCard>
         </div>
 
-        <UiCard title="Screenshots / diagrams" subtitle="(placeholders)" style="margin-top: 16px">
-          <div class="shots">
-            <div class="shot">Add: workspace screenshot</div>
-            <div class="shot">Add: model diagram</div>
-            <div class="shot">Add: metrics chart</div>
+        <UiCard title="Data Preprocessing Pipeline" subtitle="From source datasets to detector-ready annotations" style="margin-top: 16px">
+          <div class="process-grid">
+            <div v-for="item in preprocessing" :key="item" class="process-item">{{ item }}</div>
+          </div>
+        </UiCard>
+
+        <div class="grid-2" style="margin-top: 16px">
+          <UiCard title="Model Architecture" subtitle="SSD300_VGG16 explained simply">
+            <p class="p">
+              The system uses SSD300_VGG16, an object detection model that scans a resized 300 x 300 chest X-ray
+              image and predicts both abnormality labels and bounding-box locations. VGG16 extracts image features,
+              while the SSD detection heads estimate class probabilities, confidence scores, and box coordinates.
+            </p>
+            <ul class="list">
+              <li>VGG16 backbone for feature extraction.</li>
+              <li>SSD framework for multi-class object detection.</li>
+              <li>Bounding-box localization with confidence scoring.</li>
+            </ul>
+          </UiCard>
+
+          <UiCard title="Training Strategy" subtitle="Transfer learning and balanced sampling">
+            <ul class="list">
+              <li>ImageNet pretrained weights for transfer learning.</li>
+              <li>Focal Loss for classification and Smooth L1 Loss for localization.</li>
+              <li>SGD optimization with class balancing and stratified sampling.</li>
+              <li>Pascal VOC conversion with XML annotation generation.</li>
+            </ul>
+          </UiCard>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px">
+          <UiCard title="Annotation Tool" subtitle="Expert annotation preservation">
+            <ul class="list">
+              <li>Manual bounding box creation, editing, and zoom support.</li>
+              <li>Expert abnormality labeling and save annotations functionality.</li>
+              <li>Saved fields: image filename, abnormality label, and bounding-box coordinates.</li>
+              <li>CSV export for reproducibility, validation, and future model improvement.</li>
+            </ul>
+          </UiCard>
+
+          <UiCard title="Report Generation" subtitle="Template-based structured output">
+            <p class="p">
+              The platform generates structured radiology-style reports with Clinical Indication, Findings,
+              Impression, and Recommendations sections. Reports are based on RSNA RadReport-inspired templates
+              and refined for consistent chest X-ray documentation.
+            </p>
+            <div class="callout">Report generation is template-based and intended for research purposes only.</div>
+          </UiCard>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px">
+          <UiCard title="Key Findings" subtitle="Summary of final iteration">
+            <ul class="list">
+              <li>The system preserves expert annotations and bounding-box coordinates.</li>
+              <li>Iteration 3 substantially improved abnormality detection performance.</li>
+              <li>The platform demonstrates the feasibility of combining AI detection, expert annotation, and reporting.</li>
+              <li>Localization accuracy remains an area requiring further improvement.</li>
+            </ul>
+          </UiCard>
+
+          <UiCard title="Research Limitations" subtitle="Important boundaries">
+            <ul class="list">
+              <li>Bounding-box localization remains imperfect.</li>
+              <li>Misclassification still occurs for some abnormalities.</li>
+              <li>Dataset imbalance remains a challenge.</li>
+              <li>Outputs require expert review and are not clinically validated.</li>
+              <li>Results should not replace professional medical interpretation.</li>
+            </ul>
+          </UiCard>
+        </div>
+
+        <UiCard title="Future Directions" subtitle="Next research steps" style="margin-top: 16px">
+          <div class="tag-panel">
+            <span v-for="item in futureWork" :key="item" class="pill">{{ item }}</span>
           </div>
         </UiCard>
       </div>
@@ -92,12 +149,71 @@
 
 <script>
 import UiCard from "@/ui/UiCard.vue";
-import UiButton from "@/ui/UiButton.vue";
 import UiBadge from "@/ui/UiBadge.vue";
 
 export default {
   name: "ResearchView",
-  components: { UiCard, UiButton, UiBadge },
+  components: { UiCard, UiBadge },
+  data() {
+    return {
+      workflow: [
+        { number: "1", label: "Upload Chest X-Ray" },
+        { number: "2", label: "AI Detection" },
+        { number: "3", label: "Expert Review" },
+        { number: "4", label: "Save Coordinates" },
+        { number: "5", label: "Generate Report" },
+        { number: "6", label: "Export CSV/PDF" },
+      ],
+      objectives: [
+        {
+          title: "Objective 1",
+          subtitle: "Preserve annotations",
+          body: "Save radiologist-created bounding boxes and coordinates for record keeping, validation, and future model improvement.",
+        },
+        {
+          title: "Objective 2",
+          subtitle: "Improve detection",
+          body: "Improve abnormality classification and localization while reducing misclassification and irrelevant background detections.",
+        },
+        {
+          title: "Objective 3",
+          subtitle: "Generate reports",
+          body: "Generate structured radiology-style reports using standardized templates and detected abnormalities.",
+        },
+      ],
+      abnormalities: [
+        "Cardiomegaly",
+        "Pleural Thickening",
+        "Pulmonary Fibrosis",
+        "Pleural Effusion",
+        "Nodule / Mass",
+        "Infiltration",
+        "Consolidation",
+        "Atelectasis",
+        "Pneumothorax",
+      ],
+      preprocessing: [
+        "Dataset filtering",
+        "PA view selection",
+        "Bounding box validation",
+        "Weighted Box Fusion",
+        "Class balancing",
+        "Stratified sampling",
+        "Image resizing to 300 x 300",
+        "Pascal VOC conversion",
+        "XML annotation generation",
+      ],
+      futureWork: [
+        "Larger annotated datasets",
+        "Improved localization accuracy",
+        "Better classification performance",
+        "Lower training loss",
+        "NLP-enhanced report generation",
+        "Expanded abnormality coverage",
+        "Clinical validation studies",
+      ],
+    };
+  },
 };
 </script>
 
@@ -115,17 +231,25 @@ export default {
   font-size: 18px;
   font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
-.p { margin: 0 0 6px; color: var(--text-2); line-height: 1.42; font-size: 12px; }
-.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.45; font-size: 12px; }
+.page-subtitle {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.highlight { color: var(--primary); }
+.p { margin: 0 0 8px; color: var(--text-2); line-height: 1.5; font-size: 12.5px; }
+.list { margin: 0; padding-left: 15px; color: var(--text-2); line-height: 1.5; font-size: 12.5px; }
 
 .pipeline {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .step {
@@ -138,6 +262,7 @@ export default {
   border: 1px solid var(--border);
   font-weight: 700;
   color: var(--text);
+  font-size: 12px;
 }
 
 .num {
@@ -150,29 +275,65 @@ export default {
   color: var(--primary);
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-2);
-  font-weight: 650;
-  font-size: 10.8px;
+.dataset-list,
+.process-grid {
+  display: grid;
+  gap: 8px;
 }
 
-.shots { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
-@media (max-width: 980px) { .shots { grid-template-columns: 1fr; } }
-
-.shot {
-  height: 110px;
-  border-radius: 8px;
-  border: 1px dashed rgba(37,99,235,0.45);
-  background: radial-gradient(500px 140px at 20% 0%, rgba(37,99,235,0.08), transparent 60%), var(--surface);
+.dataset-row {
   display: grid;
-  place-items: center;
-  color: var(--muted);
-  font-weight: 700;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.dataset-row strong { color: var(--text); }
+
+.tag-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pill,
+.process-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 650;
+  font-size: 11.5px;
+}
+
+.process-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.process-item {
+  border-radius: 8px;
+  justify-content: center;
+  text-align: center;
+}
+
+.callout {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(217,119,6,0.08);
+  border: 1px solid rgba(217,119,6,0.22);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .process-grid { grid-template-columns: 1fr; }
 }
 </style>
