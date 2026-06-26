@@ -172,18 +172,18 @@ export default {
       objectives: [
         {
           title: "Objective 1",
-          subtitle: "Preserve annotations",
-          body: "Save radiologist-created bounding boxes and coordinates for record keeping, validation, and future model improvement.",
+          subtitle: "Preserve radiologist annotations",
+          body: "Preserve radiologist-created annotations and bounding-box coordinates to support validation, reproducibility, and consistent downstream research.",
         },
         {
           title: "Objective 2",
-          subtitle: "Improve detection",
-          body: "Improve abnormality classification and localization while reducing misclassification and irrelevant background detections.",
+          subtitle: "Improve classification & localization",
+          body: "Improve abnormality classification and localization while maintaining radiologist oversight during expert verification.",
         },
         {
           title: "Objective 3",
-          subtitle: "Generate reports",
-          body: "Generate structured radiology-style reports using standardized templates and detected abnormalities.",
+          subtitle: "Generate standardized reports",
+          body: "Generate standardized radiology-style reports using RSNA-inspired templates with Clinical Indication, Findings, Impression, and Recommendations.",
         },
       ],
       abnormalities: [
@@ -199,14 +199,14 @@ export default {
       ],
       preprocessing: [
         "Dataset filtering",
-        "PA view selection",
-        "Bounding box validation",
-        "Weighted Box Fusion",
+        "PA-view selection",
+        "Bounding-box validation",
+        "Weighted Box Fusion (WBF)",
         "Class balancing",
         "Stratified sampling",
-        "Image resizing to 300 x 300",
+        "Resize to 300×300",
         "Pascal VOC conversion",
-        "XML annotation generation",
+        "Weighted boxes → Pascal VOC XML",
       ],
       futureWork: [
         "Larger annotated datasets",

@@ -56,8 +56,9 @@
           </div>
 
           <div class="preview">
-            <UiCard title="PCSC 2025 Research Home" subtitle="Research Prototype">
+            <UiCard title="PCSC 2025 Research Prototype" subtitle="Research Prototype">
               <div class="preview-grid">
+                
                 <div class="preview-item">
                   <div class="k">Research Type</div>
                   <div class="v">Artificial Intelligence for Medical Imaging</div>

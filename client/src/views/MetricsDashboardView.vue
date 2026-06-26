@@ -10,32 +10,32 @@
           <div class="big">31.02%</div>
           <div class="text-muted">Iteration 3 final performance</div>
           <div class="metric-help">
-            mAP summarizes both detection and localization quality across IoU thresholds.
+            mAP aggregates detection quality across IoU thresholds (0.50 → 0.95). A prediction only counts as correct when the predicted bounding box overlaps the ground-truth box by at least the threshold IoU; averaging across thresholds rewards both finding the abnormality and localizing it precisely.
           </div>
         </UiCard>
         <UiCard title="Recall" subtitle="Average Recall">
           <div class="big">83.6–91.4%</div>
           <div class="text-muted">Across area sizes (Iteration 3)</div>
-          <div class="metric-help">
-            Recall reflects how many true abnormalities are successfully detected.
+          <div class="metric-help" aria-live="polite">
+            Recall is the fraction of ground-truth abnormalities that the model detects (i.e., produces a matching prediction). The displayed range reflects that smaller vs. larger abnormalities are detected with different success rates—higher recall means fewer missed findings.
           </div>
         </UiCard>
         <UiCard title="AUC" subtitle="Average AUC (per abnormality)">
           <div class="big">~0.82</div>
           <div class="text-muted">Model discrimination signal (Iteration 3)</div>
-          <div class="metric-help">
-            AUC measures how well the model distinguishes abnormal vs. non-abnormal findings.
+          <div class="metric-help" aria-live="polite">
+            AUC (Area Under the ROC Curve) summarizes how well the model ranks abnormal vs. normal instances across all decision thresholds. An AUC near 1.0 indicates strong separation (good discrimination); ~0.82 suggests the model reliably assigns higher scores to true abnormalities than to non-abnormal findings, though not perfectly.
           </div>
         </UiCard>
 
       </div>
 
       <div class="grid-2" style="margin-top: 16px">
-        <UiCard title="Iteration comparison" subtitle="mAP over iterations">
+        <UiCard title="Iteration comparison" subtitle="mAP improves over training iterations">
           <ChartCanvas :config="iterationConfig" />
         </UiCard>
 
-        <UiCard title="AUC by abnormality" subtitle="Bar chart">
+        <UiCard title="Class performance" subtitle="AUC per abnormality (higher = better separation)">
           <ChartCanvas :config="aucConfig" />
         </UiCard>
       </div>
@@ -45,11 +45,17 @@
           <ChartCanvas :config="prConfig" />
         </UiCard>
 
-        <UiCard title="Notes" subtitle="How to read this">
+        <UiCard title="Notes" subtitle="How to interpret the charts">
           <ul class="list">
-            <li>mAP summarizes detection quality across IoU thresholds.</li>
-            <li>High recall can still coincide with weaker localization precision.</li>
-            <li>Per-class AUC helps identify which abnormalities need more data/training.</li>
+            <li>
+              <strong>Iteration comparison (mAP):</strong> mAP rises when the model both finds more true abnormalities (recall) and produces tighter boxes (better localization). The jump to Iteration 3 indicates a larger fraction of predictions pass the stricter overlap requirements.
+            </li>
+            <li>
+              <strong>AUC by abnormality:</strong> each bar is the model’s ranking ability for that abnormality. Higher AUC means the model scores true cases above non-cases across many possible decision thresholds.
+            </li>
+            <li>
+              <strong>Precision/Recall tradeoff:</strong> as confidence threshold increases, precision typically increases (fewer false positives) while recall may decrease (more missed findings). Choose a threshold based on the cost of missing vs. over-calling.
+            </li>
           </ul>
           <div style="margin-top: 12px">
             <UiButton variant="primary" icon="bi bi-play-circle" @click="$router.push('/demo')">Open demo workspace</UiButton>
@@ -73,14 +79,14 @@ export default {
       return {
         type: "line",
         data: {
-          labels: ["IT1", "IT2", "IT3"],
+          labels: ["Iteration 1", "Iteration 2", "Iteration 3"],
           datasets: [
             {
-              label: "mAP",
-              data: [0.22, 0.27, 0.3102],
+              label: "mAP (AP@[0.50:0.95])",
+              data: [0.0092, 0.0079, 0.3102],
+              tension: 0.35,
               borderColor: "#2563eb",
               backgroundColor: "rgba(37,99,235,0.10)",
-              tension: 0.35,
               fill: true,
               pointRadius: 4,
             },
