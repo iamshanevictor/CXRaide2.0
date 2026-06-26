@@ -6,18 +6,28 @@
       </div>
 
       <div class="grid-3">
-        <UiCard title="mAP" subtitle="AP@[0.50:0.95]">
+        <UiCard title="mAP" subtitle="Mean Average Precision (AP@[0.50:0.95])">
           <div class="big">31.02%</div>
-          <div class="text-muted">Iteration 3 (demo numbers)</div>
+          <div class="text-muted">Iteration 3 final performance</div>
+          <div class="metric-help">
+            mAP summarizes both detection and localization quality across IoU thresholds.
+          </div>
         </UiCard>
-        <UiCard title="Recall" subtitle="AR by area size">
-          <div class="big">88.6%</div>
-          <div class="text-muted">High sensitivity, localization still improving</div>
+        <UiCard title="Recall" subtitle="Average Recall">
+          <div class="big">83.6–91.4%</div>
+          <div class="text-muted">Across area sizes (Iteration 3)</div>
+          <div class="metric-help">
+            Recall reflects how many true abnormalities are successfully detected.
+          </div>
         </UiCard>
-        <UiCard title="AUC" subtitle="Per abnormality">
-          <div class="big">0.82</div>
-          <div class="text-muted">Illustrative dashboard view</div>
+        <UiCard title="AUC" subtitle="Average AUC (per abnormality)">
+          <div class="big">~0.82</div>
+          <div class="text-muted">Model discrimination signal (Iteration 3)</div>
+          <div class="metric-help">
+            AUC measures how well the model distinguishes abnormal vs. non-abnormal findings.
+          </div>
         </UiCard>
+
       </div>
 
       <div class="grid-2" style="margin-top: 16px">

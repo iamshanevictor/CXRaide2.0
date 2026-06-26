@@ -20,20 +20,24 @@
           </div>
         </UiCard>
 
-        <UiCard title="Team" subtitle="Researchers / authors">
+        <UiCard title="Team" subtitle="Research prototype authors">
+          <p class="p" style="margin-top:0;">
+            CXRaide 2.0 is presented as a research prototype for PCSC 2025.
+            If you have author/institution details, add them here.
+          </p>
           <ul class="list">
-            <li>Add researcher names</li>
-            <li>Add institution / university</li>
-            <li>Add contact email (optional)</li>
+            <li>Author names</li>
+            <li>Institution / university</li>
+            <li>Contact email (optional)</li>
           </ul>
-          <div class="text-muted" style="margin-top: 10px; font-size: 13px;">
-            Tip: link to the paper PDF and the GitHub repository.
-          </div>
         </UiCard>
 
         <UiCard title="Citation" subtitle="How to reference">
           <div class="mono">
-            (Add your preferred citation text here)
+            CXRaide 2.0: AI-Assisted Chest X-Ray Annotation and Abnormality Detection.
+            Philippine Computing Science Congress (PCSC) 2025.
+            
+            Use the associated paper citation when available.
           </div>
           <div style="margin-top: 12px">
             <UiButton variant="secondary" icon="bi bi-journal-text" @click="$router.push('/research')">
@@ -41,6 +45,7 @@
             </UiButton>
           </div>
         </UiCard>
+
 
         <UiCard title="Purpose" subtitle="Why it exists">
           <ul class="list">

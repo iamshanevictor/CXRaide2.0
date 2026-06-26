@@ -2,14 +2,18 @@
   <div class="page">
     <div class="content">
       <div class="container" style="padding: 18px 0 34px">
-        <div class="page-head">
+      <div class="page-head">
           <h1>Study : <span class="highlight">CXRaide 2.0</span></h1>
-          <p class="page-subtitle">AI-Assisted Chest X-Ray Annotation and Abnormality Detection for PCSC 2025.</p>
+          <p class="page-subtitle">
+            CXRaide 2.0: AI-Assisted Chest X-Ray Annotation and Abnormality Detection
+            for PCSC 2025.
+          </p>
         </div>
 
         <UiBadge variant="warning" style="margin-bottom: 12px">
-          <i class="bi bi-exclamation-triangle" /> Research prototype - Not for clinical diagnosis
+          <i class="bi bi-exclamation-triangle" /> Research prototype — Not for clinical diagnosis
         </UiBadge>
+
 
         <div class="grid-2">
           <UiCard title="Problem Statement" subtitle="Why annotation preservation matters">
@@ -41,16 +45,16 @@
           </UiCard>
         </div>
 
-        <div class="grid-2" style="margin-top: 16px">
-          <UiCard title="Training Datasets" subtitle="NIH + VinBigData">
+      <div class="grid-2" style="margin-top: 16px">
+          <UiCard title="Datasets" subtitle="Training data sources (curated for detection)">
             <div class="dataset-list">
               <div class="dataset-row">
                 <strong>NIH Chest X-ray Dataset</strong>
-                <span>112,120 original images; bounding-box annotated subset used.</span>
+                <span>112,120 images (bounding-box annotated subset used).</span>
               </div>
               <div class="dataset-row">
                 <strong>VinBigData Chest X-ray Dataset</strong>
-                <span>15,000 radiologist-annotated images; multiple annotations merged with Weighted Box Fusion.</span>
+                <span>15,000 radiologist-annotated images; multiple annotations merged using Weighted Box Fusion.</span>
               </div>
               <div class="dataset-row">
                 <strong>Final Combined Dataset</strong>
@@ -58,6 +62,7 @@
               </div>
             </div>
           </UiCard>
+
 
           <UiCard title="Detected Abnormalities" subtitle="Nine supported categories">
             <div class="tag-panel">
