@@ -7,7 +7,7 @@
         </RouterLink>
 
         <nav class="links" aria-label="Primary">
-          <a href="#features">Overview</a>
+          <RouterLink :to="{ path: '/', hash: '#overview' }">Overview</RouterLink>
           <RouterLink to="/research">Study</RouterLink>
           <RouterLink to="/metrics">Metrics</RouterLink>
           <RouterLink to="/about">About</RouterLink>
@@ -25,14 +25,17 @@
         <div class="container hero-inner">
           <div class="copy">
             <UiBadge variant="info">
-              <i class="bi bi-shield-check" /> Research prototype - Not for clinical diagnosis
+              <i class="bi bi-shield-check" /> Research prototype — educational & research use only
             </UiBadge>
 
-            <h1>CXRaide 2.0: AI-Assisted Chest X-Ray Annotation and Abnormality Detection</h1>
+            <h1>
+              AI-Assisted Chest X-Ray Annotation and Abnormality Detection
+              <span class="title-accent">(CXRaide 2.0)</span>
+            </h1>
+
             <p class="lead">
-              A PCSC 2025 research prototype for studying human-in-the-loop chest X-ray workflows:
-              AI-assisted abnormality localization, expert bounding-box annotation, annotation preservation,
-              and template-based structured report generation.
+              CXRaide 2.0 is a research platform for expert annotation workflows and AI-assisted chest X-ray abnormality detection,
+              including bounding-box localization, CSV annotation preservation, and structured radiology report generation.
             </p>
 
             <div class="hero-actions">
@@ -44,32 +47,32 @@
               </UiButton>
             </div>
 
-            <div class="pill-row" style="margin-top: 14px">
+            <div class="pill-row" aria-label="Highlights">
               <span class="pill"><i class="bi bi-cpu" /> SSD300_VGG16</span>
-              <span class="pill"><i class="bi bi-bounding-box" /> Bounding boxes to CSV</span>
-              <span class="pill"><i class="bi bi-file-earmark-medical" /> Template reports</span>
-              <span class="pill"><i class="bi bi-people" /> Expert review required</span>
+              <span class="pill"><i class="bi bi-bounding-box" /> Bounding boxes → CSV</span>
+              <span class="pill"><i class="bi bi-file-earmark-medical" /> Structured report templates</span>
+              <span class="pill"><i class="bi bi-people" /> Expert review workflow</span>
             </div>
           </div>
 
           <div class="preview">
-            <UiCard title="Research Snapshot" subtitle="Philippine Computing Science Congress 2025">
+            <UiCard title="PCSC 2025 Research Home" subtitle="Research Prototype">
               <div class="preview-grid">
+                <div class="preview-item">
+                  <div class="k">Research Type</div>
+                  <div class="v">Artificial Intelligence for Medical Imaging</div>
+                </div>
+                <div class="preview-item">
+                  <div class="k">Pipeline</div>
+                  <div class="v">Upload → AI → Review → Export</div>
+                </div>
+                <div class="preview-item">
+                  <div class="k">Data</div>
+                  <div class="v">NIH + VinBig</div>
+                </div>
                 <div class="preview-item">
                   <div class="k">Status</div>
                   <div class="v">Research Prototype</div>
-                </div>
-                <div class="preview-item">
-                  <div class="k">mAP</div>
-                  <div class="v">31.02%</div>
-                </div>
-                <div class="preview-item">
-                  <div class="k">Recall</div>
-                  <div class="v">83.6-91.4%</div>
-                </div>
-                <div class="preview-item">
-                  <div class="k">Average AUC</div>
-                  <div class="v">~0.82</div>
                 </div>
               </div>
               <div class="disclaimer">
@@ -81,43 +84,45 @@
         </div>
       </section>
 
-      <section id="features" class="section">
+      <section id="overview" class="section">
         <div class="container">
           <div class="section-head">
-            <h2>What the study addresses</h2>
+            <h2>Solving a time-sensitive clinical workflow (research focus)</h2>
             <p class="text-muted">
-              Chest X-ray interpretation is high-volume and time-sensitive. CXRaide 2.0 focuses on preserving
-              expert annotations and supporting reproducible AI-assisted evaluation.
+              Chest X-ray interpretation is time-sensitive and requires expert radiologists. CXRaide 2.0 supports experts by combining
+              AI-assisted detection with structured, human-in-the-loop review.
             </p>
           </div>
 
           <div class="grid-2">
-            <UiCard title="Research Problem" subtitle="Annotation, validation, and reproducibility">
+            <UiCard title="The Research Problem" subtitle="Annotation is labor-intensive & inconsistent">
               <p class="p">
-                Manual abnormality annotation requires expert radiologists and can be expensive, time-consuming,
-                and inconsistent. Many systems classify abnormalities but do not adequately preserve expert
-                bounding-box coordinates needed for validation and future AI training.
+                Manual annotation is labor-intensive, expensive, and can vary between experts. Systems that only output labels
+                often fail to preserve the expert bounding-box coordinates required for validation, reproducibility, and future model training.
               </p>
             </UiCard>
-            <UiCard title="Human-in-the-loop Workflow" subtitle="AI suggestions remain subject to expert review">
+
+            <UiCard title="AI-Assisted Detection" subtitle="SSD300_VGG16 + confidence scoring">
               <ul class="list">
-                <li>AI provides initial predictions and confidence scores.</li>
-                <li>Radiologists review, verify, and refine bounding boxes.</li>
-                <li>Expert-created labels and coordinates are saved for later analysis.</li>
+                <li>AI provides initial abnormality localization and confidence scoring.</li>
+                <li>Bounding boxes are generated to support expert verification.</li>
+                <li>Outputs are designed for structured review—not standalone decision-making.</li>
               </ul>
             </UiCard>
-            <UiCard title="Core Capabilities" subtitle="One research environment">
+
+            <UiCard title="Expert Annotation Tooling" subtitle="Boxes, editing, and CSV export">
               <ul class="list">
-                <li>AI-assisted abnormality detection and localization.</li>
-                <li>Manual box creation, editing, zoom support, and labeling.</li>
-                <li>CSV annotation export and PDF report export.</li>
+                <li>Manual bounding boxes with bounding-box editing.</li>
+                <li>CSV export for annotation preservation.</li>
+                <li>Review-ready workflow for repeatable research studies.</li>
               </ul>
             </UiCard>
-            <UiCard title="Structured Reporting" subtitle="Template-based, research-only output">
+
+            <UiCard title="Structured Reporting" subtitle="Findings, Impression, Recommendations + PDF export">
               <ul class="list">
-                <li>Clinical Indication, Findings, Impression, and Recommendations sections.</li>
-                <li>RSNA RadReport-inspired templates for consistent documentation.</li>
-                <li>Not a substitute for professional medical interpretation.</li>
+                <li>Template-based structured output for consistent documentation.</li>
+                <li>Report sections include Findings, Impression, and Recommendations.</li>
+                <li>PDF export to support paper-ready documentation workflows.</li>
               </ul>
             </UiCard>
           </div>
@@ -133,31 +138,35 @@
       <section class="research-fill">
         <div class="container">
           <div class="section-head compact-head">
-            <h2>Research workflow</h2>
+            <h2>End-to-end research workflow</h2>
             <p class="text-muted">
-              The prototype combines model inference, expert annotation, coordinate preservation, and structured export.
+              The prototype combines model inference, expert review, coordinate preservation, and structured export.
             </p>
           </div>
 
-          <div class="info-grid timeline-grid">
-            <div v-for="step in workflow" :key="step.label" class="info-tile">
+          <div class="info-grid timeline-grid" aria-label="Workflow timeline">
+            <div v-for="step in workflow" :key="step.index" class="info-tile">
               <div class="info-kicker">Step {{ step.index }}</div>
               <h3>{{ step.label }}</h3>
               <p>{{ step.detail }}</p>
             </div>
           </div>
 
-          <div class="section-head compact-head tag-head">
-            <h2>Detected abnormalities</h2>
-            <p class="text-muted">
-              CXRaide 2.0 supports nine chest X-ray abnormality categories used in the research prototype.
-            </p>
-          </div>
-
-          <div class="tag-panel">
-            <span v-for="item in abnormalities" :key="item" class="tag">
-              <i class="bi bi-dot" /> {{ item }}
-            </span>
+          <div class="feature-strip">
+            <div class="strip-card">
+              <div class="strip-title"><i class="bi bi-diagram-3"></i> Research Pipeline</div>
+              <div class="strip-text">
+                NIH + VinBig datasets with three training iterations and a dedicated performance dashboard.
+              </div>
+            </div>
+            <div class="strip-card">
+              <div class="strip-title"><i class="bi bi-file-earmark-text"></i> Export Outputs</div>
+              <div class="strip-text">Export CSV for bounding boxes and PDF for structured reports.</div>
+            </div>
+            <div class="strip-card">
+              <div class="strip-title"><i class="bi bi-check2-circle"></i> Human-in-the-loop Review</div>
+              <div class="strip-text">AI suggestions are verified and refined by experts before export.</div>
+            </div>
           </div>
         </div>
       </section>
@@ -166,7 +175,7 @@
         <div class="container footer-inner">
           <div>
             <div class="foot-brand">CXRaide 2.0</div>
-            <div class="text-muted">AI-assisted CXR annotation and detection - PCSC 2025 research prototype</div>
+            <div class="text-muted">PCSC 2025 research prototype • AI-assisted CXR annotation & detection</div>
           </div>
           <div class="footer-links">
             <RouterLink to="/about">About</RouterLink>
@@ -190,23 +199,36 @@ export default {
   data() {
     return {
       workflow: [
-        { index: "1", label: "Upload Chest X-Ray", detail: "A chest X-ray image is loaded into the research workspace." },
-        { index: "2", label: "AI Detection", detail: "SSD300_VGG16 proposes abnormality labels, confidence scores, and boxes." },
-        { index: "3", label: "Expert Review", detail: "A radiologist verifies, edits, or adds abnormality annotations." },
-        { index: "4", label: "Save Coordinates", detail: "Filename, abnormality label, and bounding-box coordinates are preserved." },
-        { index: "5", label: "Generate Report", detail: "A structured radiology-style report is created from reviewed findings." },
-        { index: "6", label: "Export Results", detail: "Reviewed annotations and reports are exported as CSV and PDF." },
-      ],
-      abnormalities: [
-        "Cardiomegaly",
-        "Pleural Thickening",
-        "Pulmonary Fibrosis",
-        "Pleural Effusion",
-        "Nodule / Mass",
-        "Infiltration",
-        "Consolidation",
-        "Atelectasis",
-        "Pneumothorax",
+        {
+          index: "1",
+          label: "Upload Chest X-ray",
+          detail: "A chest X-ray is loaded into the research workspace.",
+        },
+        {
+          index: "2",
+          label: "AI Detection (SSD300_VGG16)",
+          detail: "AI proposes abnormality labels with confidence scoring and bounding boxes.",
+        },
+        {
+          index: "3",
+          label: "Expert Review",
+          detail: "Radiologists verify, refine, or add bounding-box annotations.",
+        },
+        {
+          index: "4",
+          label: "Save Bounding Boxes",
+          detail: "Reviewed coordinates and labels are preserved for reproducibility (CSV).",
+        },
+        {
+          index: "5",
+          label: "Generate Report",
+          detail: "Structured report text is produced from reviewed findings (Findings, Impression, Recommendations).",
+        },
+        {
+          index: "6",
+          label: "Export CSV / PDF",
+          detail: "Export annotation CSV and research-ready PDF report output.",
+        },
       ],
     };
   },
@@ -305,7 +327,52 @@ main {
 .section-head { margin-bottom: 12px; }
 .section-head h2 { margin: 0 0 5px; font-size: 20px; }
 
-#features { scroll-margin-top: 66px; }
+#overview { scroll-margin-top: 66px; }
+
+.title-accent {
+  color: var(--primary);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.feature-strip {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.strip-card {
+  min-height: 120px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.strip-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.strip-title i {
+  color: var(--primary-2);
+}
+
+.strip-text {
+  margin-top: 10px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  .feature-strip { grid-template-columns: 1fr; }
+}
+
 
 .p { margin: 0; color: var(--text-2); line-height: 1.55; font-size: 13px; }
 .list { margin: 0; padding-left: 17px; color: var(--text-2); line-height: 1.55; font-size: 13px; }
